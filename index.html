@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --cog-navy: #000048;
+    --cog-navy: rgba(9, 9, 95, 0.99); /*#000048;*/
     --cog-blue: #0000ff;
     --border: #d0d7de;
     --nav-text: #ffffff;
@@ -74,7 +74,7 @@
   .nav-tabs {
     display: flex;
     gap: 6px;
-    height: 30px;
+    height: 40px;
     align-items: center;
     overflow-x: auto;
     overflow-y: hidden;
@@ -167,8 +167,7 @@
   <nav class="nav-tabs">
     <button class="tab-btn active" data-key="pivot" data-url="pivot.html" data-exists="true" onclick="switchTab(this)">Pivot Table Tool</button>
     <button class="tab-btn" data-key="text_compare" data-url="text_compare.html" data-exists="true" onclick="switchTab(this)">Text Compare Tool</button>
-    <button class="tab-btn" data-key="dp_close" data-url="dp_close.html" data-exists="false" onclick="switchTab(this)">DP Close Tool</button>
-
+    <button class="tab-btn" data-key="dp_close" data-url="dp_close.html" data-exists="true" onclick="switchTab(this)">DP Close Tool</button>
 
   </nav>
 </header>
