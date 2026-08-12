@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Depreciation Reconciliation — Old vs New Diff</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FDFCF8;
+    --paper-shade:#F5F2E9;
+    --rule:#DAD3C1;
+    --ink:#1B2A4A;
+    --ink-soft:#4A5872;
+    --green:#2F6B4F;
+    --red:#A6362B;
+    --amber:#9C6B23;
+    --blue:#2E5C8A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper-shade);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .sheet{ max-width:1180px; margin:0 auto; padding:36px 28px 80px; }
+  header.masthead{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:3px double var(--ink); padding-bottom:14px; margin-bottom:6px;
+    flex-wrap:wrap; gap:8px;
+  }
+  header.masthead h1{ font-family:'Source Serif 4',serif; font-weight:700; font-size:26px; margin:0; }
+  header.masthead .folio{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft); text-align:right; }
+  .subhead{ font-size:13px; color:var(--ink-soft); margin:8px 0 28px; font-style:italic; }
+
+  .ledger-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width:760px){ .ledger-grid{grid-template-columns:1fr;} }
+  .column-block label{
+    display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono',monospace;
+    font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--ink-soft); margin-bottom:8px;
+  }
+  .column-block .tag{ display:inline-block; width:9px; height:9px; border-radius:1px; }
+  .tag.old{background:var(--red);} .tag.new{background:var(--blue);}
+  textarea{
+    width:100%; height:220px; resize:vertical; background:var(--paper);
+    border:1px solid var(--rule); border-left:3px solid var(--ink); padding:12px 14px;
+    font-family:'IBM Plex Mono',monospace; font-size:12px; line-height:1.55; color:var(--ink); outline:none;
+  }
+  textarea:focus{border-left-color:var(--blue);}
+  textarea::placeholder{color:#B8B2A0;}
+  textarea:disabled{background:var(--paper-shade); color:var(--ink-soft);}
+
+  .upload-row{ display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+  .file-btn{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.5px; text-transform:uppercase;
+    color:var(--ink); background:var(--paper); border:1px solid var(--rule); border-left:3px solid var(--ink-soft);
+    padding:7px 12px; cursor:pointer; display:inline-block;
+  }
+  .file-btn:hover{border-left-color:var(--blue);}
+  .file-btn input[type="file"]{display:none;}
+  .file-name{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-clear{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--red); background:none; border:none; cursor:pointer; padding:0; text-decoration:underline; display:none; }
+  .or-sep{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:1px; margin:2px 0 8px; }
+
+  .action-row{ display:flex; justify-content:center; align-items:center; gap:16px; margin:30px 0 8px; }
+  button#reconcile{
+    font-family:'Source Serif 4',serif; font-weight:700; font-size:15px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--paper); background:var(--ink); border:none; padding:14px 34px; cursor:pointer;
+    transition:transform .12s ease, background .2s ease;
+  }
+  button#reconcile:hover{background:#101c33;}
+  button#reconcile:active{transform:scale(0.97);}
+  .hint{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); }
+
+  /* ---- Count summary: Old / New / Difference ---- */
+  .count-summary{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+    margin:34px 0 40px;
+  }
+  @media (max-width:700px){ .count-summary{grid-template-columns:1fr;} }
+  .count-summary .cell{ background:var(--paper); padding:22px 16px; text-align:center; }
+  .count-summary .cell .num{
+    font-family:'IBM Plex Mono',monospace; font-size:34px; font-weight:600; display:block; line-height:1;
+  }
+  .count-summary .cell .lbl{
+    font-size:11px; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-soft); display:block; margin-top:8px;
+  }
+  .count-summary .cell.old .num{color:var(--red);}
+  .count-summary .cell.new .num{color:var(--blue);}
+  .count-summary .cell.diff .num{color:var(--amber);}
+  .count-summary .cell.diff.zero .num{color:var(--green);}
+  .count-summary .cell .sub{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-soft); margin-top:6px; display:block;
+  }
+
+  section.result-block{margin-bottom:38px;}
+  section.result-block h2{
+    font-family:'Source Serif 4',serif; font-size:16px; margin:0 0 2px; padding-bottom:8px;
+    border-bottom:1px solid var(--rule); display:flex; align-items:center; gap:10px;
+  }
+  section.result-block h2 .swatch{width:10px;height:10px;display:inline-block;}
+  .removed h2 .swatch{background:var(--red);}
+  .added h2 .swatch{background:var(--blue);}
+  .changed h2 .swatch{background:var(--amber);}
+  section.result-block .empty-note{ font-size:12.5px; color:var(--ink-soft); padding:14px 0; font-style:italic; }
+
+  table.diff-table{ width:100%; border-collapse:collapse; font-family:'IBM Plex Mono',monospace; font-size:12px; margin-top:4px; }
+  table.diff-table th{
+    text-align:left; font-family:'Inter',sans-serif; font-weight:600; font-size:10.5px; letter-spacing:0.6px;
+    text-transform:uppercase; color:var(--ink-soft); padding:8px 10px; border-bottom:1px solid var(--ink);
+  }
+  table.diff-table td{ padding:7px 10px; border-bottom:1px solid var(--rule); }
+  table.diff-table tr:hover td{background:var(--paper-shade);}
+  .removed table.diff-table td.val{color:var(--red);}
+  .added table.diff-table td.val{color:var(--blue);}
+  .num-cell{text-align:right;}
+
+  footer.note{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); text-align:center;
+    margin-top:50px; border-top:1px solid var(--rule); padding-top:16px;
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="masthead">
+    <h1>Depreciation Reconciliation Diff</h1>
+    <div class="folio">RUN&nbsp;CONTROL&nbsp;COMPARE<br>PS&nbsp;ASSET&nbsp;MGMT</div>
+  </header>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+    <button type="button" id="refreshBtn" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;background:#fff;border:1px solid var(--rule);color:var(--ink);padding:7px 14px;border-radius:4px;cursor:pointer;">&#8635; Refresh</button>
+  </div>
+  <p class="subhead">Paste the old and new query output below, or upload a .csv / .xlsx file for either side (with or without the header row) — keyed on BUSINESS_UNIT + ASSET_ID + BOOK + PERIOD + FISCAL_YEAR.</p>
+
+  <div class="ledger-grid">
+    <div class="column-block">
+      <label><span class="tag old"></span>Old output</label>
+      <div class="upload-row">
+        <label class="file-btn">Upload CSV / XLSX
+          <input type="file" id="oldFile" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetsml.sheet,application/vnd.ms-excel">
+        </label>
+        <span class="file-name" id="oldFileName"></span>
+        <button type="button" class="file-clear" id="oldFileClear">clear</button>
+      </div>
+      <div class="or-sep">— or paste below —</div>
+      <textarea id="oldInput" placeholder="BU&#9;ASSET_ID&#9;BOOK&#9;ACCOUNTING_PERIOD&#9;FISCAL_YEAR&#9;DEPRECIATION AMOUNT&#9;ACCOUNTED AMOUNT
+IN219&#9;2&#9;CORP-BASE&#9;8&#9;2026&#9;153738.88&#9;0
+..."></textarea>
+    </div>
+    <div class="column-block">
+      <label><span class="tag new"></span>New output</label>
+      <div class="upload-row">
+        <label class="file-btn">Upload CSV / XLSX
+          <input type="file" id="newFile" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetsml.sheet,application/vnd.ms-excel">
+        </label>
+        <span class="file-name" id="newFileName"></span>
+        <button type="button" class="file-clear" id="newFileClear">clear</button>
+      </div>
+      <div class="or-sep">— or paste below —</div>
+      <textarea id="newInput" placeholder="Paste the new run's output here in the same format..."></textarea>
+    </div>
+  </div>
+
+  <div class="action-row">
+    <button id="reconcile">Reconcile</button>
+    <span class="hint">key = BU · ASSET_ID · BOOK · PERIOD · FY</span>
+  </div>
+
+  <div id="countSummaryWrap"></div>
+
+  <section class="result-block removed" id="removedBlock">
+    <h2><span class="swatch"></span>Only in old output — dropped in new run</h2>
+    <div id="removedBody"></div>
+  </section>
+
+  <section class="result-block added" id="addedBlock">
+    <h2><span class="swatch"></span>Only in new output — newly appeared</h2>
+    <div id="addedBody"></div>
+  </section>
+
+  <section class="result-block changed" id="changedBlock">
+    <h2><span class="swatch"></span>Same key, different amounts</h2>
+    <div id="changedBody"></div>
+  </section>
+
+  <footer class="note">All figures compared to 2 decimal places · Asset IDs normalized to 12 digits · nothing is sent anywhere, this runs entirely in your browser</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// Pads purely-numeric asset ids out to 12 digits (e.g. 7856 -> 000000007856).
+function padAsset(a){
+  const s = String(a).trim();
+  if(/^\d+$/.test(s)) return s.padStart(12, '0');
+  return s;
+}
+
+function rowsToMap(rowsArray){
+  const rows = new Map();
+  for(const raw of rowsArray){
+    if(!raw || raw.length < 6) continue;
+    let [bu, asset, book, period, fy, depr, acct] = raw;
+    bu = (bu ?? '').toString().trim();
+    asset = (asset ?? '').toString().trim();
+    book = (book ?? '').toString().trim();
+    period = (period ?? '').toString().trim();
+    fy = (fy ?? '').toString().trim();
+    depr = (depr ?? '').toString().trim().replace(/,/g, '');
+    acct = (acct ?? '').toString().trim().replace(/,/g, '');
+
+    if(!bu && !asset && !book) continue; // blank row
+    const d = parseFloat(depr);
+    const a = parseFloat(acct);
+    if(isNaN(d) && isNaN(a)) continue; // header row or junk line
+
+    asset = padAsset(asset);
+    const key = [bu, asset, book, period, fy].join('|');
+    rows.set(key, {
+      bu, asset, book, period, fy,
+      depr: isNaN(d) ? 0 : d,
+      acct: isNaN(a) ? 0 : a
+    });
+  }
+  return rows;
+}
+
+function parseText(rawText){
+  const lines = rawText.split(/\r?\n/);
+  const rowsArray = [];
+  for(const line of lines){
+    const trimmed = line.trim();
+    if(!trimmed) continue;
+    let parts = trimmed.split('\t');
+    if(parts.length < 6) parts = trimmed.split(',');
+    if(parts.length < 6) parts = trimmed.split(/\s{2,}|\s+/);
+    if(parts.length < 6) continue;
+    rowsArray.push(parts);
+  }
+  return rowsToMap(rowsArray);
+}
+
+async function parseFile(file){
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, {type:'array'});
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rowsArray = XLSX.utils.sheet_to_json(sheet, {header:1, raw:false, defval:''});
+  return rowsToMap(rowsArray);
+}
+
+async function getRowsFor(side){
+  const fileInput = document.getElementById(side + 'File');
+  if(fileInput.files && fileInput.files.length > 0){
+    return await parseFile(fileInput.files[0]);
+  }
+  const textarea = document.getElementById(side + 'Input');
+  return parseText(textarea.value);
+}
+
+function fmt(n){
+  return (Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function rowHtml(r){
+  return `<tr><td>${r.bu}</td><td>${r.asset}</td><td>${r.book}</td>
+    <td class="num-cell val">${fmt(r.depr)}</td><td class="num-cell val">${fmt(r.acct)}</td></tr>`;
+}
+
+// Refresh = fully reset THIS tool (both files/pasted text + results).
+// This page runs inside its own iframe on the workspace, so this only
+// affects the DP Close Tool tab — other tabs keep their data untouched.
+document.getElementById('refreshBtn').addEventListener('click', () => {
+  if(confirm('This will clear both inputs and results on this tab and let you upload/paste fresh data. Continue?')){
+    window.location.reload();
+  }
+});
+
+document.getElementById('reconcile').addEventListener('click', async () => {
+  const oldRows = await getRowsFor('old');
+  const newRows = await getRowsFor('new');
+
+  const removed = [];
+  const added = [];
+  const changed = [];
+  let matched = 0;
+
+  for(const [key, r] of oldRows){
+    if(!newRows.has(key)){
+      removed.push(r);
+    } else {
+      const nr = newRows.get(key);
+      if(Math.abs(nr.depr - r.depr) > 0.005 || Math.abs(nr.acct - r.acct) > 0.005){
+        changed.push({key, old:r, neu:nr});
+      } else {
+        matched++;
+      }
+    }
+  }
+  for(const [key, r] of newRows){
+    if(!oldRows.has(key)) added.push(r);
+  }
+
+  // ---- Count summary: Old / New / Difference ----
+  const oldCount = oldRows.size;
+  const newCount = newRows.size;
+  const netDiff = newCount - oldCount;
+  const totalVariance = removed.length + added.length + changed.length;
+  const isZero = totalVariance === 0;
+
+  document.getElementById('countSummaryWrap').innerHTML = `
+    <div class="count-summary">
+      <div class="cell old">
+        <span class="num">${oldCount}</span>
+        <span class="lbl">Old output rows</span>
+      </div>
+      <div class="cell new">
+        <span class="num">${newCount}</span>
+        <span class="lbl">New output rows</span>
+      </div>
+      <div class="cell diff ${isZero ? 'zero' : ''}">
+        <span class="num">${netDiff > 0 ? '+' : ''}${netDiff}</span>
+        <span class="lbl">Difference</span>
+        <span class="sub">${isZero ? 'no variance' : `${removed.length} dropped · ${added.length} added · ${changed.length} changed`}</span>
+      </div>
+    </div>`;
+
+  // Removed table
+  document.getElementById('removedBody').innerHTML = removed.length ? `
+    <table class="diff-table"><thead><tr>
+      <th>BU</th><th>Asset ID</th><th>Book</th><th>Depr Amt</th><th>Accounted Amt</th>
+    </tr></thead><tbody>${removed.map(r=>rowHtml(r)).join('')}</tbody></table>`
+    : `<div class="empty-note">None — every old-run row is still present in the new run.</div>`;
+
+  // Added table
+  document.getElementById('addedBody').innerHTML = added.length ? `
+    <table class="diff-table"><thead><tr>
+      <th>BU</th><th>Asset ID</th><th>Book</th><th>Depr Amt</th><th>Accounted Amt</th>
+    </tr></thead><tbody>${added.map(r=>rowHtml(r)).join('')}</tbody></table>`
+    : `<div class="empty-note">None — the new run introduced no new keys.</div>`;
+
+  // Changed table
+  document.getElementById('changedBody').innerHTML = changed.length ? `
+    <table class="diff-table"><thead><tr>
+      <th>BU</th><th>Asset ID</th><th>Book</th>
+      <th>Old Depr</th><th>New Depr</th><th>Old Acct</th><th>New Acct</th>
+    </tr></thead><tbody>${changed.map(c=>`<tr>
+      <td>${c.old.bu}</td><td>${c.old.asset}</td><td>${c.old.book}</td>
+      <td class="num-cell">${fmt(c.old.depr)}</td>
+      <td class="num-cell val">${fmt(c.neu.depr)}</td>
+      <td class="num-cell">${fmt(c.old.acct)}</td>
+      <td class="num-cell val">${fmt(c.neu.acct)}</td>
+    </tr>`).join('')}</tbody></table>`
+    : `<div class="empty-note">None — where keys match on both sides, amounts tie out exactly.</div>`;
+});
+
+// Show the chosen filename and let the user clear it to go back to pasting.
+['old', 'new'].forEach(side => {
+  const fileInput = document.getElementById(side + 'File');
+  const nameEl = document.getElementById(side + 'FileName');
+  const clearBtn = document.getElementById(side + 'FileClear');
+  const textarea = document.getElementById(side + 'Input');
+
+  fileInput.addEventListener('change', () => {
+    if(fileInput.files && fileInput.files.length > 0){
+      nameEl.textContent = fileInput.files[0].name;
+      clearBtn.style.display = 'inline';
+      textarea.disabled = true;
+      textarea.placeholder = 'Using uploaded file — clear it above to paste instead.';
+    }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    fileInput.value = '';
+    nameEl.textContent = '';
+    clearBtn.style.display = 'none';
+    textarea.disabled = false;
+    textarea.placeholder = side === 'old'
+      ? 'BU\tASSET_ID\tBOOK\tACCOUNTING_PERIOD\tFISCAL_YEAR\tDEPRECIATION AMOUNT\tACCOUNTED AMOUNT\nIN219\t2\tCORP-BASE\t8\t2026\t153738.88\t0\n...'
+      : "Paste the new run's output here in the same format...";
+  });
+});
+</script>
+</body>
+</html>

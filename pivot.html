@@ -81,6 +81,9 @@
   }
 
   .file-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .top-bar{display:flex;align-items:center;justify-content:flex-end;margin-bottom:-6px;}
+  .btn.refresh{background:#ffffff;color:var(--cog-navy);border:1px solid var(--border-dark);display:flex;align-items:center;gap:6px;}
+  .btn.refresh:hover{background:var(--danger);color:#fff;border-color:var(--danger);}
   .btn{
     font-family:'Golos Text',sans-serif;font-weight:600;font-size:13px;
     padding:9px 15px;border-radius:4px;border:none;
@@ -319,6 +322,9 @@
   <div class="container">
     
     <div class="app">
+      <div class="top-bar">
+        <button class="btn refresh" id="refreshBtn" title="Clear all loaded data and start over">&#8635; Refresh</button>
+      </div>
       <div class="empty-state" id="emptyState">
         <div class="glyph">// no data loaded</div>
         <h2>Load a spreadsheet to start pivoting</h2>
@@ -442,6 +448,15 @@
   const fileInput = el('fileInput');
   const emptyState = el('emptyState');
   const workspace = el('workspace');
+
+  // Refresh = fully reset THIS tool back to its blank/upload state.
+  // Since this page lives inside its own iframe on the workspace, this
+  // reload only affects the Pivot Table Tool tab — other tabs' data is untouched.
+  el('refreshBtn').addEventListener('click', ()=>{
+    if(confirm('This will clear the currently loaded data on this tab and let you upload/paste fresh data. Continue?')){
+      window.location.reload();
+    }
+  });
 
   el('uploadBtn2').addEventListener('click', ()=>fileInput.click());
   fileInput.addEventListener('change', handleFile);
@@ -1072,6 +1087,21 @@
     return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  // Groups any list of rows that carry {bu, asset, ...} into unique Business Unit + Asset ID
+  // combinations (asset IDs normalized via formatAssetId so e.g. "1140" and "0000000001140"
+  // collapse into the same combination). Each returned entry keeps all original rows under .rows.
+  function dedupeByBuAsset(rows){
+    const map = new Map();
+    rows.forEach(r=>{
+      const buNorm = fmtKey(r.bu);
+      const assetNorm = formatAssetId(r.asset);
+      const key = buNorm+'\u0001'+assetNorm;
+      if(!map.has(key)) map.set(key, {bu:r.bu, asset:assetNorm, rows:[]});
+      map.get(key).rows.push(r);
+    });
+    return Array.from(map.values());
+  }
+
   const SYNC_TOLERANCE = 0.01;
 
   function normHeader(s){ return s.trim().toUpperCase().replace(/[\s_]+/g,'_'); }
@@ -1179,9 +1209,21 @@
         const a = g.amountByBook.get('ACT-USD');
         const c = g.amountByBook.get('CORPORATE');
         const diff = a - c;
-        const inSync = Math.abs(diff) <= SYNC_TOLERANCE;
+        let inSync = Math.abs(diff) <= SYNC_TOLERANCE;
+
+        // NEW LOGIC: even if ACT-USD and CORPORATE are numerically close, if the sign of AMOUNT
+        // is not the same across all 3 books (ACT-USD, CORP-BASE, CORPORATE), flag this asset as an issue here too.
+        let signMismatch = false;
+        if(g.amountByBook.has('CORP-BASE')){
+          const b = g.amountByBook.get('CORP-BASE');
+          const signOf = n => n > SYNC_TOLERANCE ? 1 : (n < -SYNC_TOLERANCE ? -1 : 0);
+          const sA = signOf(a), sB = signOf(b), sC = signOf(c);
+          if(!(sA === sB && sB === sC)) signMismatch = true;
+        }
+        if(signMismatch) inSync = false;
+
         if(!inSync) groupHasError = true;
-        amountRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, actUsd:a, corporate:c, diff, inSync});
+        amountRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, actUsd:a, corpBase:g.amountByBook.get('CORP-BASE'), corporate:c, diff, inSync, signMismatch});
       }
       if(txnCol && g.txnByBook.has('ACT-USD') && g.txnByBook.has('CORP-BASE') && g.txnByBook.has('CORPORATE')){
         const a = g.txnByBook.get('ACT-USD');
@@ -1208,17 +1250,66 @@
 
     const uniqueErrorAssets = new Map();
     function markError(bu, asset, reason){
-      const key = fmtKey(bu)+'\u0001'+fmtKey(asset);
-      if(!uniqueErrorAssets.has(key)) uniqueErrorAssets.set(key, {bu, asset, reasons:new Set()});
+      const assetNorm = formatAssetId(asset);
+      const key = fmtKey(bu)+'\u0001'+fmtKey(assetNorm);
+      if(!uniqueErrorAssets.has(key)) uniqueErrorAssets.set(key, {bu, asset:assetNorm, reasons:new Set()});
       uniqueErrorAssets.get(key).reasons.add(reason);
     }
     amountMismatches.forEach(r=>markError(r.bu, r.asset, 'AMOUNT'));
     txnMismatches.forEach(r=>markError(r.bu, r.asset, 'TXN_AMOUNT'));
     missingRows.forEach(r=>markError(r.bu, r.asset, 'MISSING BOOK'));
 
+    // ---- NEW, ADDITIVE CHECK: for every timestamp, each book's total AMOUNT must net to zero. ----
+    // If a timestamp+book combo does not net to zero, every unique Business Unit + Asset ID combination
+    // that contributed to that group is surfaced as an "Imbalance Entry" issue (displayed as unique BU & Asset ID,
+    // consistent with all the other criteria above). This does not alter any of the checks/groupings above.
+    const zeroSumRows = [];
+    if(dttmCol && amountCol){
+      const tsBookGroups = new Map();
+      rawRows.forEach(r=>{
+        const dttm = r[dttmCol];
+        const book = normBook(r[bookCol]);
+        const raw = r[amountCol];
+        const num = typeof raw==='number' ? raw : parseFloat(raw);
+        if(isNaN(num)) return;
+        const key = fmtKey(dttm)+'\u0001'+book;
+        if(!tsBookGroups.has(key)){
+          tsBookGroups.set(key, {dttm, book, sum:0, memberRows:[]});
+        }
+        const g = tsBookGroups.get(key);
+        g.sum += num;
+        g.memberRows.push(r);
+      });
+
+      const imbalancedCombos = new Map(); // unique BU + Asset ID -> {bu, asset, instances:[{dttm,book,sum}]}
+      tsBookGroups.forEach(g=>{
+        const inSync = Math.abs(g.sum) <= SYNC_TOLERANCE;
+        if(!inSync){
+          g.memberRows.forEach(r=>erroringRawRows.add(r));
+          g.memberRows.forEach(r=>{
+            const bu = fmtKey(r[buCol]);
+            const asset = formatAssetId(r[assetCol]);
+            const key = bu+'\u0001'+asset;
+            if(!imbalancedCombos.has(key)){
+              imbalancedCombos.set(key, {bu, asset, instances:[]});
+            }
+            const combo = imbalancedCombos.get(key);
+            if(!combo.instances.some(i=>i.dttm===g.dttm && i.book===g.book)){
+              combo.instances.push({dttm:g.dttm, book:g.book, sum:g.sum});
+            }
+          });
+        }
+      });
+
+      imbalancedCombos.forEach(combo=>{
+        zeroSumRows.push({bu:combo.bu, asset:combo.asset, instances:combo.instances, inSync:false});
+        markError(combo.bu, combo.asset, 'IMBALANCE ENTRY');
+      });
+    }
+
     renderUniqueErrorAssets(uniqueErrorAssets, fieldDefs);
-    renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, missingRows, fieldDefs);
-    renderSyncDetail(amountCol, txnCol, amountRows, txnRows, missingRows, fieldDefs);
+    renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, missingRows, fieldDefs, zeroSumRows);
+    renderSyncDetail(amountCol, txnCol, amountRows, txnRows, missingRows, fieldDefs, zeroSumRows);
     applySyncVisibility();
 
     lastSyncContext = {fieldDefs, bookCol, amountCol, txnCol};
@@ -1264,23 +1355,28 @@
     return escParts.join(' / ');
   }
 
-  function renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, missingRows, fieldDefs){
+  function renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, missingRows, fieldDefs, zeroSumRows){
+    zeroSumRows = zeroSumRows || [];
     const tiles = el('syncTiles');
     tiles.innerHTML = '';
 
     if(amountCol){
+      const uniqueAmountMismatches = dedupeByBuAsset(amountMismatches);
       const tile = document.createElement('div');
-      tile.className = 'sync-tile ' + (amountMismatches.length ? 'bad' : 'ok');
-      tile.innerHTML = '<div class="n">'+amountMismatches.length+'</div>'+
-        '<div class="t">asset'+(amountMismatches.length===1?'':'s')+' out of sync — Sum(AMOUNT), ACT-USD vs CORPORATE</div>'+
+      tile.className = 'sync-tile ' + (uniqueAmountMismatches.length ? 'bad' : 'ok');
+      tile.innerHTML = '<div class="n">'+uniqueAmountMismatches.length+'</div>'+
+        '<div class="t">unique Business Unit + Asset combination'+(uniqueAmountMismatches.length===1?'':'s')+' out of sync — Sum(AMOUNT), ACT-USD vs CORPORATE</div>'+
         '<div class="d">'+amountRows.length+' groups checked</div>';
-      if(amountMismatches.length){
+      if(uniqueAmountMismatches.length){
         const chips = document.createElement('div');
         chips.className = 'sync-chips';
-        amountMismatches.forEach(m=>{
+        uniqueAmountMismatches.forEach(combo=>{
           const c = document.createElement('span');
           c.className = 'sync-chip';
-          c.innerHTML = chipLabel(m, fieldDefs);
+          const anySign = combo.rows.some(r=>r.signMismatch);
+          c.innerHTML = 'BU/Asset: <b>'+escapeHtml(fmtKey(combo.bu))+' / '+escapeHtml(combo.asset)+'</b>'+
+            (combo.rows.length>1 ? ' — '+combo.rows.length+' occurrences' : '') +
+            (anySign ? ' — <b>sign mismatch (3 books)</b>' : '');
           chips.appendChild(c);
         });
         tile.appendChild(chips);
@@ -1289,18 +1385,20 @@
     }
 
     if(txnCol){
+      const uniqueTxnMismatches = dedupeByBuAsset(txnMismatches);
       const tile = document.createElement('div');
-      tile.className = 'sync-tile ' + (txnMismatches.length ? 'bad' : 'ok');
-      tile.innerHTML = '<div class="n">'+txnMismatches.length+'</div>'+
-        '<div class="t">asset'+(txnMismatches.length===1?'':'s')+' out of sync — Sum(TXN_AMOUNT), all 3 books</div>'+
+      tile.className = 'sync-tile ' + (uniqueTxnMismatches.length ? 'bad' : 'ok');
+      tile.innerHTML = '<div class="n">'+uniqueTxnMismatches.length+'</div>'+
+        '<div class="t">unique Business Unit + Asset combination'+(uniqueTxnMismatches.length===1?'':'s')+' out of sync — Sum(TXN_AMOUNT), all 3 books</div>'+
         '<div class="d">'+txnRows.length+' groups checked</div>';
-      if(txnMismatches.length){
+      if(uniqueTxnMismatches.length){
         const chips = document.createElement('div');
         chips.className = 'sync-chips';
-        txnMismatches.forEach(m=>{
+        uniqueTxnMismatches.forEach(combo=>{
           const c = document.createElement('span');
           c.className = 'sync-chip';
-          c.innerHTML = chipLabel(m, fieldDefs);
+          c.innerHTML = 'BU/Asset: <b>'+escapeHtml(fmtKey(combo.bu))+' / '+escapeHtml(combo.asset)+'</b>'+
+            (combo.rows.length>1 ? ' — '+combo.rows.length+' occurrences' : '');
           chips.appendChild(c);
         });
         tile.appendChild(chips);
@@ -1309,18 +1407,45 @@
     }
 
     {
+      const uniqueMissingRows = dedupeByBuAsset(missingRows);
       const tile = document.createElement('div');
-      tile.className = 'sync-tile ' + (missingRows.length ? 'bad' : 'ok');
-      tile.innerHTML = '<div class="n">'+missingRows.length+'</div>'+
-        '<div class="t">group'+(missingRows.length===1?'':'s')+' with a book missing entirely — ACT-USD / CORP-BASE / CORPORATE</div>'+
+      tile.className = 'sync-tile ' + (uniqueMissingRows.length ? 'bad' : 'ok');
+      tile.innerHTML = '<div class="n">'+uniqueMissingRows.length+'</div>'+
+        '<div class="t">unique Business Unit + Asset combination'+(uniqueMissingRows.length===1?'':'s')+' with a book missing entirely — ACT-USD / CORP-BASE / CORPORATE</div>'+
         '<div class="d">checked across all groups in this sheet</div>';
-      if(missingRows.length){
+      if(uniqueMissingRows.length){
         const chips = document.createElement('div');
         chips.className = 'sync-chips';
-        missingRows.forEach(m=>{
+        uniqueMissingRows.forEach(combo=>{
           const c = document.createElement('span');
           c.className = 'sync-chip';
-          c.innerHTML = chipLabel(m, fieldDefs) + ' — <b>missing '+escapeHtml(m.missingBooks.join(', '))+'</b>';
+          const allMissing = new Set();
+          combo.rows.forEach(r=>r.missingBooks.forEach(b=>allMissing.add(b)));
+          c.innerHTML = 'BU/Asset: <b>'+escapeHtml(fmtKey(combo.bu))+' / '+escapeHtml(combo.asset)+'</b>'+
+            (combo.rows.length>1 ? ' — '+combo.rows.length+' occurrences' : '') +
+            ' — <b>missing '+escapeHtml(Array.from(allMissing).join(', '))+'</b>';
+          chips.appendChild(c);
+        });
+        tile.appendChild(chips);
+      }
+      tiles.appendChild(tile);
+    }
+
+    // ---- NEW TILE (additive): unique BU + Asset ID combinations involved in a timestamp/book group that doesn't net to zero ----
+    {
+      const tile = document.createElement('div');
+      tile.className = 'sync-tile ' + (zeroSumRows.length ? 'bad' : 'ok');
+      tile.innerHTML = '<div class="n">'+zeroSumRows.length+'</div>'+
+        '<div class="t">unique Business Unit + Asset combination'+(zeroSumRows.length===1?'':'s')+' with an Imbalance Entry</div>'+
+        '<div class="d">checked Sum(AMOUNT) per DTTM_STAMP, per BOOK, should net to zero</div>';
+      if(zeroSumRows.length){
+        const chips = document.createElement('div');
+        chips.className = 'sync-chips';
+        zeroSumRows.forEach(m=>{
+          const c = document.createElement('span');
+          c.className = 'sync-chip';
+          const instLabel = m.instances.map(i=>escapeHtml(String(i.dttm))+' / '+escapeHtml(i.book)+' (sum '+escapeHtml(fmtNum(i.sum))+')').join('; ');
+          c.innerHTML = 'BU/Asset: <b>'+escapeHtml(m.bu)+' / '+escapeHtml(m.asset)+'</b> &mdash; '+instLabel;
           chips.appendChild(c);
         });
         tile.appendChild(chips);
@@ -1329,7 +1454,8 @@
     }
   }
 
-  function renderSyncDetail(amountCol, txnCol, amountRows, txnRows, missingRows, fieldDefs){
+  function renderSyncDetail(amountCol, txnCol, amountRows, txnRows, missingRows, fieldDefs, zeroSumRows){
+    zeroSumRows = zeroSumRows || [];
     const detail = el('syncDetail');
     detail.innerHTML = '';
 
@@ -1358,7 +1484,7 @@
           if(!r.inSync) tr.classList.add('mismatch');
           tr.innerHTML = idRowCells(r)+
             '<td>'+fmtNum(r.actUsd)+'</td><td>'+fmtNum(r.corporate)+'</td><td>'+fmtNum(r.diff)+'</td>'+
-            '<td class="'+(r.inSync?'status-ok':'status-bad')+'">'+(r.inSync?'In sync':'Not in sync')+'</td>';
+            '<td class="'+(r.inSync?'status-ok':'status-bad')+'">'+(r.inSync?'In sync':(r.signMismatch?'Sign mismatch (3 books)':'Not in sync'))+'</td>';
           tbody.appendChild(tr);
         });
         table.appendChild(tbody);
@@ -1413,6 +1539,37 @@
           tr.innerHTML = idRowCells(r)+
             '<td>'+escapeHtml(r.presentBooks.join(', ')||'—')+'</td>'+
             '<td class="status-bad">'+escapeHtml(r.missingBooks.join(', '))+'</td>';
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        block.appendChild(table);
+      }
+      detail.appendChild(block);
+    }
+
+    // ---- NEW DETAIL BLOCK (additive): Imbalance Entry — per-timestamp, per-book zero-sum check, shown as unique BU + Asset ID combinations ----
+    {
+      const block = document.createElement('div');
+      block.className = 'sync-detail-block';
+      block.innerHTML = '<h4>Imbalance Entry — Sum(AMOUNT) per timestamp, per book should be zero</h4>';
+      const shownZeroSumRows = showErrorOnly ? zeroSumRows.filter(r=>!r.inSync) : zeroSumRows;
+      if(zeroSumRows.length===0){
+        block.innerHTML += '<div class="sync-empty-note">Every timestamp + book group nets to zero — no imbalance entries.</div>';
+      } else if(shownZeroSumRows.length===0){
+        block.innerHTML += '<div class="sync-empty-note">No sync issues — every checked timestamp/book group is in sync.</div>';
+      } else {
+        const table = document.createElement('table');
+        table.className = 'sync';
+        table.innerHTML = '<thead><tr><th>Business unit</th><th>Asset</th><th>Timestamp / Book (Sum AMOUNT)</th><th>Status</th></tr></thead>';
+        const tbody = document.createElement('tbody');
+        shownZeroSumRows.sort((a,b)=> (a.inSync - b.inSync) || 0).forEach(r=>{
+          const tr = document.createElement('tr');
+          if(!r.inSync) tr.classList.add('mismatch');
+          const instCell = r.instances.map(i=>escapeHtml(String(i.dttm))+' / '+escapeHtml(i.book)+' (sum '+fmtNum(i.sum)+')').join('<br>');
+          tr.innerHTML = '<td>'+escapeHtml(r.bu)+'</td>'+
+            '<td>'+escapeHtml(r.asset)+'</td>'+
+            '<td>'+instCell+'</td>'+
+            '<td class="'+(r.inSync?'status-ok':'status-bad')+'">'+(r.inSync?'In sync':'Imbalance Entry')+'</td>';
           tbody.appendChild(tr);
         });
         table.appendChild(tbody);

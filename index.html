@@ -122,10 +122,22 @@
   }
 
   /* Full Fill Seamless Iframe */
-  .content-frame {
+  .frame-stack {
     width: 100%;
     flex: 1;
+    position: relative;
+    min-height: 0;
+  }
+  .content-frame {
+    width: 100%;
+    height: 100%;
     border: none;
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .content-frame.active {
     display: block;
   }
 
@@ -153,15 +165,19 @@
     <div class="brand-tag">AM Workspace</div>
   </div>
   <nav class="nav-tabs">
-    <button class="tab-btn active" data-url="pivot.html" data-exists="true" onclick="switchTab(this)">Pivot Table Tool</button>
-    <button class="tab-btn" data-url="text_compare.html" data-exists="true" onclick="switchTab(this)">Text Compare Tool</button>
-    <button class="tab-btn" data-url="dp_close.html" data-exists="false" onclick="switchTab(this)">DP Close Tool</button>
+    <button class="tab-btn active" data-key="pivot" data-url="pivot.html" data-exists="true" onclick="switchTab(this)">Pivot Table Tool</button>
+    <button class="tab-btn" data-key="text_compare" data-url="text_compare.html" data-exists="true" onclick="switchTab(this)">Text Compare Tool</button>
+    <button class="tab-btn" data-key="dp_close" data-url="dp_close.html" data-exists="false" onclick="switchTab(this)">DP Close Tool</button>
 
 
   </nav>
 </header>
 
-<iframe id="appFrame" class="content-frame"></iframe>
+<div class="frame-stack" id="frameStack">
+  <iframe id="frame-pivot" class="content-frame active" data-key="pivot" src="pivot.html"></iframe>
+  <iframe id="frame-text_compare" class="content-frame" data-key="text_compare" src="text_compare.html"></iframe>
+  <iframe id="frame-dp_close" class="content-frame" data-key="dp_close" src="dp_close.html"></iframe>
+</div>
 
 <footer>&copy; Cognizant 2026, all rights reserved.(RKM)</footer>
 
@@ -195,27 +211,35 @@
     </html>
   `;
 
+  // Switching tabs now ONLY toggles which iframe is visible.
+  // Every tool's iframe stays loaded in the background, so whatever the
+  // user uploaded/typed/pivoted stays exactly as it was until they hit
+  // that tool's own "Refresh" button (or reload the whole workspace page).
   function switchTab(btn) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    const iframe = document.getElementById('appFrame');
-    const url = btn.getAttribute('data-url');
+    const key = btn.getAttribute('data-key');
     const exists = btn.getAttribute('data-exists') === 'true';
 
+    document.querySelectorAll('.content-frame').forEach(f => f.classList.remove('active'));
+
     if (exists) {
-      iframe.removeAttribute('srcdoc');
-      iframe.src = url;
+      const target = document.getElementById('frame-' + key);
+      if (target) target.classList.add('active');
     } else {
-      iframe.removeAttribute('src');
-      iframe.srcdoc = underConstructionHTML;
+      // Placeholder for future tabs that don't have a page yet.
+      let placeholder = document.getElementById('frame-placeholder');
+      if (!placeholder) {
+        placeholder = document.createElement('iframe');
+        placeholder.id = 'frame-placeholder';
+        placeholder.className = 'content-frame';
+        placeholder.srcdoc = underConstructionHTML;
+        document.getElementById('frameStack').appendChild(placeholder);
+      }
+      placeholder.classList.add('active');
     }
   }
-
-  window.onload = () => {
-    const activeTab = document.querySelector('.tab-btn.active');
-    if (activeTab) switchTab(activeTab);
-  };
 </script>
 
 </body>
