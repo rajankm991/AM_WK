@@ -258,16 +258,19 @@
   }
   .error-assets-banner.clean{border-color:#BFE0B8;background:#EEF6EC;}
   .error-assets-head{
-    display:flex;align-items:baseline;gap:8px;font-family:'JetBrains Mono',monospace;
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-family:'JetBrains Mono',monospace;
     font-size:12px;color:var(--cog-navy);margin-bottom:6px;flex-wrap:wrap;
   }
   .error-assets-head b{font-family:'Golos Text',sans-serif;font-size:15px;color:var(--danger);}
   .error-assets-banner.clean .error-assets-head b{color:#3F7A36;}
-  .error-asset-chip{
-    display:inline-flex;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11.5px;
-    background:#fff;border:1px solid var(--border);border-radius:5px;padding:4px 8px;margin:3px 4px 0 0;
+  .error-assets-export-btn{
+    font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11px;
+    background:#ffffff;color:var(--cog-navy);border:1px solid var(--border-dark);
+    border-radius:4px;padding:5px 10px;cursor:pointer;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:5px;transition:background-color .15s,color .15s;
   }
-  .error-asset-chip b{color:var(--danger);}
+  .error-assets-export-btn:hover{background:var(--cog-blue);color:#fff;border-color:var(--cog-blue);}
+  table.error-assets-table td:nth-child(3), table.error-assets-table th:nth-child(3){text-align:left;}
   .sync-tile{
     flex:1;min-width:220px;border-radius:8px;padding:12px 14px;border:1px solid var(--border);
     display:flex;flex-direction:column;gap:4px;
@@ -1011,7 +1014,12 @@
       const isLeaf = !node.children;
       const tr = document.createElement('tr');
       const agg = computeAggregates(node.rows);
-      const flagged = node.rows.some(r=>erroringRawRows.has(r)) || nodeHasRollupMismatch(agg);
+      // Only the deepest / most granular row (e.g. Distribution Type, when it's the
+      // last field in Rows) is where the sync check actually detected the mismatch.
+      // Parent/subtotal rows (BU, Asset, Trans type, Timestamp, ...) simply roll up
+      // that same underlying issue, so they should NOT be painted as errors too —
+      // otherwise one real issue looks like several highlighted rows.
+      const flagged = isLeaf && (node.rows.some(r=>erroringRawRows.has(r)) || nodeHasRollupMismatch(agg));
       if(flagged) tr.classList.add('row-error');
       if(!isLeaf) tr.classList.add('subtotal-row');
 
@@ -1079,6 +1087,9 @@
 
   function fmtNum(v){
     if(v===null || v===undefined) return '';
+    // Avoid ugly "-0.00" / "-0" from floating point sums that land just below zero
+    // (e.g. -0.00000000001). Snap anything that rounds to zero back to a clean 0.
+    if(Object.is(v, -0) || Math.abs(v) < 0.005) v = 0;
     if(Number.isInteger(v)) return v.toLocaleString('en-US');
     return v.toLocaleString('en-US', {maximumFractionDigits:2, minimumFractionDigits:2});
   }
@@ -1315,35 +1326,76 @@
     lastSyncContext = {fieldDefs, bookCol, amountCol, txnCol};
   }
 
+  // Holds the last-rendered error-assets rows in plain export-friendly shape,
+  // so the "Export to Excel" button can dump exactly what's on screen.
+  let lastErrorAssetsExport = [];
+
   function renderUniqueErrorAssets(uniqueErrorAssets, fieldDefs){
-    const idFields = fieldDefs.filter(f => f.prop==='bu' || f.prop==='asset');
     const box = el('syncErrorAssets');
     box.innerHTML = '';
+    lastErrorAssetsExport = [];
+
     const banner = document.createElement('div');
     banner.className = 'error-assets-banner' + (uniqueErrorAssets.size===0 ? ' clean' : '');
+
     const head = document.createElement('div');
     head.className = 'error-assets-head';
+
+    const headText = document.createElement('span');
     if(uniqueErrorAssets.size===0){
-      head.innerHTML = '<b>0</b> Business Unit + Asset combinations have any sync issue';
+      headText.innerHTML = '<b>0</b> Business Unit + Asset combinations have any sync issue';
     } else {
-      head.innerHTML = '<b>'+uniqueErrorAssets.size+'</b> unique Business Unit + Asset combination'+(uniqueErrorAssets.size===1?'':'s')+' with at least one sync issue';
+      headText.innerHTML = '<b>'+uniqueErrorAssets.size+'</b> unique Business Unit + Asset combination'+(uniqueErrorAssets.size===1?'':'s')+' with at least one sync issue';
     }
-    banner.appendChild(head);
+    head.appendChild(headText);
+
     if(uniqueErrorAssets.size){
-      const wrap = document.createElement('div');
-      Array.from(uniqueErrorAssets.values()).forEach(a=>{
-        const chip = document.createElement('span');
-        chip.className = 'error-asset-chip';
-        const parts = idFields.map(f=>{
-          const v = f.isAsset ? formatAssetId(a[f.prop]) : String(a[f.prop]);
-          return f.isAsset ? '<b>'+escapeHtml(v)+'</b>' : escapeHtml(v);
-        });
-        chip.innerHTML = parts.join(' / ')+' — '+escapeHtml(Array.from(a.reasons).join(', '));
-        wrap.appendChild(chip);
-      });
-      banner.appendChild(wrap);
+      const exportBtn = document.createElement('button');
+      exportBtn.type = 'button';
+      exportBtn.className = 'error-assets-export-btn';
+      exportBtn.innerHTML = '&#11015; Export to Excel';
+      exportBtn.addEventListener('click', exportErrorAssetsToExcel);
+      head.appendChild(exportBtn);
     }
+
+    banner.appendChild(head);
+
+    if(uniqueErrorAssets.size){
+      const table = document.createElement('table');
+      table.className = 'sync error-assets-table';
+      table.innerHTML = '<thead><tr><th>Business Unit</th><th>Asset ID</th><th>Error Description</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      Array.from(uniqueErrorAssets.values()).forEach(a=>{
+        const buVal = String(a.bu);
+        const assetVal = formatAssetId(a.asset);
+        const reasonVal = Array.from(a.reasons).join(', ');
+
+        const tr = document.createElement('tr');
+        tr.classList.add('mismatch');
+        tr.innerHTML = '<td>'+escapeHtml(buVal)+'</td><td>'+escapeHtml(assetVal)+'</td><td>'+escapeHtml(reasonVal)+'</td>';
+        tbody.appendChild(tr);
+
+        lastErrorAssetsExport.push({
+          'Business Unit': buVal,
+          'Asset ID': assetVal,
+          'Error Description': reasonVal
+        });
+      });
+      table.appendChild(tbody);
+      banner.appendChild(table);
+    }
+
     box.appendChild(banner);
+  }
+
+  function exportErrorAssetsToExcel(){
+    if(!lastErrorAssetsExport.length) return;
+    const ws = XLSX.utils.json_to_sheet(lastErrorAssetsExport);
+    ws['!cols'] = [{wch:16},{wch:18},{wch:40}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sync Issues');
+    const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    XLSX.writeFile(wb, 'sync_issues_'+stamp+'.xlsx');
   }
 
   function chipLabel(m, fieldDefs){
