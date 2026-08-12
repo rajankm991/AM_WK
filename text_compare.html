@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text Compare</title>
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================================================
+       1. CSS Variables & Design Tokens
+       ========================================================================== */
+    :root {
+      --cog-navy: #000048;
+      --cog-blue: #0000ff;
+      --border: #d0d7de;
+      --border-dark: #bbc5d0;
+      --editor-bg: #0b0f19;
+      --editor-text: #e6edf3;
+      --added-bg: rgba(46, 160, 67, 0.22);
+      --added-text: #7ee787;
+      --removed-bg: rgba(248, 81, 73, 0.22);
+      --removed-text: #ff7b72;
+      --whitespace-bg: rgba(210, 153, 34, 0.22);
+      --whitespace-text: #e3b341;
+      --empty-bg: rgba(255, 255, 255, 0.03);
+    }
+
+    /* ==========================================================================
+       2. Global Reset & Base Styles
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #f4f6f9;
+      color: var(--cog-navy);
+      font-family: 'Golos Text', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ==========================================================================
+       3. Layout Container
+       ========================================================================== */
+    .container {
+      max-width: 1500px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* ==========================================================================
+       4. Editor Grid & Input Cards
+       ========================================================================== */
+    .editor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-header {
+      background: #eef2f7;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+    }
+
+    .file-input-wrapper input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    textarea {
+      width: 100%;
+      height: 280px;
+      background: var(--editor-bg);
+      border: none;
+      padding: 1rem;
+      color: var(--editor-text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+    }
+
+    /* ==========================================================================
+       5. Buttons & User Controls
+       ========================================================================== */
+    .controls {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .btn {
+      background: var(--cog-blue);
+      color: #ffffff;
+      border: none;
+      padding: 0.75rem 2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: #0000cc;
+    }
+
+    .file-btn,
+    .btn-secondary,
+    .nav-btn {
+      background: #ffffff;
+      border: 1px solid var(--border-dark);
+      color: var(--cog-navy);
+      padding: 0.35rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .file-btn:hover,
+    .nav-btn:hover {
+      background: var(--cog-blue);
+      color: #ffffff;
+      border-color: var(--cog-blue);
+    }
+
+    /* ==========================================================================
+       6. Stats Bar & Navigation Counters
+       ========================================================================== */
+    .results-container {
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .stats-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      padding: 0.75rem 1.25rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 72, 0.08);
+    }
+
+    .stat-group,
+    .stat-item,
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .stat-group {
+      gap: 1.5rem;
+    }
+
+    .stat-item {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .stat-item input[type="checkbox"] {
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .dot.added {
+      background: var(--added-text);
+    }
+
+    .dot.removed {
+      background: var(--removed-text);
+    }
+
+    .dot.space {
+      background: #f2990a;
+    }
+
+    .nav-counter {
+      font-size: 0.8rem;
+      color: #57606a;
+      min-width: 90px;
+      text-align: center;
+    }
+
+    /* ==========================================================================
+       7. Side-by-Side Diff Table
+       ========================================================================== */
+    .diff-viewer {
+      background: var(--editor-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 550px;
+      overflow-x: auto;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+    }
+
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .diff-table col.num {
+      width: 45px;
+    }
+
+    .diff-table col.prefix {
+      width: 20px;
+    }
+
+    .diff-table col.content {
+      width: calc(50% - 65px);
+    }
+
+    .diff-table td {
+      padding: 0.2rem 0.5rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      vertical-align: top;
+    }
+
+    .line-num {
+      text-align: right;
+      color: #9da7b3;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      padding-right: 0.5rem !important;
+      user-select: none;
+    }
+
+    .line-prefix {
+      text-align: center;
+      font-weight: 700;
+      user-select: none;
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .cell-orig {
+      border-right: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Diff Highlight States */
+    td.added {
+      background: var(--added-bg);
+      color: var(--added-text);
+    }
+
+    td.removed {
+      background: var(--removed-bg);
+      color: var(--removed-text);
+    }
+
+    td.space-only {
+      background: var(--whitespace-bg);
+      color: var(--whitespace-text);
+    }
+
+    td.unchanged {
+      color: var(--editor-text);
+    }
+
+    td.empty {
+      background: var(--empty-bg);
+    }
+
+    tr.change-row.active-change {
+      outline: 2px solid #38bdf8;
+      outline-offset: -2px;
+    }
+
+    /* ==========================================================================
+       8. Floating Utilities
+       ========================================================================== */
+    .scroll-top-btn {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--cog-navy);
+      color: #ffffff;
+      border: 1px solid var(--cog-blue);
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+      z-index: 100;
+    }
+
+    .scroll-top-btn.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .scroll-top-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="editor-grid">
+      <div class="card"><div class="card-header"><span>Original Source</span><div class="file-input-wrapper"><button class="file-btn">Upload File</button><input type="file" id="file1"></div></div><textarea id="text1" placeholder="Paste original text..."></textarea></div>
+      <div class="card"><div class="card-header"><span>Modified Source</span><div class="file-input-wrapper"><button class="file-btn">Upload File</button><input type="file" id="file2"></div></div><textarea id="text2" placeholder="Paste modified text..."></textarea></div>
+    </div>
+
+    <div class="controls"><button class="btn" id="compareBtn">Compare Files</button><button class="btn btn-secondary" id="clearBtn">Clear All</button></div>
+
+    <div id="resultsContainer" class="results-container">
+      <div class="stats-bar">
+        <div class="stat-group">
+          <label class="stat-item"><input type="checkbox" id="chkAdded" checked><span class="dot added"></span><span id="addedCount">0 insertions</span></label>
+          <label class="stat-item"><input type="checkbox" id="chkRemoved" checked><span class="dot removed"></span><span id="removedCount">0 deletions</span></label>
+          <label class="stat-item"><input type="checkbox" id="chkSpace" checked><span class="dot space"></span><span id="spaceCount">0 space shifts</span></label>
+        </div>
+        <div class="nav-controls">
+          <button class="nav-btn" id="prevChangeBtn">&#9650; Prev</button>
+          <span class="nav-counter" id="navCounter">0 / 0 changes</span>
+          <button class="nav-btn" id="nextChangeBtn">Next &#9660;</button>
+        </div>
+      </div>
+      <div class="diff-viewer">
+        <table class="diff-table">
+          <colgroup><col class="num"><col class="prefix"><col class="content cell-orig"><col class="num"><col class="prefix"><col class="content"></colgroup>
+          <tbody id="diffOutput"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <button class="scroll-top-btn" id="scrollTopBtn" aria-label="Scroll to top"><svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg></button>
+
+  <script>
+    let allDiffRows = [], filteredChangeRows = [], currentChangeIndex = -1;
+    const $ = id => document.getElementById(id), escMap = {'&':'&amp;','<':'&lt;','>':'&gt;'}, esc = s => s ? s.replace(/[&<>]/g, m => escMap[m]) : '';
+    const norm = s => s ? s.replace(/([,()+\-*\/=<>])/g, ' $1 ').replace(/\s+/g, '').toLowerCase() : '';
+    const bind = (f, t) => $(f).addEventListener('change', e => { const file = e.target.files[0]; if (file) { const r = new FileReader(); r.onload = ev => $(t).value = ev.target.result; r.readAsText(file); } });
+    bind('file1', 'text1'); bind('file2', 'text2');
+
+    function computeDiff(l1, l2) {
+      const m = l1.length, n = l2.length, dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+      for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) dp[i][j] = norm(l1[i - 1]) === norm(l2[j - 1]) ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+      let i = m, j = n, raw = [], rows = [];
+      while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && norm(l1[i - 1]) === norm(l2[j - 1])) raw.unshift({type: l1[i - 1] === l2[j - 1] ? 'unchanged' : 'space-only', text1: l1[i - 1], text2: l2[j - 1], line1: i--, line2: j--});
+        else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) raw.unshift({type: 'added', text2: l2[j - 1], line2: j--});
+        else raw.unshift({type: 'removed', text1: l1[i - 1], line1: i--});
+      }
+      for (let k = 0; k < raw.length; k++) {
+        const c = raw[k], nxt = raw[k + 1];
+        if (c.type === 'removed' && nxt && nxt.type === 'added') { rows.push({type: 'modified', line1: c.line1, text1: c.text1, line2: nxt.line2, text2: nxt.text2}); k++; }
+        else rows.push(c);
+      }
+      return rows;
+    }
+
+    function updateFilteredRows() {
+      const allowAdded = $('chkAdded').checked;
+      const allowRemoved = $('chkRemoved').checked;
+      const allowSpace = $('chkSpace').checked;
+
+      if (currentChangeIndex >= 0 && filteredChangeRows[currentChangeIndex]) {
+        filteredChangeRows[currentChangeIndex].element.classList.remove('active-change');
+      }
+
+      filteredChangeRows = allDiffRows.filter(item => {
+        if (item.type === 'added') return allowAdded;
+        if (item.type === 'removed') return allowRemoved;
+        if (item.type === 'space-only') return allowSpace;
+        if (item.type === 'modified') return allowAdded || allowRemoved;
+        return false;
+      });
+
+      currentChangeIndex = -1;
+      if (filteredChangeRows.length > 0) {
+        navigate(1);
+      } else {
+        $('navCounter').textContent = '0 / 0 changes';
+      }
+    }
+
+    function navigate(dir) {
+      if (!filteredChangeRows.length) return;
+      if (currentChangeIndex >= 0 && filteredChangeRows[currentChangeIndex]) {
+        filteredChangeRows[currentChangeIndex].element.classList.remove('active-change');
+      }
+      currentChangeIndex = (currentChangeIndex + dir + filteredChangeRows.length) % filteredChangeRows.length;
+      const target = filteredChangeRows[currentChangeIndex].element;
+      target.classList.add('active-change');
+      target.scrollIntoView({behavior: 'smooth', block: 'center'});
+      $('navCounter').textContent = `${currentChangeIndex + 1} / ${filteredChangeRows.length} changes`;
+    }
+
+    $('compareBtn').onclick = () => {
+      const diffs = computeDiff($('text1').value.split(/\r?\n/), $('text2').value.split(/\r?\n/)), out = $('diffOutput'), frag = document.createDocumentFragment();
+      out.replaceChildren(); allDiffRows = []; currentChangeIndex = -1; let c = {added: 0, removed: 0, 'space-only': 0};
+      diffs.forEach(item => {
+        const tr = document.createElement('tr');
+        let oN = item.line1 || '', oP = '', oT = item.text1 ?? '', oC = 'empty', mN = item.line2 || '', mP = '', mT = item.text2 ?? '', mC = 'empty';
+        if (item.type === 'unchanged') { oC = mC = 'unchanged'; oP = mP = ' '; }
+        else if (item.type === 'space-only') { oC = mC = 'space-only'; oP = mP = '~'; c['space-only']++; allDiffRows.push({element: tr, type: 'space-only'}); }
+        else if (item.type === 'modified') { oC = 'removed'; oP = '-'; mC = 'added'; mP = '+'; c.removed++; c.added++; allDiffRows.push({element: tr, type: 'modified'}); }
+        else if (item.type === 'removed') { oC = 'removed'; oP = '-'; c.removed++; allDiffRows.push({element: tr, type: 'removed'}); }
+        else if (item.type === 'added') { mC = 'added'; mP = '+'; c.added++; allDiffRows.push({element: tr, type: 'added'}); }
+        if (item.type !== 'unchanged') tr.classList.add('change-row');
+        tr.innerHTML = `<td class="line-num">${oN}</td><td class="line-prefix ${oC}">${oP}</td><td class="${oC} cell-orig">${esc(oT)}</td><td class="line-num">${mN}</td><td class="line-prefix ${mC}">${mP}</td><td class="${mC}">${esc(mT)}</td>`;
+        frag.appendChild(tr);
+      });
+      out.appendChild(frag);
+      $('addedCount').textContent = `${c.added} insertions`; $('removedCount').textContent = `${c.removed} deletions`; $('spaceCount').textContent = `${c['space-only']} space shifts`;
+      $('resultsContainer').style.display = 'flex';
+      updateFilteredRows();
+    };
+
+    ['chkAdded', 'chkRemoved', 'chkSpace'].forEach(id => $(id).addEventListener('change', updateFilteredRows));
+    $('nextChangeBtn').onclick = () => navigate(1);
+    $('prevChangeBtn').onclick = () => navigate(-1);
+    document.addEventListener('keydown', e => { if (document.activeElement.tagName !== 'TEXTAREA') { const k = e.key.toLowerCase(); if (k === 'j') navigate(1); else if (k === 'k') navigate(-1); } });
+    window.onscroll = () => $('scrollTopBtn').classList.toggle('visible', window.scrollY > 200);
+    $('scrollTopBtn').onclick = () => window.scrollTo({top: 0, behavior: 'smooth'});
+    $('clearBtn').onclick = () => { ['text1', 'text2', 'file1', 'file2'].forEach(id => $(id).value = ''); $('diffOutput').replaceChildren(); $('resultsContainer').style.display = 'none'; allDiffRows = []; filteredChangeRows = []; currentChangeIndex = -1; };
+  </script>
+</body>
+</html>

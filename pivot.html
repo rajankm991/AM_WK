@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Journal Helper</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@500;700&family=JetBrains+Mono&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ==========================================================================
+     1. CSS Variables & Design Tokens
+     ========================================================================== */
+  :root {
+    --cog-navy: #000048;
+    --cog-blue: #0000ff;
+    --border: #d0d7de;
+    --border-dark: #bbc5d0;
+    --editor-bg: #0b0f19;
+    --editor-text: #e6edf3;
+    --added-bg: rgba(46, 160, 67, 0.22);
+    --added-text: #7ee787;
+    --removed-bg: rgba(248, 81, 73, 0.22);
+    --removed-text: #ff7b72;
+    --whitespace-bg: rgba(210, 153, 34, 0.22);
+    --whitespace-text: #e3b341;
+    --empty-bg: rgba(255, 255, 255, 0.03);
+
+    /* Component Tokens */
+    --paper:#EDEFEA;
+    --panel:#FFFFFF;
+    --ink:#1B2430;
+    --muted:#6B7482;
+    --line:#D8DCE3;
+    --grid:#CBD1DB;
+    --accent:#3457D5;
+    --accent-dim:#EBEFFC;
+    --amber:#E2A63B;
+    --amber-dim:#FCF1DD;
+    --danger:#C24444;
+    --radius:6px;
+  }
+
+  /* ==========================================================================
+     2. Global Reset & Base Styles
+     ========================================================================== */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: #f4f6f9;
+    color: var(--cog-navy);
+    font-family: 'Golos Text', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ==========================================================================
+     3. Layout Container & Header
+     ========================================================================== */
+  .container {
+    max-width: 95vw;
+    margin: 0 auto;
+    width: 100%;
+    padding:1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Core Pivot Table App Layout Adjustments */
+  .app {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .file-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .btn{
+    font-family:'Golos Text',sans-serif;font-weight:600;font-size:13px;
+    padding:9px 15px;border-radius:4px;border:none;
+    background:var(--cog-blue);color:#fff;cursor:pointer;transition:background-color .2s, transform .08s ease;
+  }
+  .btn:hover{background:#0000cc;}
+  .btn:active{transform:translateY(1px);}
+  .btn.secondary{background:#ffffff;color:var(--cog-navy);border:1px solid var(--border-dark);}
+  .btn.secondary:hover{background:var(--cog-blue);color:#ffffff;border-color:var(--cog-blue);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  input[type=file]{display:none;}
+  select.sheet-select{
+    font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px 10px;
+    border-radius:4px;border:1px solid var(--border-dark);background:#fff;color:var(--cog-navy);
+  }
+
+  /* paste data modal */
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(0,0,72,0.45);
+    align-items:center;justify-content:center;z-index:50;padding:20px;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal-box{
+    background:#fff;border-radius:8px;padding:20px 22px;width:100%;max-width:640px;
+    box-shadow:0 12px 40px rgba(0,0,72,0.25);
+    border:1px solid var(--border);
+  }
+  .modal-hint{font-size:12.5px;color:var(--muted);line-height:1.5;margin:0 0 10px;}
+  #pasteArea{
+    width:100%;min-height:220px;resize:vertical;border:1px solid var(--border-dark);border-radius:6px;
+    padding:10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--editor-text);
+    background:var(--editor-bg);white-space:pre;overflow:auto;
+  }
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;}
+
+  .empty-state{
+    background:#ffffff;border:1px dashed var(--border-dark);border-radius:8px;
+    padding:70px 30px;text-align:center;color:var(--muted);
+  }
+  .empty-state .glyph{
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cog-blue);
+    letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;
+  }
+  .empty-state h2{font-family:'Golos Text',sans-serif;color:var(--cog-navy);font-size:20px;margin:6px 0 8px;}
+  .empty-state p{max-width:440px;margin:0 auto 20px;font-size:13.5px;line-height:1.55;}
+
+  /* workspace */
+  .workspace{display:none;grid-template-columns:280px 1fr;gap:18px;align-items:start;}
+  .workspace.active{display:grid;}
+  .workspace.panel-collapsed{grid-template-columns:1fr;}
+  .workspace.panel-collapsed .zones-panel,
+  .workspace.panel-collapsed .fields-bar-panel{display:none;}
+
+  .panel{
+    background:#ffffff;border:1px solid var(--border);border-radius:8px;
+    box-shadow:0 2px 6px rgba(0,0,72,0.05);
+  }
+
+  .right-col{display:flex;flex-direction:column;gap:18px;min-width:0;}
+
+  /* left sidebar: filters/rows/columns/values */
+  .zones-panel{padding:16px;position:sticky;top:20px;}
+  .panel-label{
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 10px;display:flex;align-items:center;justify-content:space-between;
+  }
+  .zone{
+    min-height:44px;border:1.5px dashed var(--border-dark);border-radius:6px;
+    padding:6px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start;
+    transition:border-color .12s, background .12s;margin-bottom:16px;
+  }
+  .zone.dragover{border-color:var(--cog-blue);background:rgba(0,0,255,0.05);}
+  .zone.empty::after{
+    content:attr(data-placeholder);font-family:'JetBrains Mono',monospace;font-size:11px;
+    color:var(--muted);padding:4px 2px;
+  }
+  .zchip{
+    display:flex;align-items:center;gap:6px;background:var(--cog-navy);color:#fff;
+    border-radius:5px;padding:5px 6px 5px 9px;font-size:11.5px;font-family:'JetBrains Mono',monospace;
+    cursor:grab;
+  }
+  .zchip.values{background:var(--amber);color:#3a2a06;}
+  .zchip select{
+    background:rgba(255,255,255,.18);color:inherit;border:none;border-radius:3px;
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:2px 3px;cursor:pointer;
+  }
+  .zchip.values select{background:rgba(0,0,0,.12);}
+  .zchip .rm{cursor:pointer;opacity:.7;font-size:13px;line-height:1;padding:0 1px;}
+  .zchip .rm:hover{opacity:1;}
+
+  .filter-field{margin-bottom:10px;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+  .filter-head{
+    display:flex;justify-content:space-between;align-items:center;padding:7px 9px;
+    background:#eef2f7;font-family:'JetBrains Mono',monospace;font-size:11.5px;cursor:pointer;
+  }
+  .filter-head .rm{color:var(--muted);cursor:pointer;}
+  .filter-body{padding:8px 9px;display:none;border-top:1px solid var(--border);}
+  .filter-body.open{display:flex;flex-direction:column;}
+  .filter-value-search{
+    width:100%;padding:6px 8px;margin:4px 0 8px;border-radius:5px;border:1px solid var(--border-dark);
+    font-size:11.5px;font-family:'JetBrains Mono',monospace;
+  }
+  .filter-value-list{max-height:150px;overflow-y:auto;}
+  .filter-body label{display:flex;gap:6px;align-items:center;font-size:11.5px;padding:2px 0;font-family:'JetBrains Mono',monospace;}
+  .filter-mini{font-size:10px;color:var(--cog-blue);cursor:pointer;font-family:'JetBrains Mono',monospace;}
+  .filter-mini.active-filter{color:var(--danger);font-weight:600;}
+
+  /* horizontal fields bar */
+  .fields-bar-panel{padding:14px 16px;}
+  .fields-bar-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:10px;flex-wrap:wrap;}
+  .field-search{
+    padding:7px 9px;border-radius:5px;border:1px solid var(--border-dark);
+    font-size:12.5px;font-family:'Golos Text',sans-serif;width:220px;max-width:60vw;
+  }
+  .field-list-horizontal{
+    display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;
+    scrollbar-width:thin;
+  }
+  .chip{
+    display:flex;align-items:center;gap:7px;flex:none;
+    font-family:'JetBrains Mono',monospace;font-size:12px;
+    padding:7px 10px;border-radius:5px;border:1px solid var(--border);background:#FAFBFC;
+    cursor:grab;user-select:none;transition:border-color .12s, background .12s;white-space:nowrap;
+  }
+  .chip:hover{border-color:var(--cog-blue);background:rgba(0,0,255,0.05);}
+  .chip.dragging{opacity:.4;}
+  .chip .ico{width:6px;height:6px;border-radius:1px;background:var(--muted);flex:none;}
+  .chip.type-num .ico{background:var(--amber);}
+  .chip .label{overflow:hidden;text-overflow:ellipsis;}
+
+  /* main / results */
+  .results-panel{padding:18px 18px 22px;min-width:0;}
+  .results-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+  .results-head h2{font-family:'Golos Text',sans-serif;font-size:16px;margin:0;color:var(--cog-navy);}
+  .results-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+  .table-scroll { overflow: auto; border: 1px solid var(--border); border-radius: 6px; max-height: 87vh;}
+  table.pivot{border-collapse:collapse;width:100%;font-family:'JetBrains Mono',monospace;font-size:12px;}
+  table.pivot th, table.pivot td{
+    border:1px solid var(--border);padding:6px 10px;white-space:nowrap;text-align:right;
+  }
+  table.pivot thead th{
+    background:var(--cog-navy);color:#fff;position:sticky;top:0;z-index:2;font-weight:500;text-align:right;
+  }
+  table.pivot thead th.rowhead{text-align:left;background:var(--cog-navy);position:sticky;left:0;z-index:3;}
+  table.pivot tbody th{
+    text-align:left;background:#FAFBFC;position:sticky;left:0;font-weight:500;color:var(--cog-navy);z-index:1;
+  }
+  table.pivot tbody tr:hover td, table.pivot tbody tr:hover th{background:rgba(0,0,255,0.05);}
+  table.pivot tbody tr.row-error td, table.pivot tbody tr.row-error th{background:#FBEAEA;}
+  table.pivot tbody tr.row-error:hover td, table.pivot tbody tr.row-error:hover th{background:#F6D5D5;}
+  table.pivot.tree tbody tr.subtotal-row th, table.pivot.tree tbody tr.subtotal-row td{font-weight:700;}
+  table.pivot.tree tbody th.tree-label{white-space:nowrap;}
+  .pivot-legend{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+  .pivot-legend .swatch{width:11px;height:11px;border-radius:2px;background:#FBEAEA;border:1px solid #EFC0C0;display:inline-block;}
+  table.pivot tfoot th, table.pivot tfoot td{
+    background:var(--amber-dim);font-weight:600;position:sticky;bottom:0;
+  }
+  table.pivot tfoot th{position:sticky;left:0;bottom:0;z-index:3;}
+  .placeholder-msg{
+    padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;
+  }
+  .placeholder-msg b{color:var(--cog-navy);}
+
+  /* sync check panel */
+  .sync-panel{padding:16px 18px;margin-bottom:18px;}
+  .sync-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .sync-scope{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;}
+  .sync-tiles{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
+  .error-assets-banner{
+    border:1px solid #EFC0C0;background:#FBEAEA;border-radius:8px;
+    padding:10px 14px;margin-bottom:12px;
+  }
+  .error-assets-banner.clean{border-color:#BFE0B8;background:#EEF6EC;}
+  .error-assets-head{
+    display:flex;align-items:baseline;gap:8px;font-family:'JetBrains Mono',monospace;
+    font-size:12px;color:var(--cog-navy);margin-bottom:6px;flex-wrap:wrap;
+  }
+  .error-assets-head b{font-family:'Golos Text',sans-serif;font-size:15px;color:var(--danger);}
+  .error-assets-banner.clean .error-assets-head b{color:#3F7A36;}
+  .error-asset-chip{
+    display:inline-flex;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11.5px;
+    background:#fff;border:1px solid var(--border);border-radius:5px;padding:4px 8px;margin:3px 4px 0 0;
+  }
+  .error-asset-chip b{color:var(--danger);}
+  .sync-tile{
+    flex:1;min-width:220px;border-radius:8px;padding:12px 14px;border:1px solid var(--border);
+    display:flex;flex-direction:column;gap:4px;
+  }
+  .sync-tile.ok{background:#EEF6EC;border-color:#BFE0B8;}
+  .sync-tile.bad{background:#FBEAEA;border-color:#EFC0C0;}
+  .sync-tile .n{font-family:'Golos Text',sans-serif;font-size:26px;font-weight:700;}
+  .sync-tile.ok .n{color:#3F7A36;}
+  .sync-tile.bad .n{color:var(--danger);}
+  .sync-tile .t{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cog-navy);}
+  .sync-tile .d{font-size:11px;color:var(--muted);}
+  .sync-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .sync-chip{
+    font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;border:1px solid var(--border);
+    border-radius:5px;padding:4px 8px;color:var(--cog-navy);
+  }
+  .sync-chip b{color:var(--danger);}
+  .sync-detail-block{margin-top:14px;}
+  .sync-detail-block h4{
+    font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--muted);margin:0 0 8px;
+  }
+  table.sync{border-collapse:collapse;width:100%;font-family:'JetBrains Mono',monospace;font-size:11.5px;margin-bottom:6px;}
+  table.sync th, table.sync td{border:1px solid var(--border);padding:5px 8px;text-align:right;white-space:nowrap;}
+  table.sync th{background:var(--cog-navy);color:#fff;text-align:right;}
+  table.sync th:nth-child(1), table.sync th:nth-child(2),
+  table.sync td:nth-child(1), table.sync td:nth-child(2){text-align:left;}
+  table.sync tr.mismatch td{background:#FBEAEA;}
+  table.sync td.status-bad{color:var(--danger);font-weight:600;}
+  table.sync td.status-ok{color:#3F7A36;}
+  .sync-empty-note{font-size:12px;color:var(--muted);font-family:'Golos Text',sans-serif;}
+
+  ::-webkit-scrollbar{height:10px;width:10px;}
+  ::-webkit-scrollbar-thumb{background:var(--border-dark);border-radius:5px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  @media (max-width: 820px){
+    .workspace.active{grid-template-columns:1fr;}
+    .zones-panel{position:static;}
+  }
+  @media (max-width: 480px){
+    .field-search{width:100%;max-width:none;}
+    .fields-bar-head{flex-direction:column;align-items:stretch;}
+  }
+</style>
+</head>
+<body>
+
+  <!-- Hidden file input used programmatically -->
+  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+
+  <!-- Main Container -->
+  <div class="container">
+    
+    <div class="app">
+      <div class="empty-state" id="emptyState">
+        <div class="glyph">// no data loaded</div>
+        <h2>Load a spreadsheet to start pivoting</h2>
+        <p>Upload an .xlsx, .xls, or .csv file, or paste rows straight from a spreadsheet. Every
+        column becomes a draggable field — drop fields into Rows, Columns, or Values to build a
+        live pivot table, the same way you would in a spreadsheet's PivotTable pane.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn" id="uploadBtn2">Upload spreadsheet</button>
+          <button class="btn secondary" id="pasteBtn2">Paste data</button>
+        </div>
+      </div>
+
+      <div class="modal-backdrop" id="pasteModal">
+        <div class="modal-box">
+          <p class="panel-label" style="margin-bottom:8px;">Paste data</p>
+          <p class="modal-hint">Copy cells from Excel/Sheets (including the header row) and paste below — tab- or comma-separated both work.</p>
+          <textarea id="pasteArea" placeholder="BUSINESS_UNIT&#9;ASSET_ID&#9;BOOK&#9;AMOUNT…&#10;IN222&#9;4729&#9;ACT-USD&#9;-67.58…"></textarea>
+          <div class="modal-actions">
+            <span class="btn secondary" id="pasteCancel">Cancel</span>
+            <span class="btn" id="pasteLoad">Load data</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel sync-panel" id="syncPanel" style="display:none;">
+        <div class="sync-head">
+          <p class="panel-label" style="margin:0;">Book sync check <span id="syncScope" class="sync-scope"></span></p>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <span class="filter-mini active-filter" id="showErrorToggle">Show all</span>
+            <span class="filter-mini" id="generateSqlBtn">Generate Script ⌁</span>
+            <span class="filter-mini" id="syncToggle">Hide detail ▾</span>
+          </div>
+        </div>
+        <div id="syncErrorAssets"></div>
+        <div class="sync-tiles" id="syncTiles"></div>
+        <div id="syncDetail"></div>
+      </div>
+
+      <div class="modal-backdrop" id="sqlModal">
+        <div class="modal-box" style="max-width:420px;text-align:center;">
+          <p class="panel-label" style="margin-bottom:8px;">Generate Script</p>
+          <p style="font-family:'Golos Text',sans-serif;font-size:22px;font-weight:700;margin:18px 0;color:var(--muted);">Coming Soon…</p>
+          <p class="modal-hint">Under Construction</p>
+          <div class="modal-actions" style="justify-content:center;">
+            <span class="btn" id="sqlClose">Close</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="workspace" id="workspace">
+        <div class="panel zones-panel">
+          <p class="panel-label">Filters</p>
+          <div class="zone" id="zoneFilters" data-zone="filters" data-placeholder="Drop fields here"></div>
+
+          <p class="panel-label">Rows</p>
+          <div class="zone" id="zoneRows" data-zone="rows" data-placeholder="Drop fields here"></div>
+
+          <p class="panel-label">Columns</p>
+          <div class="zone" id="zoneColumns" data-zone="columns" data-placeholder="Drop fields here"></div>
+
+          <p class="panel-label">Values</p>
+          <div class="zone" id="zoneValues" data-zone="values" data-placeholder="Drop fields here"></div>
+        </div>
+
+        <div class="right-col">
+          <div class="panel fields-bar-panel">
+            <div class="fields-bar-head">
+              <p class="panel-label" style="margin:0;">Fields <span id="fieldCount"></span></p>
+              <select class="sheet-select" id="sheetSelect" style="display:none;"></select>
+              <input class="field-search" id="fieldSearch" placeholder="Filter field list…">
+            </div>
+            <div class="field-list-horizontal" id="fieldList"></div>
+          </div>
+
+          <div class="panel results-panel">
+            <div class="results-head">
+              <h2 id="resultsTitle">Pivot result</h2>
+              <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <span class="pivot-legend"><span class="swatch"></span> row has a sync issue</span>
+                <span class="filter-mini" id="panelToggle">Hide fields panel ◂</span>
+                <div class="results-meta" id="resultsMeta"></div>
+              </div>
+            </div>
+            <div class="table-scroll" id="tableScroll">
+              <div class="placeholder-msg">Drop at least one field into <b>Rows</b> or <b>Columns</b>, and one into <b>Values</b>, to see a pivot table.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  let rawRows = [];
+  let headers = [];
+  let colTypes = {};
+  let workbook = null;
+  let erroringRawRows = new Set();
+  let lastSyncContext = null;
+
+  const state = {
+    filters: [],
+    rows: [],
+    columns: [],
+    values: []
+  };
+
+  const AGGS = {
+    sum:   {label:'Sum',   fn: vals => vals.reduce((a,b)=>a+b,0)},
+    count: {label:'Count', fn: vals => vals.length},
+    avg:   {label:'Average', fn: vals => vals.length? vals.reduce((a,b)=>a+b,0)/vals.length : 0},
+    min:   {label:'Min',   fn: vals => vals.length? Math.min(...vals): 0},
+    max:   {label:'Max',   fn: vals => vals.length? Math.max(...vals): 0},
+  };
+
+  const el = id => document.getElementById(id);
+  const fileInput = el('fileInput');
+  const emptyState = el('emptyState');
+  const workspace = el('workspace');
+
+  el('uploadBtn2').addEventListener('click', ()=>fileInput.click());
+  fileInput.addEventListener('change', handleFile);
+  el('sheetSelect').addEventListener('change', e=>loadSheet(e.target.value));
+  el('fieldSearch').addEventListener('input', renderFieldList);
+
+  el('panelToggle').addEventListener('click', ()=>{
+    const collapsed = workspace.classList.toggle('panel-collapsed');
+    el('panelToggle').textContent = collapsed ? 'Show fields panel ▸' : 'Hide fields panel ◂';
+  });
+
+  const pasteModal = el('pasteModal');
+  const openPasteModal = ()=>{ pasteModal.classList.add('open'); el('pasteArea').focus(); };
+  const closePasteModal = ()=> pasteModal.classList.remove('open');
+  el('pasteBtn2').addEventListener('click', openPasteModal);
+  el('pasteCancel').addEventListener('click', closePasteModal);
+  pasteModal.addEventListener('click', e=>{ if(e.target === pasteModal) closePasteModal(); });
+  el('pasteLoad').addEventListener('click', ()=>{
+    const text = el('pasteArea').value;
+    if(!text.trim()){ alert('Paste some rows first — include a header row on top.'); return; }
+    const json = parsePastedText(text);
+    if(!json || json.length===0){
+      alert('Could not find any data rows. Make sure the first line is a header row.');
+      return;
+    }
+    workbook = null;
+    el('sheetSelect').style.display = 'none';
+    el('sheetSelect').innerHTML = '';
+    closePasteModal();
+    el('pasteArea').value = '';
+    ingestRows(json, 'Pasted data');
+  });
+
+  const sqlModal = el('sqlModal');
+  el('generateSqlBtn').addEventListener('click', ()=>{
+    sqlModal.classList.add('open');
+  });
+  el('sqlClose').addEventListener('click', ()=> sqlModal.classList.remove('open'));
+  sqlModal.addEventListener('click', e=>{ if(e.target === sqlModal) sqlModal.classList.remove('open'); });
+
+  function handleFile(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      const data = new Uint8Array(ev.target.result);
+      workbook = XLSX.read(data, {type:'array', cellDates:true});
+      const sel = el('sheetSelect');
+      sel.innerHTML = '';
+      workbook.SheetNames.forEach(name=>{
+        const opt = document.createElement('option');
+        opt.value = name; opt.textContent = name;
+        sel.appendChild(opt);
+      });
+      sel.style.display = workbook.SheetNames.length > 1 ? 'inline-block' : 'none';
+      loadSheet(workbook.SheetNames[0]);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function parsePastedText(text){
+    const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n')
+      .filter(l => l.trim() !== '');
+    if(lines.length < 2) return null;
+
+    const delim = lines[0].includes('\t') ? '\t' : ',';
+    const splitLine = line => line.split(delim).map(c => c.trim());
+
+    const rawHeaders = splitLine(lines[0]).map(h => h || 'Column');
+    const seen = {};
+    const cols = rawHeaders.map(h=>{
+      if(!seen[h]) { seen[h]=1; return h; }
+      seen[h]++; return h+'_'+seen[h];
+    });
+
+    const rows = [];
+    for(let i=1;i<lines.length;i++){
+      const cells = splitLine(lines[i]);
+      if(cells.every(c=>c==='')) continue;
+      const row = {};
+      cols.forEach((c, idx)=>{
+        let v = cells[idx];
+        if(v === undefined || v === '') { row[c] = null; return; }
+        const num = Number(v);
+        row[c] = (v !== '' && !isNaN(num) && /^-?[\d,.]+%?$/.test(v)) ? num : v;
+      });
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function loadSheet(sheetName){
+    const ws = workbook.Sheets[sheetName];
+    let json = XLSX.utils.sheet_to_json(ws, {defval:null});
+    json = json.filter(r => Object.values(r).some(v => v !== null && v !== ''));
+    if(json.length === 0){
+      alert('No tabular data with headers found on sheet "'+sheetName+'". Try a different sheet.');
+      return;
+    }
+    ingestRows(json, sheetName);
+  }
+
+  function ingestRows(json, sourceLabel){
+    rawRows = json;
+    headers = Object.keys(json[0]);
+    json.forEach(r=>{ Object.keys(r).forEach(k=>{ if(!headers.includes(k)) headers.push(k); }); });
+
+    colTypes = {};
+    headers.forEach(h=>{
+      let numCount=0, total=0;
+      for(let i=0;i<Math.min(rawRows.length, 200);i++){
+        const v = rawRows[i][h];
+        if(v===null || v==='') continue;
+        total++;
+        if(typeof v === 'number') numCount++;
+      }
+      colTypes[h] = (total>0 && numCount/total > 0.8) ? 'num' : 'str';
+    });
+
+    state.filters = [];
+    state.rows = [];
+    state.columns = [];
+    state.values = [];
+
+    emptyState.style.display = 'none';
+    workspace.classList.add('active');
+    el('fieldCount').textContent = '('+headers.length+')';
+    renderFieldList();
+    autoPopulatePivot();
+    renderZones();
+    runSyncCheck(sourceLabel);
+    computeAndRenderPivot();
+  }
+
+  function autoPopulatePivot(){
+    const buCol = findCol('BUSINESS_UNIT');
+    const assetCol = findCol('ASSET_ID');
+    const bookCol = findCol('BOOK');
+    const amountCol = findCol('AMOUNT');
+    const dttmCol = findCol('DTTM_STAMP');
+    const transTypeCol = findCol('TRANS_TYPE');
+    const distTypeCol = findCol('DISTRIBUTION_TYPE');
+
+    if(!buCol || !assetCol || !bookCol || !amountCol){
+      return;
+    }
+
+    const rowFields = [buCol, assetCol];
+    if(transTypeCol) rowFields.push(transTypeCol);
+    if(dttmCol) rowFields.push(dttmCol);
+    if(distTypeCol) rowFields.push(distTypeCol);
+
+    state.rows = rowFields;
+    state.columns = [bookCol];
+    state.values = [{field: amountCol, agg: 'sum'}];
+    state.filters = [];
+  }
+
+  function renderFieldList(){
+    const q = el('fieldSearch').value.trim().toLowerCase();
+    const list = el('fieldList');
+    list.innerHTML = '';
+    headers.filter(h=>h.toLowerCase().includes(q)).forEach(h=>{
+      const chip = document.createElement('div');
+      chip.className = 'chip type-'+colTypes[h];
+      chip.draggable = true;
+      chip.dataset.field = h;
+      chip.innerHTML = '<span class="ico"></span><span class="label">'+escapeHtml(h)+'</span>';
+      chip.addEventListener('dragstart', e=>{
+        e.dataTransfer.setData('text/plain', JSON.stringify({field:h, from:'fieldlist'}));
+        chip.classList.add('dragging');
+      });
+      chip.addEventListener('dragend', ()=>chip.classList.remove('dragging'));
+      list.appendChild(chip);
+    });
+  }
+
+  ['zoneFilters','zoneRows','zoneColumns','zoneValues'].forEach(id=>{
+    const zone = el(id);
+    zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', ()=>zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e=>{
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      let data;
+      try{ data = JSON.parse(e.dataTransfer.getData('text/plain')); }catch(err){ return; }
+      const targetKey = zone.dataset.zone;
+
+      let insertIndex = null;
+      const chipEl = e.target.closest('.zchip');
+      if(chipEl && zone.contains(chipEl) && chipEl.dataset.field !== data.field){
+        const rect = chipEl.getBoundingClientRect();
+        const isBefore = (e.clientX - rect.left) < rect.width/2;
+        const arr = targetKey==='values' ? state.values.map(v=>v.field)
+                  : targetKey==='filters' ? state.filters.map(f=>f.field)
+                  : state[targetKey];
+        const idx = arr.indexOf(chipEl.dataset.field);
+        if(idx>-1) insertIndex = isBefore ? idx : idx+1;
+      }
+
+      if(data.from === targetKey){
+        reorderWithinZone(targetKey, data.field, insertIndex);
+      } else {
+        addFieldToZone(data.field, targetKey, data.from, insertIndex);
+      }
+    });
+  });
+
+  function refreshAll(){
+    renderZones();
+    runSyncCheck();
+    computeAndRenderPivot();
+  }
+
+  function addFieldToZone(field, targetKey, from, insertIndex){
+    removeFieldEverywhere(field);
+    if(targetKey === 'values'){
+      const defaultAgg = colTypes[field] === 'num' ? 'sum' : 'count';
+      const entry = {field, agg: defaultAgg};
+      if(insertIndex==null || insertIndex>state.values.length) state.values.push(entry);
+      else state.values.splice(insertIndex, 0, entry);
+    } else if(targetKey === 'filters'){
+      const uniques = Array.from(new Set(rawRows.map(r=>fmtKey(r[field])))).sort();
+      const entry = {field, selected: new Set(uniques), allValues: uniques, open:true};
+      if(insertIndex==null || insertIndex>state.filters.length) state.filters.push(entry);
+      else state.filters.splice(insertIndex, 0, entry);
+    } else {
+      if(insertIndex==null || insertIndex>state[targetKey].length) state[targetKey].push(field);
+      else state[targetKey].splice(insertIndex, 0, field);
+    }
+    refreshAll();
+  }
+
+  function reorderWithinZone(key, field, insertIndex){
+    if(key === 'values'){
+      const idx = state.values.findIndex(v=>v.field===field);
+      if(idx===-1) return;
+      const [entry] = state.values.splice(idx,1);
+      let target = insertIndex==null ? state.values.length : insertIndex;
+      if(idx < target) target -= 1;
+      state.values.splice(Math.max(0, Math.min(target, state.values.length)), 0, entry);
+    } else if(key === 'filters'){
+      const idx = state.filters.findIndex(f=>f.field===field);
+      if(idx===-1) return;
+      const [entry] = state.filters.splice(idx,1);
+      let target = insertIndex==null ? state.filters.length : insertIndex;
+      if(idx < target) target -= 1;
+      state.filters.splice(Math.max(0, Math.min(target, state.filters.length)), 0, entry);
+    } else {
+      const arr = state[key];
+      const idx = arr.indexOf(field);
+      if(idx===-1) return;
+      arr.splice(idx,1);
+      let target = insertIndex==null ? arr.length : insertIndex;
+      if(idx < target) target -= 1;
+      arr.splice(Math.max(0, Math.min(target, arr.length)), 0, field);
+    }
+    refreshAll();
+  }
+
+  function removeFieldEverywhere(field){
+    state.rows = state.rows.filter(f=>f!==field);
+    state.columns = state.columns.filter(f=>f!==field);
+    state.values = state.values.filter(v=>v.field!==field);
+    state.filters = state.filters.filter(f=>f.field!==field);
+  }
+
+  function renderZones(){
+    renderSimpleZone('zoneRows','rows', state.rows);
+    renderSimpleZone('zoneColumns','columns', state.columns);
+    renderValuesZone();
+    renderFiltersZone();
+  }
+
+  function renderSimpleZone(elId, key, arr){
+    const zone = el(elId);
+    zone.innerHTML = '';
+    zone.classList.toggle('empty', arr.length===0);
+    if(arr.length===0) return;
+    arr.forEach(field=>{
+      const chip = document.createElement('div');
+      chip.className = 'zchip';
+      chip.draggable = true;
+      chip.dataset.field = field;
+      chip.innerHTML = '<span>'+escapeHtml(field)+'</span><span class="rm" title="Remove">×</span>';
+      chip.addEventListener('dragstart', e=>{
+        e.dataTransfer.setData('text/plain', JSON.stringify({field, from:key}));
+      });
+      chip.querySelector('.rm').addEventListener('click', ()=>{
+        state[key] = state[key].filter(f=>f!==field);
+        refreshAll();
+      });
+      zone.appendChild(chip);
+    });
+  }
+
+  function renderValuesZone(){
+    const zone = el('zoneValues');
+    zone.innerHTML = '';
+    zone.classList.toggle('empty', state.values.length===0);
+    state.values.forEach((v,idx)=>{
+      const chip = document.createElement('div');
+      chip.className = 'zchip values';
+      chip.draggable = true;
+      chip.dataset.field = v.field;
+      const sel = document.createElement('select');
+      Object.keys(AGGS).forEach(k=>{
+        const o = document.createElement('option');
+        o.value = k; o.textContent = AGGS[k].label;
+        if(k===v.agg) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', ()=>{ v.agg = sel.value; computeAndRenderPivot(); });
+      const label = document.createElement('span');
+      label.textContent = v.field;
+      const rm = document.createElement('span');
+      rm.className='rm'; rm.title='Remove'; rm.textContent='×';
+      rm.addEventListener('click', ()=>{
+        state.values.splice(idx,1); refreshAll();
+      });
+      chip.appendChild(label); chip.appendChild(sel); chip.appendChild(rm);
+      chip.addEventListener('dragstart', e=>{
+        e.dataTransfer.setData('text/plain', JSON.stringify({field:v.field, from:'values'}));
+      });
+      zone.appendChild(chip);
+    });
+  }
+
+  function renderFiltersZone(){
+    const zone = el('zoneFilters');
+    zone.innerHTML = '';
+    zone.classList.toggle('empty', state.filters.length===0);
+    zone.style.display = 'block';
+    state.filters.forEach((f)=>{
+      const box = document.createElement('div');
+      box.className = 'filter-field';
+      const activeCount = f.selected.size;
+      const head = document.createElement('div');
+      head.className = 'filter-head';
+      head.innerHTML = '<span>'+escapeHtml(f.field)+' <span style="color:var(--muted)">('+activeCount+'/'+f.allValues.length+')</span></span><span class="rm">×</span>';
+      head.addEventListener('click', (e)=>{
+        if(e.target.classList.contains('rm')) return;
+        f.open = !f.open;
+        body.classList.toggle('open', f.open);
+      });
+      head.querySelector('.rm').addEventListener('click', ()=>{
+        removeFieldEverywhere(f.field); refreshAll();
+      });
+      const body = document.createElement('div');
+      body.className = 'filter-body' + (f.open ? ' open':'');
+
+      const controls = document.createElement('div');
+      controls.style.marginBottom='6px';
+      const allBtn = document.createElement('span'); allBtn.className='filter-mini'; allBtn.textContent='All';
+      const noneBtn = document.createElement('span'); noneBtn.className='filter-mini'; noneBtn.textContent=' / None';
+      allBtn.addEventListener('click', ()=>{ f.allValues.forEach(v=>f.selected.add(v)); renderFiltersZone(); computeAndRenderPivot(); });
+      noneBtn.addEventListener('click', ()=>{ f.selected.clear(); renderFiltersZone(); computeAndRenderPivot(); });
+      controls.appendChild(allBtn); controls.appendChild(noneBtn);
+      body.appendChild(controls);
+
+      const search = document.createElement('input');
+      search.type = 'text';
+      search.className = 'filter-value-search';
+      search.placeholder = 'Search values…';
+      body.appendChild(search);
+
+      const valueList = document.createElement('div');
+      valueList.className = 'filter-value-list';
+      body.appendChild(valueList);
+
+      f.allValues.forEach(val=>{
+        const lab = document.createElement('label');
+        lab.dataset.value = (val === '' ? '(blank)' : val).toLowerCase();
+        const cb = document.createElement('input');
+        cb.type='checkbox'; cb.checked = f.selected.has(val);
+        cb.addEventListener('change', ()=>{
+          if(cb.checked) f.selected.add(val); else f.selected.delete(val);
+          computeAndRenderPivot();
+          head.querySelector('span span').textContent = '('+f.selected.size+'/'+f.allValues.length+')';
+        });
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(val === '' ? '(blank)' : val));
+        valueList.appendChild(lab);
+      });
+
+      search.addEventListener('input', ()=>{
+        const q = search.value.trim().toLowerCase();
+        valueList.querySelectorAll('label').forEach(lab=>{
+          lab.style.display = lab.dataset.value.includes(q) ? '' : 'none';
+        });
+      });
+
+      box.appendChild(head); box.appendChild(body);
+      zone.appendChild(box);
+    });
+  }
+
+  function fmtKey(v){
+    if(v===null || v===undefined) return '';
+    if(v instanceof Date) return v.toISOString().slice(0,10);
+    return String(v);
+  }
+
+  function formatAssetId(v){
+    if(v===null || v===undefined || v==='') return '';
+    const s = String(v).trim();
+    if(/^\d+$/.test(s)) return s.padStart(12,'0');
+    return s;
+  }
+
+  function getFilteredRows(){
+    let rows = rawRows;
+    state.filters.forEach(f=>{
+      rows = rows.filter(r => f.selected.has(fmtKey(r[f.field])));
+    });
+    return rows;
+  }
+
+  function computeAndRenderPivot(){
+    const scroll = el('tableScroll');
+    const meta = el('resultsMeta');
+    const dataRows = getFilteredRows();
+
+    if((state.rows.length===0 && state.columns.length===0) || state.values.length===0){
+      scroll.innerHTML = '<div class="placeholder-msg">Drop at least one field into <b>Rows</b> or <b>Columns</b>, and one into <b>Values</b>, to see a pivot table.</div>';
+      meta.textContent = dataRows.length + ' source rows loaded';
+      return;
+    }
+
+    const colKeyOf = r => state.columns.map(f=>fmtKey(r[f]));
+
+    const rowColKey = new Map();
+    const rowValueNums = new Map();
+    dataRows.forEach(r=>{
+      rowColKey.set(r, state.columns.length ? colKeyOf(r).join('\u0001') : '');
+      const nums = new Array(state.values.length);
+      state.values.forEach((v, vi)=>{
+        const raw = r[v.field];
+        if(v.agg === 'count'){
+          nums[vi] = (raw!==null && raw!=='' && raw!==undefined) ? 1 : null;
+        } else {
+          const num = typeof raw==='number' ? raw : parseFloat(raw);
+          nums[vi] = isNaN(num) ? null : num;
+        }
+      });
+      rowValueNums.set(r, nums);
+    });
+
+    const colKeySet = new Set();
+    dataRows.forEach(r=> colKeySet.add(rowColKey.get(r)));
+    const sortedColKeys = state.columns.length ? Array.from(colKeySet).sort((a,b)=>a.localeCompare(b)) : [''];
+
+    function computeAggregates(rows){
+      const byCol = new Map();
+      const grand = state.values.map(()=>[]);
+      rows.forEach(r=>{
+        const cKey = rowColKey.get(r);
+        let bucket = byCol.get(cKey);
+        if(!bucket){ bucket = state.values.map(()=>[]); byCol.set(cKey, bucket); }
+        const nums = rowValueNums.get(r);
+        nums.forEach((n, vi)=>{
+          if(n!==null){ bucket[vi].push(n); grand[vi].push(n); }
+        });
+      });
+      return {byCol, grand};
+    }
+    function aggFromBucket(arr, vi){
+      if(!arr || arr.length===0) return null;
+      return AGGS[state.values[vi].agg].fn(arr);
+    }
+
+    function buildTree(rows, fields){
+      const field = fields[0];
+      const groups = new Map();
+      rows.forEach(r=>{
+        const key = fmtKey(r[field]);
+        if(!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+      });
+      const sortedKeys = Array.from(groups.keys()).sort((a,b)=>a.localeCompare(b));
+      return sortedKeys.map(key=>{
+        const childRows = groups.get(key);
+        const children = fields.length>1 ? buildTree(childRows, fields.slice(1)) : null;
+        return { label: key, field, rows: childRows, children };
+      });
+    }
+
+    const tree = state.rows.length ? buildTree(dataRows, state.rows) : [{label:'(all)', field:null, rows:dataRows, children:null}];
+
+    const table = document.createElement('table');
+    table.className = 'pivot tree';
+    const thead = document.createElement('thead');
+    const headRow1 = document.createElement('tr');
+    const rowheadTh = document.createElement('th');
+    rowheadTh.className = 'rowhead';
+    rowheadTh.textContent = 'BU/ Asset_ID ▾';
+    headRow1.appendChild(rowheadTh);
+
+    sortedColKeys.forEach(cKey=>{
+      state.values.forEach((v)=>{
+        const th = document.createElement('th');
+        const label = state.columns.length ? (cKey.split('\u0001').join(' \u2022 ') || '(blank)') : '';
+        th.textContent = (label ? label+' — ' : '') + AGGS[v.agg].label+' of '+v.field;
+        headRow1.appendChild(th);
+      });
+    });
+    state.values.forEach(v=>{
+      const th = document.createElement('th');
+      th.textContent = 'Grand Total ('+AGGS[v.agg].label+' '+v.field+')';
+      headRow1.appendChild(th);
+    });
+    thead.appendChild(headRow1);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    const assetColForDisplay = findCol('ASSET_ID');
+    let rowGroupCount = 0;
+    const fragment = document.createDocumentFragment();
+
+    const bookColForCheck = findCol('BOOK');
+    const amountColForCheck = findCol('AMOUNT');
+    const txnColForCheck = findCol('TXN_AMOUNT');
+    const canCheckRollup = state.columns.length===1 && state.columns[0]===bookColForCheck;
+    const amountValueIdx = canCheckRollup && amountColForCheck!=null
+      ? state.values.findIndex(v=>v.field===amountColForCheck) : -1;
+    const txnValueIdx = canCheckRollup && txnColForCheck!=null
+      ? state.values.findIndex(v=>v.field===txnColForCheck) : -1;
+
+    function nodeHasRollupMismatch(agg){
+      if(amountValueIdx>-1){
+        const a = agg.byCol.get('ACT-USD'), c = agg.byCol.get('CORPORATE');
+        if(a && c){
+          const av = aggFromBucket(a[amountValueIdx], amountValueIdx);
+          const cv = aggFromBucket(c[amountValueIdx], amountValueIdx);
+          if(av!==null && cv!==null && Math.abs(av-cv) > SYNC_TOLERANCE) return true;
+        }
+      }
+      if(txnValueIdx>-1){
+        const a = agg.byCol.get('ACT-USD'), b = agg.byCol.get('CORP-BASE'), c = agg.byCol.get('CORPORATE');
+        if(a && b && c){
+          const av = aggFromBucket(a[txnValueIdx], txnValueIdx);
+          const bv = aggFromBucket(b[txnValueIdx], txnValueIdx);
+          const cv = aggFromBucket(c[txnValueIdx], txnValueIdx);
+          if(av!==null && bv!==null && cv!==null && (Math.max(av,bv,cv)-Math.min(av,bv,cv)) > SYNC_TOLERANCE) return true;
+        }
+      }
+      return false;
+    }
+
+    function renderNode(node, depth){
+      rowGroupCount++;
+      const isLeaf = !node.children;
+      const tr = document.createElement('tr');
+      const agg = computeAggregates(node.rows);
+      const flagged = node.rows.some(r=>erroringRawRows.has(r)) || nodeHasRollupMismatch(agg);
+      if(flagged) tr.classList.add('row-error');
+      if(!isLeaf) tr.classList.add('subtotal-row');
+
+      const th = document.createElement('th');
+      th.className = 'tree-label';
+      th.style.paddingLeft = (14 + depth*22)+'px';
+      const isAssetCol = assetColForDisplay && node.field === assetColForDisplay;
+      const label = node.label==='' ? '(blank)' : node.label;
+      th.textContent = node.field===null ? label : (isAssetCol ? formatAssetId(label) : label);
+      tr.appendChild(th);
+
+      sortedColKeys.forEach(cKey=>{
+        const bucket = agg.byCol.get(cKey);
+        state.values.forEach((v, vi)=>{
+          const td = document.createElement('td');
+          td.textContent = fmtNum(bucket ? aggFromBucket(bucket[vi], vi) : null);
+          tr.appendChild(td);
+        });
+      });
+      state.values.forEach((v, vi)=>{
+        const td = document.createElement('td');
+        td.textContent = fmtNum(aggFromBucket(agg.grand[vi], vi));
+        td.style.fontWeight = '600';
+        tr.appendChild(td);
+      });
+      fragment.appendChild(tr);
+
+      if(node.children){
+        node.children.forEach(child => renderNode(child, depth+1));
+      }
+    }
+
+    tree.forEach(node => renderNode(node, 0));
+    tbody.appendChild(fragment);
+    table.appendChild(tbody);
+
+    const tfoot = document.createElement('tfoot');
+    const ftr = document.createElement('tr');
+    const fth = document.createElement('th');
+    fth.textContent = 'Grand Total';
+    ftr.appendChild(fth);
+    const footAgg = computeAggregates(dataRows);
+    sortedColKeys.forEach(cKey=>{
+      const bucket = footAgg.byCol.get(cKey);
+      state.values.forEach((v, vi)=>{
+        const td = document.createElement('td');
+        td.textContent = fmtNum(bucket ? aggFromBucket(bucket[vi], vi) : null);
+        ftr.appendChild(td);
+      });
+    });
+    state.values.forEach((v, vi)=>{
+      const td = document.createElement('td');
+      td.textContent = fmtNum(aggFromBucket(footAgg.grand[vi], vi));
+      ftr.appendChild(td);
+    });
+    tfoot.appendChild(ftr);
+    table.appendChild(tfoot);
+
+    scroll.innerHTML = '';
+    scroll.appendChild(table);
+    meta.textContent = dataRows.length + ' of ' + rawRows.length + ' source rows • ' + rowGroupCount + ' row groups' + (state.columns.length? ' • '+sortedColKeys.length+' column groups':'');
+
+    window.__lastPivotTable = table;
+  }
+
+  function fmtNum(v){
+    if(v===null || v===undefined) return '';
+    if(Number.isInteger(v)) return v.toLocaleString('en-US');
+    return v.toLocaleString('en-US', {maximumFractionDigits:2, minimumFractionDigits:2});
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  const SYNC_TOLERANCE = 0.01;
+
+  function normHeader(s){ return s.trim().toUpperCase().replace(/[\s_]+/g,'_'); }
+  function findCol(target){
+    const t = normHeader(target);
+    return headers.find(h => normHeader(h) === t) || null;
+  }
+  function normBook(v){ return (v===null||v===undefined) ? '' : String(v).trim().toUpperCase(); }
+
+  let syncDetailVisible = true;
+  function applySyncVisibility(){
+    el('syncTiles').style.display = syncDetailVisible ? '' : 'none';
+    el('syncDetail').style.display = syncDetailVisible ? '' : 'none';
+    el('syncToggle').textContent = syncDetailVisible ? 'Hide detail ▾' : 'Show detail ▸';
+  }
+  el('syncToggle').addEventListener('click', ()=>{
+    syncDetailVisible = !syncDetailVisible;
+    applySyncVisibility();
+  });
+
+  let showErrorOnly = true;
+  el('showErrorToggle').addEventListener('click', ()=>{
+    showErrorOnly = !showErrorOnly;
+    el('showErrorToggle').textContent = showErrorOnly ? 'Show all' : 'Show error';
+    el('showErrorToggle').classList.toggle('active-filter', showErrorOnly);
+    runSyncCheck();
+  });
+
+  function runSyncCheck(){
+    const panel = el('syncPanel');
+    const buCol = findCol('BUSINESS_UNIT');
+    const assetCol = findCol('ASSET_ID');
+    const bookCol = findCol('BOOK');
+    const amountCol = findCol('AMOUNT');
+    const txnCol = findCol('TXN_AMOUNT');
+    const transTypeCol = findCol('TRANS_TYPE');
+    const dttmCol = findCol('DTTM_STAMP');
+    const distTypeCol = findCol('DISTRIBUTION_TYPE');
+
+    if(!buCol || !assetCol || !bookCol || (!amountCol && !txnCol)){
+      panel.style.display = 'none';
+      return;
+    }
+    panel.style.display = 'block';
+
+    const candidateFields = [
+      {col: buCol, prop:'bu', label:'Business unit', required:true},
+      {col: assetCol, prop:'asset', label:'Asset', isAsset:true, required:true},
+      {col: transTypeCol, prop:'transType', label:'Trans type'},
+      {col: dttmCol, prop:'dttm', label:'Timestamp'},
+      {col: distTypeCol, prop:'distType', label:'Distribution type'}
+    ].filter(f => f.col);
+    const activeFields = candidateFields.filter(f => f.required || state.rows.includes(f.col));
+    const inRows = activeFields.filter(f => state.rows.includes(f.col));
+    inRows.sort((a,b) => state.rows.indexOf(a.col) - state.rows.indexOf(b.col));
+    const notInRows = activeFields.filter(f => !state.rows.includes(f.col));
+    const fieldDefs = [...inRows, ...notInRows];
+
+    el('syncScope').textContent = '(grouped by '+fieldDefs.map(f=>f.col).join(' + ')+', split by '+bookCol+')';
+
+    const CANONICAL_BOOKS = ['ACT-USD','CORP-BASE','CORPORATE'];
+    const groups = new Map();
+    const fieldDefCount = fieldDefs.length;
+    rawRows.forEach(r=>{
+      const bu = r[buCol];
+      const asset = r[assetCol];
+      const transType = transTypeCol ? r[transTypeCol] : undefined;
+      const distType = distTypeCol ? r[distTypeCol] : undefined;
+      const dttm = dttmCol ? r[dttmCol] : undefined;
+      const book = normBook(r[bookCol]);
+      const propValues = {bu, asset, dttm, transType, distType};
+      let key = '';
+      for(let i=0;i<fieldDefCount;i++){
+        if(i>0) key += '\u0001';
+        key += fmtKey(propValues[fieldDefs[i].prop]);
+      }
+      if(!groups.has(key)) groups.set(key, {bu, asset, transType, distType, dttm, amountByBook:new Map(), txnByBook:new Map(), booksSeen:new Set(), memberRows:[]});
+      const g = groups.get(key);
+      g.booksSeen.add(book);
+      g.memberRows.push(r);
+      if(amountCol){
+        const raw = r[amountCol];
+        const num = typeof raw==='number'? raw : parseFloat(raw);
+        if(!isNaN(num)){
+          g.amountByBook.set(book, (g.amountByBook.get(book)||0) + num);
+        }
+      }
+      if(txnCol){
+        const rawT = r[txnCol];
+        const numT = typeof rawT==='number'? rawT : parseFloat(rawT);
+        if(!isNaN(numT)){
+          g.txnByBook.set(book, (g.txnByBook.get(book)||0) + numT);
+        }
+      }
+    });
+
+    const amountRows = [];
+    const txnRows = [];
+    const missingRows = [];
+    erroringRawRows = new Set();
+
+    groups.forEach(g=>{
+      let groupHasError = false;
+      if(amountCol && g.amountByBook.has('ACT-USD') && g.amountByBook.has('CORPORATE')){
+        const a = g.amountByBook.get('ACT-USD');
+        const c = g.amountByBook.get('CORPORATE');
+        const diff = a - c;
+        const inSync = Math.abs(diff) <= SYNC_TOLERANCE;
+        if(!inSync) groupHasError = true;
+        amountRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, actUsd:a, corporate:c, diff, inSync});
+      }
+      if(txnCol && g.txnByBook.has('ACT-USD') && g.txnByBook.has('CORP-BASE') && g.txnByBook.has('CORPORATE')){
+        const a = g.txnByBook.get('ACT-USD');
+        const b = g.txnByBook.get('CORP-BASE');
+        const c = g.txnByBook.get('CORPORATE');
+        const maxDiff = Math.max(a,b,c) - Math.min(a,b,c);
+        const inSync = maxDiff <= SYNC_TOLERANCE;
+        if(!inSync) groupHasError = true;
+        txnRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, actUsd:a, corpBase:b, corporate:c, maxDiff, inSync});
+      }
+      const missingBooks = CANONICAL_BOOKS.filter(b=>!g.booksSeen.has(b));
+      if(missingBooks.length > 0){
+        groupHasError = true;
+        const presentBooks = CANONICAL_BOOKS.filter(b=>g.booksSeen.has(b));
+        missingRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, presentBooks, missingBooks});
+      }
+      if(groupHasError){
+        g.memberRows.forEach(r=>erroringRawRows.add(r));
+      }
+    });
+
+    const amountMismatches = amountRows.filter(r=>!r.inSync);
+    const txnMismatches = txnRows.filter(r=>!r.inSync);
+
+    const uniqueErrorAssets = new Map();
+    function markError(bu, asset, reason){
+      const key = fmtKey(bu)+'\u0001'+fmtKey(asset);
+      if(!uniqueErrorAssets.has(key)) uniqueErrorAssets.set(key, {bu, asset, reasons:new Set()});
+      uniqueErrorAssets.get(key).reasons.add(reason);
+    }
+    amountMismatches.forEach(r=>markError(r.bu, r.asset, 'AMOUNT'));
+    txnMismatches.forEach(r=>markError(r.bu, r.asset, 'TXN_AMOUNT'));
+    missingRows.forEach(r=>markError(r.bu, r.asset, 'MISSING BOOK'));
+
+    renderUniqueErrorAssets(uniqueErrorAssets, fieldDefs);
+    renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, missingRows, fieldDefs);
+    renderSyncDetail(amountCol, txnCol, amountRows, txnRows, missingRows, fieldDefs);
+    applySyncVisibility();
+
+    lastSyncContext = {fieldDefs, bookCol, amountCol, txnCol};
+  }
+
+  function renderUniqueErrorAssets(uniqueErrorAssets, fieldDefs){
+    const idFields = fieldDefs.filter(f => f.prop==='bu' || f.prop==='asset');
+    const box = el('syncErrorAssets');
+    box.innerHTML = '';
+    const banner = document.createElement('div');
+    banner.className = 'error-assets-banner' + (uniqueErrorAssets.size===0 ? ' clean' : '');
+    const head = document.createElement('div');
+    head.className = 'error-assets-head';
+    if(uniqueErrorAssets.size===0){
+      head.innerHTML = '<b>0</b> Business Unit + Asset combinations have any sync issue';
+    } else {
+      head.innerHTML = '<b>'+uniqueErrorAssets.size+'</b> unique Business Unit + Asset combination'+(uniqueErrorAssets.size===1?'':'s')+' with at least one sync issue';
+    }
+    banner.appendChild(head);
+    if(uniqueErrorAssets.size){
+      const wrap = document.createElement('div');
+      Array.from(uniqueErrorAssets.values()).forEach(a=>{
+        const chip = document.createElement('span');
+        chip.className = 'error-asset-chip';
+        const parts = idFields.map(f=>{
+          const v = f.isAsset ? formatAssetId(a[f.prop]) : String(a[f.prop]);
+          return f.isAsset ? '<b>'+escapeHtml(v)+'</b>' : escapeHtml(v);
+        });
+        chip.innerHTML = parts.join(' / ')+' — '+escapeHtml(Array.from(a.reasons).join(', '));
+        wrap.appendChild(chip);
+      });
+      banner.appendChild(wrap);
+    }
+    box.appendChild(banner);
+  }
+
+  function chipLabel(m, fieldDefs){
+    const escParts = fieldDefs.map(f=>{
+      const raw = f.isAsset ? formatAssetId(m[f.prop]) : String(m[f.prop]);
+      const esc = escapeHtml(raw);
+      return f.isAsset ? '<b>'+esc+'</b>' : esc;
+    });
+    return escParts.join(' / ');
+  }
+
+  function renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, missingRows, fieldDefs){
+    const tiles = el('syncTiles');
+    tiles.innerHTML = '';
+
+    if(amountCol){
+      const tile = document.createElement('div');
+      tile.className = 'sync-tile ' + (amountMismatches.length ? 'bad' : 'ok');
+      tile.innerHTML = '<div class="n">'+amountMismatches.length+'</div>'+
+        '<div class="t">asset'+(amountMismatches.length===1?'':'s')+' out of sync — Sum(AMOUNT), ACT-USD vs CORPORATE</div>'+
+        '<div class="d">'+amountRows.length+' groups checked</div>';
+      if(amountMismatches.length){
+        const chips = document.createElement('div');
+        chips.className = 'sync-chips';
+        amountMismatches.forEach(m=>{
+          const c = document.createElement('span');
+          c.className = 'sync-chip';
+          c.innerHTML = chipLabel(m, fieldDefs);
+          chips.appendChild(c);
+        });
+        tile.appendChild(chips);
+      }
+      tiles.appendChild(tile);
+    }
+
+    if(txnCol){
+      const tile = document.createElement('div');
+      tile.className = 'sync-tile ' + (txnMismatches.length ? 'bad' : 'ok');
+      tile.innerHTML = '<div class="n">'+txnMismatches.length+'</div>'+
+        '<div class="t">asset'+(txnMismatches.length===1?'':'s')+' out of sync — Sum(TXN_AMOUNT), all 3 books</div>'+
+        '<div class="d">'+txnRows.length+' groups checked</div>';
+      if(txnMismatches.length){
+        const chips = document.createElement('div');
+        chips.className = 'sync-chips';
+        txnMismatches.forEach(m=>{
+          const c = document.createElement('span');
+          c.className = 'sync-chip';
+          c.innerHTML = chipLabel(m, fieldDefs);
+          chips.appendChild(c);
+        });
+        tile.appendChild(chips);
+      }
+      tiles.appendChild(tile);
+    }
+
+    {
+      const tile = document.createElement('div');
+      tile.className = 'sync-tile ' + (missingRows.length ? 'bad' : 'ok');
+      tile.innerHTML = '<div class="n">'+missingRows.length+'</div>'+
+        '<div class="t">group'+(missingRows.length===1?'':'s')+' with a book missing entirely — ACT-USD / CORP-BASE / CORPORATE</div>'+
+        '<div class="d">checked across all groups in this sheet</div>';
+      if(missingRows.length){
+        const chips = document.createElement('div');
+        chips.className = 'sync-chips';
+        missingRows.forEach(m=>{
+          const c = document.createElement('span');
+          c.className = 'sync-chip';
+          c.innerHTML = chipLabel(m, fieldDefs) + ' — <b>missing '+escapeHtml(m.missingBooks.join(', '))+'</b>';
+          chips.appendChild(c);
+        });
+        tile.appendChild(chips);
+      }
+      tiles.appendChild(tile);
+    }
+  }
+
+  function renderSyncDetail(amountCol, txnCol, amountRows, txnRows, missingRows, fieldDefs){
+    const detail = el('syncDetail');
+    detail.innerHTML = '';
+
+    const idHeadCells = fieldDefs.map(f=>'<th>'+escapeHtml(f.label)+'</th>').join('');
+    const idRowCells = r => fieldDefs.map(f=>{
+      const v = f.isAsset ? formatAssetId(r[f.prop]) : String(r[f.prop]);
+      return '<td>'+escapeHtml(v)+'</td>';
+    }).join('');
+
+    if(amountCol){
+      const block = document.createElement('div');
+      block.className = 'sync-detail-block';
+      block.innerHTML = '<h4>Sum of AMOUNT — ACT-USD vs CORPORATE</h4>';
+      const shownRows = showErrorOnly ? amountRows.filter(r=>!r.inSync) : amountRows;
+      if(amountRows.length===0){
+        block.innerHTML += '<div class="sync-empty-note">No group had both an ACT-USD and a CORPORATE book to compare.</div>';
+      } else if(shownRows.length===0){
+        block.innerHTML += '<div class="sync-empty-note">No sync issues — every checked group is in sync.</div>';
+      } else {
+        const table = document.createElement('table');
+        table.className = 'sync';
+        table.innerHTML = '<thead><tr>'+idHeadCells+'<th>ACT-USD</th><th>CORPORATE</th><th>Difference</th><th>Status</th></tr></thead>';
+        const tbody = document.createElement('tbody');
+        shownRows.sort((a,b)=> (a.inSync - b.inSync) || 0).forEach(r=>{
+          const tr = document.createElement('tr');
+          if(!r.inSync) tr.classList.add('mismatch');
+          tr.innerHTML = idRowCells(r)+
+            '<td>'+fmtNum(r.actUsd)+'</td><td>'+fmtNum(r.corporate)+'</td><td>'+fmtNum(r.diff)+'</td>'+
+            '<td class="'+(r.inSync?'status-ok':'status-bad')+'">'+(r.inSync?'In sync':'Not in sync')+'</td>';
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        block.appendChild(table);
+      }
+      detail.appendChild(block);
+    }
+
+    if(txnCol){
+      const block = document.createElement('div');
+      block.className = 'sync-detail-block';
+      block.innerHTML = '<h4>Sum of TXN_AMOUNT — ACT-USD vs CORP-BASE vs CORPORATE</h4>';
+      const shownRows = showErrorOnly ? txnRows.filter(r=>!r.inSync) : txnRows;
+      if(txnRows.length===0){
+        block.innerHTML += '<div class="sync-empty-note">No group had all 3 books (ACT-USD, CORP-BASE, CORPORATE) to compare.</div>';
+      } else if(shownRows.length===0){
+        block.innerHTML += '<div class="sync-empty-note">No sync issues — every checked group is in sync.</div>';
+      } else {
+        const table = document.createElement('table');
+        table.className = 'sync';
+        table.innerHTML = '<thead><tr>'+idHeadCells+'<th>ACT-USD</th><th>CORP-BASE</th><th>CORPORATE</th><th>Max difference</th><th>Status</th></tr></thead>';
+        const tbody = document.createElement('tbody');
+        shownRows.sort((a,b)=> (a.inSync - b.inSync) || 0).forEach(r=>{
+          const tr = document.createElement('tr');
+          if(!r.inSync) tr.classList.add('mismatch');
+          tr.innerHTML = idRowCells(r)+
+            '<td>'+fmtNum(r.actUsd)+'</td><td>'+fmtNum(r.corpBase)+'</td><td>'+fmtNum(r.corporate)+'</td>'+
+            '<td>'+fmtNum(r.maxDiff)+'</td>'+
+            '<td class="'+(r.inSync?'status-ok':'status-bad')+'">'+(r.inSync?'In sync':'Not in sync')+'</td>';
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        block.appendChild(table);
+      }
+      detail.appendChild(block);
+    }
+
+    {
+      const block = document.createElement('div');
+      block.className = 'sync-detail-block';
+      block.innerHTML = '<h4>Book missing entirely — expected ACT-USD, CORP-BASE, CORPORATE</h4>';
+      if(missingRows.length===0){
+        block.innerHTML += '<div class="sync-empty-note">Every group in this sheet has rows under all 3 books.</div>';
+      } else {
+        const table = document.createElement('table');
+        table.className = 'sync';
+        table.innerHTML = '<thead><tr>'+idHeadCells+'<th>Books present</th><th>Books missing</th></tr></thead>';
+        const tbody = document.createElement('tbody');
+        missingRows.forEach(r=>{
+          const tr = document.createElement('tr');
+          tr.classList.add('mismatch');
+          tr.innerHTML = idRowCells(r)+
+            '<td>'+escapeHtml(r.presentBooks.join(', ')||'—')+'</td>'+
+            '<td class="status-bad">'+escapeHtml(r.missingBooks.join(', '))+'</td>';
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        block.appendChild(table);
+      }
+      detail.appendChild(block);
+    }
+  }
+
+})();
+</script>
+</body>
+</html>

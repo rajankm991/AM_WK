@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AM Workspace</title>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cog-navy: #000048;
+    --cog-blue: #0000ff;
+    --border: #d0d7de;
+    --nav-text: #ffffff;
+    --nav-hover: rgba(255, 255, 255, 0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  /* Flexbox viewport layout to eliminate JS recalculation loops */
+  html, body { 
+    width: 100%;
+    height: 100vh;
+    font-family: 'Golos Text', 'Inter', sans-serif; 
+    overflow: hidden;
+    background: #f4f6f8;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Compact Sticky Navbar */
+  header.navbar {
+    height: 38px;
+    background: var(--cog-navy);
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 5px rgba(0, 0, 72, 0.15);
+    z-index: 1000;
+    flex-shrink: 0;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .brand-logo-wrapper {
+    background: #ffffff;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .brand-logo-img {
+    height: 16px;
+    width: auto;
+    display: block;
+  }
+  .brand-tag {
+    font-size: 0.65rem;
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    padding: 0.15rem 0.45rem;
+    border-radius: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .nav-tabs {
+    display: flex;
+    gap: 6px;
+    height: 100%;
+    align-items: center;
+  }
+  .tab-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    padding: 0.2rem 0.6rem;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s, border-color 0.2s;
+  }
+  .tab-btn:hover {
+    background: var(--nav-hover);
+  }
+  .tab-btn.active {
+    background: var(--cog-blue);
+    border-color: var(--cog-blue);
+  }
+
+  /* Full Fill Seamless Iframe */
+  .content-frame {
+    width: 100%;
+    flex: 1;
+    border: none;
+    display: block;
+  }
+
+  /* Micro Footer */
+  footer {
+    background: var(--cog-navy);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 1px 1rem;
+    font-size: 0.6rem;
+    line-height: 12px;
+    text-align: center;
+    width: 100%;
+    height: 14px;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<header class="navbar">
+  <div class="brand">
+    <div class="brand-logo-wrapper">
+      <img src="https://careers.cognizant.com/images/logo.svg" alt="Cognizant Logo" class="brand-logo-img">
+    </div>
+    <div class="brand-tag">AM Workspace</div>
+  </div>
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-url="pivot.html" data-exists="true" onclick="switchTab(this)">Pivot Table Tool</button>
+    <button class="tab-btn" data-url="text_compare.html" data-exists="true" onclick="switchTab(this)">Text Compare Tool</button>
+	
+  </nav>
+</header>
+
+<iframe id="appFrame" class="content-frame"></iframe>
+
+<footer>&copy; Cognizant 2026, all rights reserved.(RKM)</footer>
+
+<script>
+  const underConstructionHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: 'Golos Text', 'Inter', sans-serif;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 70vh;
+          margin: 0;
+          color: #000048;
+          text-align: center;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        p { color: #666; font-size: 0.85rem; }
+        .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+      </style>
+    </head>
+    <body>
+      <div class="icon">🚧</div>
+      <h1>Coming Soon...</h1>
+      <p>This page is currently under construction.</p>
+    </body>
+    </html>
+  `;
+
+  function switchTab(btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const iframe = document.getElementById('appFrame');
+    const url = btn.getAttribute('data-url');
+    const exists = btn.getAttribute('data-exists') === 'true';
+
+    if (exists) {
+      iframe.removeAttribute('srcdoc');
+      iframe.src = url;
+    } else {
+      iframe.removeAttribute('src');
+      iframe.srcdoc = underConstructionHTML;
+    }
+  }
+
+  window.onload = () => {
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab) switchTab(activeTab);
+  };
+</script>
+
+</body>
+</html>
