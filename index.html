@@ -11,11 +11,11 @@
     --cog-blue: #0000ff;
     --border: #d0d7de;
     --nav-text: #ffffff;
-    --nav-hover: rgba(255, 255, 255, 0.15);
+    --nav-hover: rgba(255, 255, 255, 0.25);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   
-  /* Flexbox viewport layout to eliminate JS recalculation loops */
+  /* Flexbox viewport layout */
   html, body { 
     width: 100%;
     height: 100vh;
@@ -28,20 +28,22 @@
   
   /* Compact Sticky Navbar */
   header.navbar {
-    height: 38px;
+    height: 45px;
     background: var(--cog-navy);
-    padding: 0 1rem;
+    padding: 0 0.75rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
     box-shadow: 0 1px 5px rgba(0, 0, 72, 0.15);
     z-index: 1000;
     flex-shrink: 0;
+    gap: 0.75rem;
   }
   .brand {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    flex-shrink: 0;
   }
   .brand-logo-wrapper {
     background: #ffffff;
@@ -67,23 +69,49 @@
     font-weight: 500;
     border: 1px solid rgba(255, 255, 255, 0.15);
   }
+
+  /* Scrollable Navigation Container with lighter background */
   .nav-tabs {
     display: flex;
     gap: 6px;
-    height: 100%;
+    height: 30px;
     align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.12); /* Adjusted to a lighter highlight color */
+    padding: 0 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.5) transparent;
   }
+
+  /* Custom Scrollbar Styling */
+  .nav-tabs::-webkit-scrollbar {
+    height: 3px;
+  }
+  .nav-tabs::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 3px;
+  }
+  .nav-tabs::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
   .tab-btn {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: #ffffff;
-    padding: 0.2rem 0.6rem;
+    padding: 0.15rem 0.6rem;
     font-family: inherit;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 600;
     cursor: pointer;
     border-radius: 4px;
     transition: background-color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
   .tab-btn:hover {
     background: var(--nav-hover);
@@ -127,7 +155,9 @@
   <nav class="nav-tabs">
     <button class="tab-btn active" data-url="pivot.html" data-exists="true" onclick="switchTab(this)">Pivot Table Tool</button>
     <button class="tab-btn" data-url="text_compare.html" data-exists="true" onclick="switchTab(this)">Text Compare Tool</button>
-	
+    <button class="tab-btn" data-url="dp_close.html" data-exists="true" onclick="switchTab(this)">DP Close Tool</button>
+
+
   </nav>
 </header>
 
