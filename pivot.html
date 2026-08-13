@@ -1226,7 +1226,7 @@
   }
   function normBook(v){ return (v===null||v===undefined) ? '' : String(v).trim().toUpperCase(); }
 
-  let syncDetailVisible = true;
+  let syncDetailVisible = false;
   function applySyncVisibility(){
     el('syncTiles').style.display = syncDetailVisible ? '' : 'none';
     el('syncDetail').style.display = syncDetailVisible ? '' : 'none';
