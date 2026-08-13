@@ -8,9 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@500;700&family=JetBrains+Mono&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  /* ==========================================================================
-     1. CSS Variables & Design Tokens
-     ========================================================================== */
   :root {
     --cog-navy: #000048;
     --cog-blue: #0000ff;
@@ -25,8 +22,6 @@
     --whitespace-bg: rgba(210, 153, 34, 0.22);
     --whitespace-text: #e3b341;
     --empty-bg: rgba(255, 255, 255, 0.03);
-
-    /* Component Tokens */
     --paper:#EDEFEA;
     --panel:#FFFFFF;
     --ink:#1B2430;
@@ -40,16 +35,7 @@
     --danger:#C24444;
     --radius:6px;
   }
-
-  /* ==========================================================================
-     2. Global Reset & Base Styles
-     ========================================================================== */
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: #f4f6f9;
     color: var(--cog-navy);
@@ -58,31 +44,20 @@
     display: flex;
     flex-direction: column;
   }
-
-  /* ==========================================================================
-     3. Layout Container & Header
-     ========================================================================== */
   .container {
-    max-width: 95vw;
+    max-width: 98vw;
     margin: 0 auto;
     width: 100%;
-    padding:1rem;
+    padding:0.5rem 0.6rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 0.6rem;
   }
-
-  /* Core Pivot Table App Layout Adjustments */
-  .app {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
+  .app { width: 100%; display: flex; flex-direction: column; gap: 0.6rem; }
   .file-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .top-bar{display:flex;align-items:center;justify-content:flex-end;margin-bottom:-6px;}
+  .top-bar{display:flex;align-items:center;justify-content:flex-end;margin-bottom:-10px;}
   .btn.refresh{background:#ffffff;color:var(--cog-navy);border:1px solid var(--border-dark);display:flex;align-items:center;gap:6px;}
+  .btn.refresh.compact-refresh{padding:4px 9px;font-size:11px;gap:4px;}
   .btn.refresh:hover{background:var(--danger);color:#fff;border-color:var(--danger);}
   .btn{
     font-family:'Golos Text',sans-serif;font-weight:600;font-size:13px;
@@ -96,11 +71,9 @@
   .btn:disabled{opacity:.4;cursor:not-allowed;}
   input[type=file]{display:none;}
   select.sheet-select{
-    font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px 10px;
+    font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 7px;
     border-radius:4px;border:1px solid var(--border-dark);background:#fff;color:var(--cog-navy);
   }
-
-  /* paste data modal */
   .modal-backdrop{
     display:none;position:fixed;inset:0;background:rgba(0,0,72,0.45);
     align-items:center;justify-content:center;z-index:50;padding:20px;
@@ -118,7 +91,6 @@
     background:var(--editor-bg);white-space:pre;overflow:auto;
   }
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;}
-
   .empty-state{
     background:#ffffff;border:1px dashed var(--border-dark);border-radius:8px;
     padding:70px 30px;text-align:center;color:var(--muted);
@@ -129,83 +101,81 @@
   }
   .empty-state h2{font-family:'Golos Text',sans-serif;color:var(--cog-navy);font-size:20px;margin:6px 0 8px;}
   .empty-state p{max-width:440px;margin:0 auto 20px;font-size:13.5px;line-height:1.55;}
-
-  /* workspace */
-  .workspace{display:none;grid-template-columns:280px 1fr;gap:18px;align-items:start;}
+  .workspace{display:none;grid-template-columns:1fr 220px;gap:10px;align-items:start;}
   .workspace.active{display:grid;}
   .workspace.panel-collapsed{grid-template-columns:1fr;}
   .workspace.panel-collapsed .zones-panel,
   .workspace.panel-collapsed .fields-bar-panel{display:none;}
-
   .panel{
     background:#ffffff;border:1px solid var(--border);border-radius:8px;
     box-shadow:0 2px 6px rgba(0,0,72,0.05);
   }
-
-  .right-col{display:flex;flex-direction:column;gap:18px;min-width:0;}
-
-  /* left sidebar: filters/rows/columns/values */
-  .zones-panel{padding:16px;position:sticky;top:20px;}
+  .right-col{display:flex;flex-direction:column;gap:10px;min-width:0;}
+  .zones-panel{padding:10px;position:sticky;top:20px;}
   .panel-label{
-    font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--muted);margin:0 0 10px;display:flex;align-items:center;justify-content:space-between;
+    font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 5px;display:flex;align-items:center;justify-content:space-between;
   }
   .zone{
-    min-height:44px;border:1.5px dashed var(--border-dark);border-radius:6px;
-    padding:6px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start;
-    transition:border-color .12s, background .12s;margin-bottom:16px;
+    min-height:32px;border:1.5px dashed var(--border-dark);border-radius:6px;
+    padding:4px;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start;
+    transition:border-color .12s, background .12s;margin-bottom:8px;
   }
   .zone.dragover{border-color:var(--cog-blue);background:rgba(0,0,255,0.05);}
   .zone.empty::after{
-    content:attr(data-placeholder);font-family:'JetBrains Mono',monospace;font-size:11px;
-    color:var(--muted);padding:4px 2px;
+    content:attr(data-placeholder);font-family:'JetBrains Mono',monospace;font-size:10px;
+    color:var(--muted);padding:3px 2px;
   }
   .zchip{
-    display:flex;align-items:center;gap:6px;background:var(--cog-navy);color:#fff;
-    border-radius:5px;padding:5px 6px 5px 9px;font-size:11.5px;font-family:'JetBrains Mono',monospace;
+    display:flex;align-items:center;gap:4px;background:var(--cog-navy);color:#fff;
+    border-radius:5px;padding:3px 4px 3px 7px;font-size:10.5px;font-family:'JetBrains Mono',monospace;
     cursor:grab;
   }
   .zchip.values{background:var(--amber);color:#3a2a06;}
   .zchip select{
     background:rgba(255,255,255,.18);color:inherit;border:none;border-radius:3px;
-    font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:2px 3px;cursor:pointer;
+    font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 2px;cursor:pointer;
   }
   .zchip.values select{background:rgba(0,0,0,.12);}
-  .zchip .rm{cursor:pointer;opacity:.7;font-size:13px;line-height:1;padding:0 1px;}
+  .zchip .rm{cursor:pointer;opacity:.7;font-size:12px;line-height:1;padding:0 1px;}
   .zchip .rm:hover{opacity:1;}
-
-  .filter-field{margin-bottom:10px;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+  .zchip .move{cursor:pointer;opacity:.65;font-size:9px;line-height:1;padding:0 1px;}
+  .zchip .move:hover{opacity:1;}
+  .zchip .move.disabled{opacity:.2;cursor:default;pointer-events:none;}
+  .filter-field{margin-bottom:8px;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
   .filter-head{
-    display:flex;justify-content:space-between;align-items:center;padding:7px 9px;
-    background:#eef2f7;font-family:'JetBrains Mono',monospace;font-size:11.5px;cursor:pointer;
+    display:flex;justify-content:space-between;align-items:center;padding:6px 8px;
+    background:#eef2f7;font-family:'JetBrains Mono',monospace;font-size:10.5px;cursor:pointer;
   }
   .filter-head .rm{color:var(--muted);cursor:pointer;}
-  .filter-body{padding:8px 9px;display:none;border-top:1px solid var(--border);}
+  .filter-body{padding:7px 8px;display:none;border-top:1px solid var(--border);}
   .filter-body.open{display:flex;flex-direction:column;}
   .filter-value-search{
-    width:100%;padding:6px 8px;margin:4px 0 8px;border-radius:5px;border:1px solid var(--border-dark);
-    font-size:11.5px;font-family:'JetBrains Mono',monospace;
+    width:100%;padding:5px 7px;margin:4px 0 7px;border-radius:5px;border:1px solid var(--border-dark);
+    font-size:10.5px;font-family:'JetBrains Mono',monospace;
   }
-  .filter-value-list{max-height:150px;overflow-y:auto;}
-  .filter-body label{display:flex;gap:6px;align-items:center;font-size:11.5px;padding:2px 0;font-family:'JetBrains Mono',monospace;}
+  .filter-value-list{max-height:130px;overflow-y:auto;}
+  .filter-body label{display:flex;gap:6px;align-items:center;font-size:10.5px;padding:2px 0;font-family:'JetBrains Mono',monospace;}
   .filter-mini{font-size:10px;color:var(--cog-blue);cursor:pointer;font-family:'JetBrains Mono',monospace;}
   .filter-mini.active-filter{color:var(--danger);font-weight:600;}
-
-  /* horizontal fields bar */
-  .fields-bar-panel{padding:14px 16px;}
-  .fields-bar-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:10px;flex-wrap:wrap;}
+  .fields-bar-panel{padding:8px 10px;}
+  .fields-bar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+  .sheet-select-wrap{display:flex;align-items:center;gap:6px;}
+  .sheet-select-wrap .sheet-label{
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);white-space:nowrap;
+  }
   .field-search{
-    padding:7px 9px;border-radius:5px;border:1px solid var(--border-dark);
-    font-size:12.5px;font-family:'Golos Text',sans-serif;width:220px;max-width:60vw;
+    padding:5px 8px;border-radius:5px;border:1px solid var(--border-dark);
+    font-size:11.5px;font-family:'Golos Text',sans-serif;width:200px;max-width:60vw;
   }
   .field-list-horizontal{
-    display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;
+    display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;
     scrollbar-width:thin;
   }
   .chip{
-    display:flex;align-items:center;gap:7px;flex:none;
-    font-family:'JetBrains Mono',monospace;font-size:12px;
-    padding:7px 10px;border-radius:5px;border:1px solid var(--border);background:#FAFBFC;
+    display:flex;align-items:center;gap:6px;flex:none;
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+    padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:#FAFBFC;
     cursor:grab;user-select:none;transition:border-color .12s, background .12s;white-space:nowrap;
   }
   .chip:hover{border-color:var(--cog-blue);background:rgba(0,0,255,0.05);}
@@ -213,12 +183,22 @@
   .chip .ico{width:6px;height:6px;border-radius:1px;background:var(--muted);flex:none;}
   .chip.type-num .ico{background:var(--amber);}
   .chip .label{overflow:hidden;text-overflow:ellipsis;}
-
-  /* main / results */
-  .results-panel{padding:18px 18px 22px;min-width:0;}
-  .results-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
-  .results-head h2{font-family:'Golos Text',sans-serif;font-size:16px;margin:0;color:var(--cog-navy);}
-  .results-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+  .results-panel{padding:10px 12px 14px;min-width:0;}
+  .results-head{
+    display:flex;align-items:center;justify-content:flex-start;
+    margin-bottom:10px;flex-wrap:nowrap;gap:12px;
+    overflow-x:auto;white-space:nowrap;padding-bottom:2px;
+  }
+  .results-head::-webkit-scrollbar{height:6px;}
+  .results-head h2{font-family:'Golos Text',sans-serif;font-size:14px;margin:0;color:var(--cog-navy);flex:none;}
+  .results-controls{display:flex;align-items:center;gap:12px;flex:none;}
+  .results-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);flex:none;margin-left:auto;padding-left:12px;}
+  .compact-check{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cog-navy);cursor:pointer;white-space:nowrap;}
+  .compact-search{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cog-navy);white-space:nowrap;}
+  .compact-search input{
+    width:88px;padding:3px 6px;border-radius:4px;border:1px solid var(--border-dark);
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+  }
   .table-scroll { overflow: auto; border: 1px solid var(--border); border-radius: 6px; max-height: 87vh;}
   table.pivot{border-collapse:collapse;width:100%;font-family:'JetBrains Mono',monospace;font-size:12px;}
   table.pivot th, table.pivot td{
@@ -236,8 +216,8 @@
   table.pivot tbody tr.row-error:hover td, table.pivot tbody tr.row-error:hover th{background:#F6D5D5;}
   table.pivot.tree tbody tr.subtotal-row th, table.pivot.tree tbody tr.subtotal-row td{font-weight:700;}
   table.pivot.tree tbody th.tree-label{white-space:nowrap;}
-  .pivot-legend{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
-  .pivot-legend .swatch{width:11px;height:11px;border-radius:2px;background:#FBEAEA;border:1px solid #EFC0C0;display:inline-block;}
+  .pivot-legend{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;flex:none;}
+  .pivot-legend .swatch{width:10px;height:10px;border-radius:2px;background:#FBEAEA;border:1px solid #EFC0C0;display:inline-block;flex:none;}
   table.pivot tfoot th, table.pivot tfoot td{
     background:var(--amber-dim);font-weight:600;position:sticky;bottom:0;
   }
@@ -246,55 +226,54 @@
     padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;
   }
   .placeholder-msg b{color:var(--cog-navy);}
-
-  /* sync check panel */
-  .sync-panel{padding:16px 18px;margin-bottom:18px;}
-  .sync-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .sync-panel{padding:10px 12px;margin-bottom:10px;}
+  .sync-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
   .sync-scope{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;}
-  .sync-tiles{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
+  .sync-tiles{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:2px;}
   .error-assets-banner{
     border:1px solid #EFC0C0;background:#FBEAEA;border-radius:8px;
-    padding:10px 14px;margin-bottom:12px;
+    padding:8px 10px;margin-bottom:8px;
   }
   .error-assets-banner.clean{border-color:#BFE0B8;background:#EEF6EC;}
   .error-assets-head{
     display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-family:'JetBrains Mono',monospace;
-    font-size:12px;color:var(--cog-navy);margin-bottom:6px;flex-wrap:wrap;
+    font-size:12px;color:var(--cog-navy);margin-bottom:5px;flex-wrap:wrap;
   }
-  .error-assets-head b{font-family:'Golos Text',sans-serif;font-size:15px;color:var(--danger);}
+  .error-assets-head b{font-family:'Golos Text',sans-serif;font-size:14px;color:var(--danger);}
   .error-assets-banner.clean .error-assets-head b{color:#3F7A36;}
   .error-assets-export-btn{
     font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11px;
     background:#ffffff;color:var(--cog-navy);border:1px solid var(--border-dark);
-    border-radius:4px;padding:5px 10px;cursor:pointer;white-space:nowrap;
+    border-radius:4px;padding:4px 9px;cursor:pointer;white-space:nowrap;
     display:inline-flex;align-items:center;gap:5px;transition:background-color .15s,color .15s;
   }
   .error-assets-export-btn:hover{background:var(--cog-blue);color:#fff;border-color:var(--cog-blue);}
-  table.error-assets-table td:nth-child(3), table.error-assets-table th:nth-child(3){text-align:left;}
+  table.error-assets-table td:nth-child(3), table.error-assets-table th:nth-child(3),
+  table.error-assets-table td:nth-child(4), table.error-assets-table th:nth-child(4){text-align:left;}
   .sync-tile{
-    flex:1;min-width:220px;border-radius:8px;padding:12px 14px;border:1px solid var(--border);
-    display:flex;flex-direction:column;gap:4px;
+    flex:1;min-width:180px;border-radius:8px;padding:8px 10px;border:1px solid var(--border);
+    display:flex;flex-direction:column;gap:2px;
   }
   .sync-tile.ok{background:#EEF6EC;border-color:#BFE0B8;}
   .sync-tile.bad{background:#FBEAEA;border-color:#EFC0C0;}
-  .sync-tile .n{font-family:'Golos Text',sans-serif;font-size:26px;font-weight:700;}
+  .sync-tile .n{font-family:'Golos Text',sans-serif;font-size:20px;font-weight:700;}
   .sync-tile.ok .n{color:#3F7A36;}
   .sync-tile.bad .n{color:var(--danger);}
-  .sync-tile .t{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cog-navy);}
-  .sync-tile .d{font-size:11px;color:var(--muted);}
-  .sync-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .sync-tile .t{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--cog-navy);}
+  .sync-tile .d{font-size:10.5px;color:var(--muted);}
+  .sync-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
   .sync-chip{
-    font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;border:1px solid var(--border);
-    border-radius:5px;padding:4px 8px;color:var(--cog-navy);
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;background:#fff;border:1px solid var(--border);
+    border-radius:5px;padding:3px 7px;color:var(--cog-navy);
   }
   .sync-chip b{color:var(--danger);}
-  .sync-detail-block{margin-top:14px;}
+  .sync-detail-block{margin-top:10px;}
   .sync-detail-block h4{
-    font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;
-    color:var(--muted);margin:0 0 8px;
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--muted);margin:0 0 6px;
   }
-  table.sync{border-collapse:collapse;width:100%;font-family:'JetBrains Mono',monospace;font-size:11.5px;margin-bottom:6px;}
-  table.sync th, table.sync td{border:1px solid var(--border);padding:5px 8px;text-align:right;white-space:nowrap;}
+  table.sync{border-collapse:collapse;width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;margin-bottom:5px;}
+  table.sync th, table.sync td{border:1px solid var(--border);padding:4px 7px;text-align:right;white-space:nowrap;}
   table.sync th{background:var(--cog-navy);color:#fff;text-align:right;}
   table.sync th:nth-child(1), table.sync th:nth-child(2),
   table.sync td:nth-child(1), table.sync td:nth-child(2){text-align:left;}
@@ -302,7 +281,6 @@
   table.sync td.status-bad{color:var(--danger);font-weight:600;}
   table.sync td.status-ok{color:#3F7A36;}
   .sync-empty-note{font-size:12px;color:var(--muted);font-family:'Golos Text',sans-serif;}
-
   ::-webkit-scrollbar{height:10px;width:10px;}
   ::-webkit-scrollbar-thumb{background:var(--border-dark);border-radius:5px;}
   ::-webkit-scrollbar-track{background:transparent;}
@@ -318,15 +296,12 @@
 </head>
 <body>
 
-  <!-- Hidden file input used programmatically -->
   <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
 
-  <!-- Main Container -->
   <div class="container">
-    
     <div class="app">
-      <div class="top-bar">
-        <button class="btn refresh" id="refreshBtn" title="Clear all loaded data and start over">&#8635; Refresh</button>
+      <div class="top-bar" id="topBar" style="display:none;">
+        <button class="btn refresh" id="refreshBtnFallback" title="Clear all loaded data and start over">&#8635; Refresh</button>
       </div>
       <div class="empty-state" id="emptyState">
         <div class="glyph">// no data loaded</div>
@@ -359,6 +334,7 @@
             <span class="filter-mini active-filter" id="showErrorToggle">Show all</span>
             <span class="filter-mini" id="generateSqlBtn">Generate Script ⌁</span>
             <span class="filter-mini" id="syncToggle">Hide detail ▾</span>
+            <button class="btn refresh compact-refresh" id="refreshBtn" title="Clear all loaded data and start over">&#8635; Refresh</button>
           </div>
         </div>
         <div id="syncErrorAssets"></div>
@@ -378,6 +354,42 @@
       </div>
 
       <div class="workspace" id="workspace">
+        <div class="right-col">
+          <div class="panel fields-bar-panel">
+            <div class="fields-bar-head">
+              <p class="panel-label" style="margin:0;">Fields <span id="fieldCount"></span></p>
+              <span class="sheet-select-wrap" id="sheetSelectWrap" style="display:none;">
+                <span class="sheet-label">Sheet:</span>
+                <select class="sheet-select" id="sheetSelect"></select>
+              </span>
+              <input class="field-search" id="fieldSearch" placeholder="Filter field list…">
+            </div>
+            <div class="field-list-horizontal" id="fieldList"></div>
+          </div>
+
+          <div class="panel results-panel">
+            <div class="results-head">
+              <h2 id="resultsTitle">Pivot result</h2>
+              <div class="results-controls">
+                <label class="compact-check" title="Show only rows with a sync issue">
+                  <input type="checkbox" id="onlyIssuesToggle" style="cursor:pointer;">
+                  Only issues
+                </label>
+                <label class="compact-search">
+                  Asset ID
+                  <input type="text" id="assetSearchInput" placeholder="e.g. 3805">
+                </label>
+                <span class="pivot-legend" title="Row has a sync issue"><span class="swatch"></span> = issue</span>
+                <span class="filter-mini" id="panelToggle">Hide fields panel ◂</span>
+              </div>
+              <div class="results-meta" id="resultsMeta"></div>
+            </div>
+            <div class="table-scroll" id="tableScroll">
+              <div class="placeholder-msg">Drop at least one field into <b>Rows</b> or <b>Columns</b>, and one into <b>Values</b>, to see a pivot table.</div>
+            </div>
+          </div>
+        </div>
+
         <div class="panel zones-panel">
           <p class="panel-label">Filters</p>
           <div class="zone" id="zoneFilters" data-zone="filters" data-placeholder="Drop fields here"></div>
@@ -391,34 +403,8 @@
           <p class="panel-label">Values</p>
           <div class="zone" id="zoneValues" data-zone="values" data-placeholder="Drop fields here"></div>
         </div>
-
-        <div class="right-col">
-          <div class="panel fields-bar-panel">
-            <div class="fields-bar-head">
-              <p class="panel-label" style="margin:0;">Fields <span id="fieldCount"></span></p>
-              <select class="sheet-select" id="sheetSelect" style="display:none;"></select>
-              <input class="field-search" id="fieldSearch" placeholder="Filter field list…">
-            </div>
-            <div class="field-list-horizontal" id="fieldList"></div>
-          </div>
-
-          <div class="panel results-panel">
-            <div class="results-head">
-              <h2 id="resultsTitle">Pivot result</h2>
-              <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-                <span class="pivot-legend"><span class="swatch"></span> row has a sync issue</span>
-                <span class="filter-mini" id="panelToggle">Hide fields panel ◂</span>
-                <div class="results-meta" id="resultsMeta"></div>
-              </div>
-            </div>
-            <div class="table-scroll" id="tableScroll">
-              <div class="placeholder-msg">Drop at least one field into <b>Rows</b> or <b>Columns</b>, and one into <b>Values</b>, to see a pivot table.</div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
-
   </div>
 
 <script>
@@ -452,14 +438,13 @@
   const emptyState = el('emptyState');
   const workspace = el('workspace');
 
-  // Refresh = fully reset THIS tool back to its blank/upload state.
-  // Since this page lives inside its own iframe on the workspace, this
-  // reload only affects the Pivot Table Tool tab — other tabs' data is untouched.
-  el('refreshBtn').addEventListener('click', ()=>{
+  function confirmRefresh(){
     if(confirm('This will clear the currently loaded data on this tab and let you upload/paste fresh data. Continue?')){
       window.location.reload();
     }
-  });
+  }
+  el('refreshBtn').addEventListener('click', confirmRefresh);
+  el('refreshBtnFallback').addEventListener('click', confirmRefresh);
 
   el('uploadBtn2').addEventListener('click', ()=>fileInput.click());
   fileInput.addEventListener('change', handleFile);
@@ -470,6 +455,29 @@
     const collapsed = workspace.classList.toggle('panel-collapsed');
     el('panelToggle').textContent = collapsed ? 'Show fields panel ▸' : 'Hide fields panel ◂';
   });
+
+  // Checkbox: hide non-issue rows from the rendered pivot table.
+  // This never changes which rows feed the aggregates/Grand Total —
+  // only which rows get appended to the visible table.
+  let showOnlyIssuesInPivot = false;
+  el('onlyIssuesToggle').addEventListener('change', e=>{
+    showOnlyIssuesInPivot = e.target.checked;
+    computeAndRenderPivot();
+  });
+
+  // Search box: narrows the pivot's underlying data down to a specific
+  // Asset ID, typed with or without the leading-zero padding
+  // (e.g. "3805" and "000000003805" both match the same asset).
+  let assetSearchQuery = '';
+  el('assetSearchInput').addEventListener('input', e=>{
+    assetSearchQuery = e.target.value;
+    computeAndRenderPivot();
+  });
+
+  function stripLeadingZeros(s){
+    const stripped = String(s).replace(/^0+/, '');
+    return stripped === '' ? '0' : stripped;
+  }
 
   const pasteModal = el('pasteModal');
   const openPasteModal = ()=>{ pasteModal.classList.add('open'); el('pasteArea').focus(); };
@@ -486,7 +494,7 @@
       return;
     }
     workbook = null;
-    el('sheetSelect').style.display = 'none';
+    el('sheetSelectWrap').style.display = 'none';
     el('sheetSelect').innerHTML = '';
     closePasteModal();
     el('pasteArea').value = '';
@@ -514,7 +522,7 @@
         opt.value = name; opt.textContent = name;
         sel.appendChild(opt);
       });
-      sel.style.display = workbook.SheetNames.length > 1 ? 'inline-block' : 'none';
+      el('sheetSelectWrap').style.display = 'inline-flex';
       loadSheet(workbook.SheetNames[0]);
     };
     reader.readAsArrayBuffer(file);
@@ -739,18 +747,57 @@
     zone.innerHTML = '';
     zone.classList.toggle('empty', arr.length===0);
     if(arr.length===0) return;
-    arr.forEach(field=>{
+    arr.forEach((field, idx)=>{
       const chip = document.createElement('div');
       chip.className = 'zchip';
       chip.draggable = true;
       chip.dataset.field = field;
-      chip.innerHTML = '<span>'+escapeHtml(field)+'</span><span class="rm" title="Remove">×</span>';
-      chip.addEventListener('dragstart', e=>{
-        e.dataTransfer.setData('text/plain', JSON.stringify({field, from:key}));
+
+      const label = document.createElement('span');
+      label.textContent = field;
+      chip.appendChild(label);
+
+      // Up/down buttons — an explicit alternative to drag-and-drop for
+      // reordering which field is more granular (outer group) vs less
+      // granular (inner group) in the pivot tree.
+      const upBtn = document.createElement('span');
+      upBtn.className = 'move' + (idx===0 ? ' disabled' : '');
+      upBtn.title = 'Move up';
+      upBtn.textContent = '▲';
+      upBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if(idx===0) return;
+        const a = state[key];
+        [a[idx-1], a[idx]] = [a[idx], a[idx-1]];
+        refreshAll();
       });
-      chip.querySelector('.rm').addEventListener('click', ()=>{
+      chip.appendChild(upBtn);
+
+      const downBtn = document.createElement('span');
+      downBtn.className = 'move' + (idx===arr.length-1 ? ' disabled' : '');
+      downBtn.title = 'Move down';
+      downBtn.textContent = '▼';
+      downBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if(idx===arr.length-1) return;
+        const a = state[key];
+        [a[idx], a[idx+1]] = [a[idx+1], a[idx]];
+        refreshAll();
+      });
+      chip.appendChild(downBtn);
+
+      const rm = document.createElement('span');
+      rm.className = 'rm';
+      rm.title = 'Remove';
+      rm.textContent = '×';
+      rm.addEventListener('click', ()=>{
         state[key] = state[key].filter(f=>f!==field);
         refreshAll();
+      });
+      chip.appendChild(rm);
+
+      chip.addEventListener('dragstart', e=>{
+        e.dataTransfer.setData('text/plain', JSON.stringify({field, from:key}));
       });
       zone.appendChild(chip);
     });
@@ -881,7 +928,26 @@
   function computeAndRenderPivot(){
     const scroll = el('tableScroll');
     const meta = el('resultsMeta');
-    const dataRows = getFilteredRows();
+    let dataRows = getFilteredRows();
+    // Columns (e.g. ACT-USD / CORP-BASE / CORPORATE) are always enumerated from
+    // this pre-search set, so the Asset ID search box only narrows which ROWS
+    // show up — it never makes a column disappear just because the matched
+    // asset happens to have no data under that particular book.
+    const rowsForColumns = dataRows;
+
+    // Asset ID search box: narrows the working data set down to whatever
+    // was typed, matching whether the person types the padded or
+    // unpadded form of the asset id (e.g. "3805" or "000000003805").
+    const assetColSearch = findCol('ASSET_ID');
+    if(assetSearchQuery.trim() && assetColSearch){
+      const q = assetSearchQuery.trim();
+      const qNorm = stripLeadingZeros(q);
+      dataRows = dataRows.filter(r=>{
+        const raw = fmtKey(r[assetColSearch]);
+        const rawNorm = stripLeadingZeros(raw);
+        return rawNorm.includes(qNorm) || raw.includes(q);
+      });
+    }
 
     if((state.rows.length===0 && state.columns.length===0) || state.values.length===0){
       scroll.innerHTML = '<div class="placeholder-msg">Drop at least one field into <b>Rows</b> or <b>Columns</b>, and one into <b>Values</b>, to see a pivot table.</div>';
@@ -889,7 +955,15 @@
       return;
     }
 
+    if(assetSearchQuery.trim() && assetColSearch && dataRows.length===0){
+      scroll.innerHTML = '<div class="placeholder-msg">No rows match Asset ID <b>'+escapeHtml(assetSearchQuery.trim())+'</b>.</div>';
+      meta.textContent = '0 of ' + rawRows.length + ' source rows matched the Asset ID search';
+      return;
+    }
+
     const colKeyOf = r => state.columns.map(f=>fmtKey(r[f]));
+    const assetColForSort = findCol('ASSET_ID');
+
 
     const rowColKey = new Map();
     const rowValueNums = new Map();
@@ -908,8 +982,10 @@
       rowValueNums.set(r, nums);
     });
 
+    // Column set comes from rowsForColumns (pre-search), not dataRows, so
+    // a Book column never gets hidden purely because of the Asset ID search.
     const colKeySet = new Set();
-    dataRows.forEach(r=> colKeySet.add(rowColKey.get(r)));
+    rowsForColumns.forEach(r=> colKeySet.add(state.columns.length ? colKeyOf(r).join('\u0001') : ''));
     const sortedColKeys = state.columns.length ? Array.from(colKeySet).sort((a,b)=>a.localeCompare(b)) : [''];
 
     function computeAggregates(rows){
@@ -939,7 +1015,14 @@
         if(!groups.has(key)) groups.set(key, []);
         groups.get(key).push(r);
       });
-      const sortedKeys = Array.from(groups.keys()).sort((a,b)=>a.localeCompare(b));
+      // Asset ID sorts ascending on its zero-padded form (so e.g. "386" sorts
+      // before "3805"/"3806" numerically instead of lexicographically on the
+      // raw, unpadded string).
+      const isAssetField = field === assetColForSort;
+      const sortedKeys = Array.from(groups.keys()).sort((a,b)=>{
+        if(isAssetField) return formatAssetId(a).localeCompare(formatAssetId(b));
+        return a.localeCompare(b);
+      });
       return sortedKeys.map(key=>{
         const childRows = groups.get(key);
         const children = fields.length>1 ? buildTree(childRows, fields.slice(1)) : null;
@@ -1009,16 +1092,35 @@
       return false;
     }
 
+    function isNodeFlagged(node){
+      // Only leaves are ever "the" flagged row — parents merely roll issues up.
+      if(node.children) return false;
+      const agg = computeAggregates(node.rows);
+      return node.rows.some(r=>erroringRawRows.has(r)) || nodeHasRollupMismatch(agg);
+    }
+
+    // Pre-pass: mark each node with whether it (a leaf) or any descendant carries
+    // a sync issue. This is only used to decide which rows to hide when
+    // "Show only issue assets" is checked — it never touches the underlying
+    // dataRows, the aggregates, or the Grand Total row/columns, which always
+    // reflect the full dataset regardless of this checkbox.
+    function markHasIssue(node){
+      if(node.children){
+        node._hasIssue = node.children.reduce((any, child)=> markHasIssue(child) || any, false);
+      } else {
+        node._hasIssue = isNodeFlagged(node);
+      }
+      return node._hasIssue;
+    }
+    tree.forEach(node => markHasIssue(node));
+
     function renderNode(node, depth){
+      if(showOnlyIssuesInPivot && !node._hasIssue) return;
+
       rowGroupCount++;
       const isLeaf = !node.children;
       const tr = document.createElement('tr');
       const agg = computeAggregates(node.rows);
-      // Only the deepest / most granular row (e.g. Distribution Type, when it's the
-      // last field in Rows) is where the sync check actually detected the mismatch.
-      // Parent/subtotal rows (BU, Asset, Trans type, Timestamp, ...) simply roll up
-      // that same underlying issue, so they should NOT be painted as errors too —
-      // otherwise one real issue looks like several highlighted rows.
       const flagged = isLeaf && (node.rows.some(r=>erroringRawRows.has(r)) || nodeHasRollupMismatch(agg));
       if(flagged) tr.classList.add('row-error');
       if(!isLeaf) tr.classList.add('subtotal-row');
@@ -1053,6 +1155,13 @@
     }
 
     tree.forEach(node => renderNode(node, 0));
+
+    if(showOnlyIssuesInPivot && rowGroupCount===0){
+      scroll.innerHTML = '<div class="placeholder-msg">No sync issues found — nothing to show with <b>Show only issue assets</b> enabled.</div>';
+      meta.textContent = '0 row groups shown (of ' + dataRows.length + ' source rows) • showing issue rows only';
+      return;
+    }
+
     tbody.appendChild(fragment);
     table.appendChild(tbody);
 
@@ -1080,15 +1189,13 @@
 
     scroll.innerHTML = '';
     scroll.appendChild(table);
-    meta.textContent = dataRows.length + ' of ' + rawRows.length + ' source rows • ' + rowGroupCount + ' row groups' + (state.columns.length? ' • '+sortedColKeys.length+' column groups':'');
+    meta.textContent = dataRows.length + ' of ' + rawRows.length + ' source rows • ' + rowGroupCount + ' row groups' + (state.columns.length? ' • '+sortedColKeys.length+' column groups':'') + (showOnlyIssuesInPivot ? ' • showing issue rows only' : '') + (assetSearchQuery.trim() ? ' • Asset ID contains "'+assetSearchQuery.trim()+'"' : '');
 
     window.__lastPivotTable = table;
   }
 
   function fmtNum(v){
     if(v===null || v===undefined) return '';
-    // Avoid ugly "-0.00" / "-0" from floating point sums that land just below zero
-    // (e.g. -0.00000000001). Snap anything that rounds to zero back to a clean 0.
     if(Object.is(v, -0) || Math.abs(v) < 0.005) v = 0;
     if(Number.isInteger(v)) return v.toLocaleString('en-US');
     return v.toLocaleString('en-US', {maximumFractionDigits:2, minimumFractionDigits:2});
@@ -1098,9 +1205,6 @@
     return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  // Groups any list of rows that carry {bu, asset, ...} into unique Business Unit + Asset ID
-  // combinations (asset IDs normalized via formatAssetId so e.g. "1140" and "0000000001140"
-  // collapse into the same combination). Each returned entry keeps all original rows under .rows.
   function dedupeByBuAsset(rows){
     const map = new Map();
     rows.forEach(r=>{
@@ -1151,12 +1255,25 @@
     const transTypeCol = findCol('TRANS_TYPE');
     const dttmCol = findCol('DTTM_STAMP');
     const distTypeCol = findCol('DISTRIBUTION_TYPE');
+    const journalCol = findCol('JOURNAL_ID') || findCol('JRNL_ID') || findCol('JOURNALID') || findCol('JE_ID') || findCol('JNL_ID');
+
+    function journalIdsFromRows(rows){
+      if(!journalCol) return [];
+      const set = new Set();
+      rows.forEach(r=>{
+        const v = r[journalCol];
+        if(v!==null && v!==undefined && v!=='') set.add(fmtKey(v));
+      });
+      return Array.from(set);
+    }
 
     if(!buCol || !assetCol || !bookCol || (!amountCol && !txnCol)){
       panel.style.display = 'none';
+      el('topBar').style.display = 'flex';
       return;
     }
     panel.style.display = 'block';
+    el('topBar').style.display = 'none';
 
     const candidateFields = [
       {col: buCol, prop:'bu', label:'Business unit', required:true},
@@ -1222,19 +1339,20 @@
         const diff = a - c;
         let inSync = Math.abs(diff) <= SYNC_TOLERANCE;
 
-        // NEW LOGIC: even if ACT-USD and CORPORATE are numerically close, if the sign of AMOUNT
-        // is not the same across all 3 books (ACT-USD, CORP-BASE, CORPORATE), flag this asset as an issue here too.
+        // Sign-mismatch check across all 3 books (ACT-USD, CORP-BASE, CORPORATE).
+        // Boundary is inclusive at exactly ±SYNC_TOLERANCE, so a value like -0.01
+        // keeps its real sign (-1) instead of being bucketed into the "neutral" 0 zone.
         let signMismatch = false;
         if(g.amountByBook.has('CORP-BASE')){
           const b = g.amountByBook.get('CORP-BASE');
-          const signOf = n => n > SYNC_TOLERANCE ? 1 : (n < -SYNC_TOLERANCE ? -1 : 0);
+          const signOf = n => n >= SYNC_TOLERANCE ? 1 : (n <= -SYNC_TOLERANCE ? -1 : 0);
           const sA = signOf(a), sB = signOf(b), sC = signOf(c);
           if(!(sA === sB && sB === sC)) signMismatch = true;
         }
         if(signMismatch) inSync = false;
 
         if(!inSync) groupHasError = true;
-        amountRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, actUsd:a, corpBase:g.amountByBook.get('CORP-BASE'), corporate:c, diff, inSync, signMismatch});
+        amountRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, actUsd:a, corpBase:g.amountByBook.get('CORP-BASE'), corporate:c, diff, inSync, signMismatch, journalIds: journalIdsFromRows(g.memberRows)});
       }
       if(txnCol && g.txnByBook.has('ACT-USD') && g.txnByBook.has('CORP-BASE') && g.txnByBook.has('CORPORATE')){
         const a = g.txnByBook.get('ACT-USD');
@@ -1243,13 +1361,13 @@
         const maxDiff = Math.max(a,b,c) - Math.min(a,b,c);
         const inSync = maxDiff <= SYNC_TOLERANCE;
         if(!inSync) groupHasError = true;
-        txnRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, actUsd:a, corpBase:b, corporate:c, maxDiff, inSync});
+        txnRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, actUsd:a, corpBase:b, corporate:c, maxDiff, inSync, journalIds: journalIdsFromRows(g.memberRows)});
       }
       const missingBooks = CANONICAL_BOOKS.filter(b=>!g.booksSeen.has(b));
       if(missingBooks.length > 0){
         groupHasError = true;
         const presentBooks = CANONICAL_BOOKS.filter(b=>g.booksSeen.has(b));
-        missingRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, presentBooks, missingBooks});
+        missingRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, presentBooks, missingBooks, journalIds: journalIdsFromRows(g.memberRows)});
       }
       if(groupHasError){
         g.memberRows.forEach(r=>erroringRawRows.add(r));
@@ -1260,20 +1378,18 @@
     const txnMismatches = txnRows.filter(r=>!r.inSync);
 
     const uniqueErrorAssets = new Map();
-    function markError(bu, asset, reason){
+    function markError(bu, asset, reason, journalIds){
       const assetNorm = formatAssetId(asset);
       const key = fmtKey(bu)+'\u0001'+fmtKey(assetNorm);
-      if(!uniqueErrorAssets.has(key)) uniqueErrorAssets.set(key, {bu, asset:assetNorm, reasons:new Set()});
-      uniqueErrorAssets.get(key).reasons.add(reason);
+      if(!uniqueErrorAssets.has(key)) uniqueErrorAssets.set(key, {bu, asset:assetNorm, reasons:new Set(), journalIds:new Set()});
+      const entry = uniqueErrorAssets.get(key);
+      entry.reasons.add(reason);
+      if(journalIds) journalIds.forEach(j=>entry.journalIds.add(j));
     }
-    amountMismatches.forEach(r=>markError(r.bu, r.asset, 'AMOUNT'));
-    txnMismatches.forEach(r=>markError(r.bu, r.asset, 'TXN_AMOUNT'));
-    missingRows.forEach(r=>markError(r.bu, r.asset, 'MISSING BOOK'));
+    amountMismatches.forEach(r=>markError(r.bu, r.asset, 'AMOUNT', r.journalIds));
+    txnMismatches.forEach(r=>markError(r.bu, r.asset, 'TXN_AMOUNT', r.journalIds));
+    missingRows.forEach(r=>markError(r.bu, r.asset, 'MISSING BOOK', r.journalIds));
 
-    // ---- NEW, ADDITIVE CHECK: for every timestamp, each book's total AMOUNT must net to zero. ----
-    // If a timestamp+book combo does not net to zero, every unique Business Unit + Asset ID combination
-    // that contributed to that group is surfaced as an "Imbalance Entry" issue (displayed as unique BU & Asset ID,
-    // consistent with all the other criteria above). This does not alter any of the checks/groupings above.
     const zeroSumRows = [];
     if(dttmCol && amountCol){
       const tsBookGroups = new Map();
@@ -1292,7 +1408,7 @@
         g.memberRows.push(r);
       });
 
-      const imbalancedCombos = new Map(); // unique BU + Asset ID -> {bu, asset, instances:[{dttm,book,sum}]}
+      const imbalancedCombos = new Map();
       tsBookGroups.forEach(g=>{
         const inSync = Math.abs(g.sum) <= SYNC_TOLERANCE;
         if(!inSync){
@@ -1302,21 +1418,27 @@
             const asset = formatAssetId(r[assetCol]);
             const key = bu+'\u0001'+asset;
             if(!imbalancedCombos.has(key)){
-              imbalancedCombos.set(key, {bu, asset, instances:[]});
+              imbalancedCombos.set(key, {bu, asset, instances:[], journalIds:new Set()});
             }
             const combo = imbalancedCombos.get(key);
             if(!combo.instances.some(i=>i.dttm===g.dttm && i.book===g.book)){
               combo.instances.push({dttm:g.dttm, book:g.book, sum:g.sum});
+            }
+            if(journalCol){
+              const jv = r[journalCol];
+              if(jv!==null && jv!==undefined && jv!=='') combo.journalIds.add(fmtKey(jv));
             }
           });
         }
       });
 
       imbalancedCombos.forEach(combo=>{
-        zeroSumRows.push({bu:combo.bu, asset:combo.asset, instances:combo.instances, inSync:false});
-        markError(combo.bu, combo.asset, 'IMBALANCE ENTRY');
+        const journalIds = Array.from(combo.journalIds);
+        zeroSumRows.push({bu:combo.bu, asset:combo.asset, instances:combo.instances, inSync:false, journalIds});
+        markError(combo.bu, combo.asset, 'IMBALANCE ENTRY', journalIds);
       });
     }
+
 
     renderUniqueErrorAssets(uniqueErrorAssets, fieldDefs);
     renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, missingRows, fieldDefs, zeroSumRows);
@@ -1326,8 +1448,6 @@
     lastSyncContext = {fieldDefs, bookCol, amountCol, txnCol};
   }
 
-  // Holds the last-rendered error-assets rows in plain export-friendly shape,
-  // so the "Export to Excel" button can dump exactly what's on screen.
   let lastErrorAssetsExport = [];
 
   function renderUniqueErrorAssets(uniqueErrorAssets, fieldDefs){
@@ -1363,21 +1483,23 @@
     if(uniqueErrorAssets.size){
       const table = document.createElement('table');
       table.className = 'sync error-assets-table';
-      table.innerHTML = '<thead><tr><th>Business Unit</th><th>Asset ID</th><th>Error Description</th></tr></thead>';
+      table.innerHTML = '<thead><tr><th>Business Unit</th><th>Asset ID</th><th>Journal ID</th><th>Error Description</th></tr></thead>';
       const tbody = document.createElement('tbody');
       Array.from(uniqueErrorAssets.values()).forEach(a=>{
         const buVal = String(a.bu);
         const assetVal = formatAssetId(a.asset);
+        const journalVal = a.journalIds && a.journalIds.size ? Array.from(a.journalIds).join(', ') : '';
         const reasonVal = Array.from(a.reasons).join(', ');
 
         const tr = document.createElement('tr');
         tr.classList.add('mismatch');
-        tr.innerHTML = '<td>'+escapeHtml(buVal)+'</td><td>'+escapeHtml(assetVal)+'</td><td>'+escapeHtml(reasonVal)+'</td>';
+        tr.innerHTML = '<td>'+escapeHtml(buVal)+'</td><td>'+escapeHtml(assetVal)+'</td><td>'+escapeHtml(journalVal)+'</td><td>'+escapeHtml(reasonVal)+'</td>';
         tbody.appendChild(tr);
 
         lastErrorAssetsExport.push({
           'Business Unit': buVal,
           'Asset ID': assetVal,
+          'Journal ID': journalVal,
           'Error Description': reasonVal
         });
       });
@@ -1391,7 +1513,7 @@
   function exportErrorAssetsToExcel(){
     if(!lastErrorAssetsExport.length) return;
     const ws = XLSX.utils.json_to_sheet(lastErrorAssetsExport);
-    ws['!cols'] = [{wch:16},{wch:18},{wch:40}];
+    ws['!cols'] = [{wch:16},{wch:18},{wch:18},{wch:40}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sync Issues');
     const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
@@ -1483,7 +1605,6 @@
       tiles.appendChild(tile);
     }
 
-    // ---- NEW TILE (additive): unique BU + Asset ID combinations involved in a timestamp/book group that doesn't net to zero ----
     {
       const tile = document.createElement('div');
       tile.className = 'sync-tile ' + (zeroSumRows.length ? 'bad' : 'ok');
@@ -1599,7 +1720,6 @@
       detail.appendChild(block);
     }
 
-    // ---- NEW DETAIL BLOCK (additive): Imbalance Entry — per-timestamp, per-book zero-sum check, shown as unique BU + Asset ID combinations ----
     {
       const block = document.createElement('div');
       block.className = 'sync-detail-block';
