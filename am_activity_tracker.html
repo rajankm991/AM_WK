@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PeopleSoft AM – Activity Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F0F2F5; --surf:#fff; --surf2:#F7F8FA; --bdr:#E3E6EC; --bdr2:#CDD2DE;
+  --txt:#0D1B2A; --txt2:#4A5568; --txt3:#8A96A8;
+  --blue:#0066CC; --blt:#E6F0FA; --bdk:#004D99;
+  --teal:#007B8A; --tlt:#E0F4F6;
+  --green:#1A7F4B; --glt:#E6F5ED;
+  --amber:#B45309; --alt:#FEF3E2;
+  --red:#C0392B; --rlt:#FDECEA;
+  --purple:#5B4FCF; --plt:#EDEAFA;
+  --orange:#C05621; --olt:#FFF0E6;
+  --r:8px; --rl:12px;
+  --shadow:0 1px 4px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --font:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
+}
+body{font-family:var(--font);font-size:13px;background:var(--bg);color:var(--txt);min-height:100vh;line-height:1.5}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#003A8C 0%,#0066CC 60%,#0052CC 100%);padding:0 28px;display:flex;align-items:stretch;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,60,140,.3)}
+.hl{display:flex;align-items:center;gap:14px;padding:14px 0}
+.logo-ic{width:38px;height:38px;border-radius:9px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.25)}
+.logo-ic i{color:#fff;font-size:19px}
+.hbr{color:#fff}.hbr .ht{font-size:15px;font-weight:700}.hbr .hs{font-size:11px;color:rgba(255,255,255,.65);margin-top:1px}
+.hdiv{width:1px;height:32px;background:rgba(255,255,255,.2);margin:0 4px}
+.ppills{display:flex;gap:6px;align-items:center}
+.ppill{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .18s;white-space:nowrap;background:none;font-family:var(--font)}
+.ppill.op{color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.3)}
+.ppill.op.act{background:#fff;color:#0052CC;border-color:#fff}
+.ppill.cl{color:rgba(255,255,255,.6);border-color:rgba(255,255,255,.2)}
+.ppill.cl.act{background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.5)}
+.hr2{display:flex;align-items:center;gap:10px}
+.hbdg{padding:4px 10px;border-radius:16px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;background:rgba(26,127,75,.25);color:#7FFFC4;border:1px solid rgba(26,127,75,.4)}
+.clk{font-size:11px;color:rgba(255,255,255,.7);font-family:var(--mono)}
+
+/* PERIOD BANNER */
+.pband{padding:7px 28px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px}
+.pband.ob{background:#E6F0FA;border-bottom:1px solid #BAD4EF;color:#004D99}
+.pband.cb{background:#F3F4F6;border-bottom:1px solid var(--bdr);color:var(--txt2)}
+.pband.ub{background:#FFFBEB;border-bottom:1px solid #FCD34D;color:#92400E;font-weight:600}
+.pband i{font-size:14px}
+
+/* MAIN */
+.main{max-width:1360px;margin:0 auto;padding:20px 28px;width:100%}
+
+/* METRIC TILES */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:11px;margin-bottom:18px}
+.mc{background:var(--surf);border-radius:var(--rl);padding:15px 17px;border:1px solid var(--bdr);cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
+.mc:hover{border-color:var(--blue);box-shadow:0 6px 20px rgba(0,102,204,.12);transform:translateY(-2px)}
+.mc.act{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,204,.12);background:var(--blt)}
+.mc:active{transform:scale(.98)}
+.mca{position:absolute;top:0;left:0;width:3px;height:100%;border-radius:3px 0 0 3px}
+.mico{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;margin-bottom:9px}
+.mico i{font-size:15px}
+.mi-b{background:var(--blt)}.mi-b i{color:var(--blue)}
+.mi-g{background:var(--glt)}.mi-g i{color:var(--green)}
+.mi-t{background:var(--tlt)}.mi-t i{color:var(--teal)}
+.mi-a{background:var(--alt)}.mi-a i{color:var(--amber)}
+.mi-r{background:var(--rlt)}.mi-r i{color:var(--red)}
+.mi-p{background:var(--plt)}.mi-p i{color:var(--purple)}
+.mi-o{background:var(--olt)}.mi-o i{color:var(--orange)}
+.mlbl{font-size:10px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}
+.mval{font-size:24px;font-weight:700;line-height:1}
+.msub{font-size:10px;color:var(--txt3);margin-top:3px}
+.mv-b{color:var(--blue)}.mv-g{color:var(--green)}.mv-t{color:var(--teal)}
+.mv-a{color:var(--amber)}.mv-r{color:var(--red)}.mv-p{color:var(--purple)}.mv-o{color:var(--orange)}
+
+/* TABS */
+.tabrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.tabs{display:flex;gap:1px;background:var(--surf);border-radius:var(--rl);border:1px solid var(--bdr);padding:4px;flex-wrap:wrap}
+.tab{padding:6px 13px;border-radius:6px;border:none;background:none;font-size:12px;font-weight:600;font-family:var(--font);color:var(--txt2);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
+.tab:hover{background:var(--bg);color:var(--txt)}
+.tab.active{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(0,102,204,.3)}
+.tab i{font-size:14px}
+.tab .tb{font-size:10px;font-weight:700;padding:1px 5px;border-radius:8px;min-width:16px;text-align:center}
+.tab.active .tb{background:rgba(255,255,255,.25);color:#fff}
+.tab:not(.active) .tb{background:var(--rlt);color:var(--red)}
+.sec{display:none}.sec.active{display:block}
+
+/* CARD */
+.card{background:var(--surf);border-radius:var(--rl);border:1px solid var(--bdr);padding:15px 19px;margin-bottom:13px;box-shadow:var(--shadow)}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;flex-wrap:wrap;gap:8px}
+.ch h2{font-size:13px;font-weight:700;color:var(--txt);display:flex;align-items:center;gap:6px}
+.ch h2 i{font-size:15px;color:var(--blue)}
+
+/* FILTERS */
+.flt{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px;align-items:center}
+.flt select,.flt input{font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid var(--bdr2);background:var(--surf);color:var(--txt);font-family:var(--font);outline:none}
+.flt select:focus,.flt input:focus{border-color:var(--blue)}
+.istrip{background:var(--blt);border:1px solid #BAD4EF;border-radius:var(--r);padding:8px 12px;font-size:12px;color:#004D99;display:flex;align-items:center;gap:8px;margin-bottom:11px}
+
+/* TABLE */
+.tblw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:680px}
+th{text-align:left;padding:8px 11px;font-weight:700;color:var(--txt2);border-bottom:2px solid var(--bdr);background:var(--surf2);font-size:10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid var(--bdr);color:var(--txt);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tbody tr{cursor:pointer;transition:background .1s}
+tbody tr:hover td{background:var(--blt)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge i{font-size:10px}
+.b-g{background:var(--glt);color:var(--green)}
+.b-b{background:var(--blt);color:var(--blue)}
+.b-t{background:var(--tlt);color:var(--teal)}
+.b-a{background:var(--alt);color:var(--amber)}
+.b-r{background:var(--rlt);color:var(--red)}
+.b-gray{background:#F0F2F5;color:var(--txt2)}
+.b-p{background:var(--plt);color:var(--purple)}
+.b-i{background:#E0E7FF;color:#3730A3}
+.b-o{background:var(--olt);color:var(--orange)}
+
+/* BUTTONS */
+.run-btn{font-size:11px;padding:5px 10px;cursor:pointer;border-radius:6px;background:var(--blue);border:none;color:#fff;font-weight:700;font-family:var(--font);display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.run-btn:hover{background:var(--bdk)}.run-btn:disabled{background:#9ca3af;cursor:not-allowed}
+.vbtn{font-size:11px;padding:5px 8px;cursor:pointer;border-radius:6px;background:var(--surf2);border:1px solid var(--bdr2);color:var(--txt2);font-weight:600;font-family:var(--font);display:inline-flex;align-items:center;gap:4px}
+.vbtn:hover{background:var(--bg)}
+.cbtn{font-size:11px;padding:5px 11px;cursor:pointer;border-radius:6px;background:var(--glt);border:1px solid #9FCDB5;color:var(--green);font-weight:700;font-family:var(--font);display:inline-flex;align-items:center;gap:5px}
+.cbtn:hover{background:#C7E8D8}
+.btn1{padding:7px 15px;border-radius:7px;background:var(--blue);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);display:inline-flex;align-items:center;gap:5px}
+.btn1:hover{background:var(--bdk)}
+.btn2{padding:7px 15px;border-radius:7px;background:var(--green);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);display:inline-flex;align-items:center;gap:5px}
+.btn2:hover{background:#155F38}
+.btn3{padding:7px 15px;border-radius:7px;background:var(--surf);color:var(--txt2);border:1px solid var(--bdr2);cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font)}
+.btn3:hover{background:var(--bg)}
+
+/* PROGRESS */
+.pb{width:100%;height:6px;background:var(--bdr);border-radius:3px;overflow:hidden}
+.pf{height:100%;border-radius:3px;transition:width .4s}
+
+/* ISSUE CARDS */
+.igrid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:14px}
+@media(max-width:860px){.igrid{grid-template-columns:1fr}}
+.icc{border-radius:var(--rl);border:1px solid;padding:13px 15px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
+.icc:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.icc .ics{position:absolute;top:0;left:0;width:100%;height:3px}
+.ic-gl{background:#FEF5EC;border-color:#F5C797}.ic-gl .ics{background:linear-gradient(90deg,#C05621,#E67E22)}
+.ic-nbv{background:#EFF6FF;border-color:#93C5FD}.ic-nbv .ics{background:linear-gradient(90deg,#0066CC,#3B82F6)}
+.ic-jrn{background:#FDF2F8;border-color:#F0ABD4}.ic-jrn .ics{background:linear-gradient(90deg,#9B2C7E,#D63AAD)}
+.iico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:9px}
+.ic-gl .iico{background:#FDE8C8;color:#C05621}
+.ic-nbv .iico{background:#DBEAFE;color:#0066CC}
+.ic-jrn .iico{background:#F5D0E8;color:#9B2C7E}
+.iico i{font-size:17px}
+.ict{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:2px}
+.icst{font-size:11px;color:var(--txt2);margin-bottom:9px}
+
+/* ISSUE ITEMS */
+.ii{border-radius:var(--r);border:1px solid var(--bdr);padding:11px 13px;margin-bottom:7px;cursor:pointer;transition:all .15s;background:var(--surf);position:relative;overflow:hidden}
+.ii:hover{border-color:var(--blue);box-shadow:0 2px 10px rgba(0,102,204,.1)}
+.ii .iib{position:absolute;top:0;left:0;width:3px;height:100%}
+.ii-c .iib{background:var(--red)}.ii-h .iib{background:var(--orange)}
+.ii-m .iib{background:var(--amber)}.ii-l .iib{background:var(--green)}
+.iihd{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px}
+.iittl{font-size:12px;font-weight:700;color:var(--txt)}
+.iimeta{font-size:11px;color:var(--txt3);display:flex;gap:8px;flex-wrap:wrap}
+.iidesc{font-size:11px;color:var(--txt2);line-height:1.5;margin-top:4px}
+.iipar{display:flex;gap:4px;margin-top:7px;flex-wrap:wrap}
+.iip{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--blt);color:var(--blue);font-family:var(--mono)}
+
+/* MONTH-END */
+.megrid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px}
+@media(max-width:640px){.megrid{grid-template-columns:1fr}}
+@media(max-width:780px){#sec-monthend>div{grid-template-columns:1fr!important}}
+.ci{display:flex;align-items:flex-start;gap:8px;padding:9px 5px;border-bottom:1px solid var(--bdr);cursor:pointer;border-radius:6px;transition:background .1s}
+.ci:last-child{border-bottom:none}.ci:hover{background:var(--blt)}
+.cbox{width:16px;height:16px;border-radius:3px;flex-shrink:0;border:2px solid var(--bdr2);cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .15s}
+.cbox.ck{background:var(--blue);border-color:var(--blue)}
+.cbox i{font-size:10px;color:#fff}
+.ctit{font-size:12px;color:var(--txt);line-height:1.4}
+.ctit.dn{text-decoration:line-through;color:var(--txt3)}
+.csub{font-size:10px;color:var(--txt3);margin-top:2px}
+.pd{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.ph{background:#EF4444}.pm2{background:#F59E0B}.pl2{background:#22C55E}
+
+/* TIMELINE */
+.tl{position:relative;padding-left:22px}
+.tl::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--bdr);border-radius:2px}
+.tli{position:relative;margin-bottom:15px;cursor:pointer;padding:8px 11px;border-radius:var(--r);border:1px solid transparent;transition:all .15s}
+.tli:hover{background:var(--blt);border-color:#BAD4EF}
+.tldot{position:absolute;left:-19px;top:13px;width:10px;height:10px;border-radius:50%;border:2px solid var(--bg)}
+.tl-dn{background:var(--blue);box-shadow:0 0 0 3px var(--blt)}
+.tl-ac{background:var(--amber);box-shadow:0 0 0 3px var(--alt)}
+.tl-pe{background:var(--bdr2);box-shadow:0 0 0 3px var(--bg)}
+.tlt{font-size:12px;font-weight:700;color:var(--txt)}
+.tls{font-size:11px;color:var(--txt2);margin-top:2px}
+
+/* MONITOR */
+.pmst{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:13px}
+.pms{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 13px;text-align:center}
+.pmsv{font-size:20px;font-weight:700}.pmsl{font-size:10px;color:var(--txt3);margin-top:2px}
+.pr-run td{background:#FFFBEC!important}.pr-ok td{background:#F0FDF4!important}.pr-err td{background:#FEF2F2!important}
+
+/* MODAL */
+.mo{display:none;position:fixed;inset:0;background:rgba(13,27,42,.5);backdrop-filter:blur(3px);z-index:500;align-items:center;justify-content:center;padding:20px}
+.mo.open{display:flex}
+.modal{background:var(--surf);border-radius:14px;width:100%;max-width:590px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.2),0 0 0 1px var(--bdr)}
+.mh{padding:15px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;background:var(--surf2)}
+.mhl{display:flex;align-items:center;gap:10px}
+.mic{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mic i{font-size:18px}
+.mttl{font-size:14px;font-weight:700;color:var(--txt)}
+.msb{font-size:11px;color:var(--txt2);margin-top:2px}
+.mcl{width:26px;height:26px;border-radius:6px;border:none;background:var(--bdr);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txt2);flex-shrink:0}
+.mcl:hover{background:var(--rlt);color:var(--red)}
+.mbdy{padding:15px 20px;overflow-y:auto;flex:1}
+.mr{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bdr);font-size:12px}
+.mr:last-child{border-bottom:none}
+.mr .ll{color:var(--txt2);font-weight:600}.mr .vv{color:var(--txt);font-weight:600;text-align:right;max-width:65%}
+.mst{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txt3);margin:13px 0 7px;padding-bottom:3px;border-bottom:1px solid var(--bdr)}
+.mft{padding:11px 20px;border-top:1px solid var(--bdr);display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;background:var(--surf2)}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:#0D1B2A;color:#fff;border-radius:10px;padding:10px 15px;font-size:12px;font-weight:600;z-index:9999;display:flex;align-items:center;gap:8px;box-shadow:0 8px 30px rgba(0,0,0,.25);transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);max-width:340px}
+.toast.show{transform:translateY(0);opacity:1}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.spinning{animation:spin .9s linear infinite;display:inline-block}
+.ldot{width:7px;height:7px;border-radius:50%;background:#4ADE80;display:inline-block;animation:blink 1.5s ease-in-out infinite;margin-right:4px;vertical-align:middle}
+
+.mono{font-family:var(--mono);font-size:11px;color:var(--txt2)}
+.tm{color:var(--txt2)}.txs{font-size:11px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+/* ── LOGIN PAGE ── */
+#login-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#001F5B 0%,#003A8C 40%,#0052CC 70%,#0066CC 100%);display:flex;align-items:center;justify-content:center;padding:20px;font-family:var(--font)}
+#login-screen.hidden{display:none}
+.login-wrap{width:100%;max-width:420px}
+.login-brand{text-align:center;margin-bottom:32px}
+.login-logo{width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.login-logo i{font-size:26px;color:#fff}
+.login-brand h1{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px}
+.login-brand p{font-size:12px;color:rgba(255,255,255,.6)}
+.login-card{background:#fff;border-radius:16px;padding:32px;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.login-card h2{font-size:15px;font-weight:700;color:var(--txt);margin-bottom:4px}
+.login-card .sub{font-size:12px;color:var(--txt3);margin-bottom:24px}
+.lfield{margin-bottom:16px}
+.lfield label{display:block;font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.lfield-wrap{position:relative}
+.lfield input{width:100%;padding:10px 12px 10px 38px;border-radius:8px;border:1.5px solid var(--bdr2);font-size:13px;font-family:var(--font);color:var(--txt);background:#fff;outline:none;transition:border-color .15s,box-shadow .15s}
+.lfield input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,204,.12)}
+.lfield input.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(192,57,43,.1)}
+.lfield .lico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--txt3);font-size:15px;pointer-events:none}
+.lfield .eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--txt3);font-size:15px;padding:2px;display:flex;align-items:center}
+.lfield .eye-btn:hover{color:var(--txt)}
+.lerr{background:var(--rlt);border:1px solid #FCA5A5;border-radius:7px;padding:9px 12px;font-size:12px;color:var(--red);display:none;align-items:center;gap:7px;margin-bottom:14px}
+.lerr.show{display:flex}
+.login-btn{width:100%;padding:11px;border-radius:8px;background:var(--blue);color:#fff;border:none;font-size:14px;font-weight:700;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,transform .1s;margin-top:4px}
+.login-btn:hover{background:var(--bdk)}
+.login-btn:active{transform:scale(.98)}
+.login-btn:disabled{background:#9ca3af;cursor:not-allowed;transform:none}
+.login-hint{text-align:center;margin-top:16px;font-size:11px;color:var(--txt3)}
+.login-hint span{color:var(--blue);font-weight:600}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.shake{animation:shake .4s ease}
+</style>
+<style>
+.user-btn{display:flex;align-items:center;gap:7px;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font);transition:all .18s;position:relative}
+.user-btn:hover{background:rgba(255,255,255,.22)}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.user-dropdown{position:absolute;top:calc(100% + 10px);right:0;background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.18),0 0 0 1px var(--bdr);min-width:200px;overflow:hidden;z-index:300;display:none}
+.user-dropdown.open{display:block;animation:dropIn .15s ease}
+@keyframes dropIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.udrop-header{padding:12px 14px;border-bottom:1px solid var(--bdr);background:var(--surf2)}
+.udrop-name{font-size:13px;font-weight:700;color:var(--txt)}
+.udrop-role{font-size:11px;color:var(--txt3);margin-top:1px}
+.udrop-item{display:flex;align-items:center;gap:9px;padding:10px 14px;font-size:12px;font-weight:500;color:var(--txt2);cursor:pointer;transition:background .12s;border:none;background:none;width:100%;text-align:left;font-family:var(--font)}
+.udrop-item:hover{background:var(--blt);color:var(--blue)}
+.udrop-item i{font-size:15px}
+.udrop-divider{height:1px;background:var(--bdr);margin:3px 0}
+.udrop-item.danger{color:var(--red)}.udrop-item.danger:hover{background:var(--rlt);color:var(--red)}
+
+/* ── CHANGE PASSWORD MODAL ── */
+#cp-modal{display:none;position:fixed;inset:0;z-index:600;background:rgba(13,27,42,.5);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px}
+#cp-modal.open{display:flex}
+.cp-card{background:#fff;border-radius:14px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,.2),0 0 0 1px var(--bdr);overflow:hidden}
+.cp-header{padding:16px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;background:var(--surf2)}
+.cp-header-left{display:flex;align-items:center;gap:10px}
+.cp-icon{width:36px;height:36px;border-radius:9px;background:var(--blt);display:flex;align-items:center;justify-content:center}
+.cp-icon i{font-size:17px;color:var(--blue)}
+.cp-title{font-size:14px;font-weight:700;color:var(--txt)}
+.cp-sub{font-size:11px;color:var(--txt3);margin-top:1px}
+.cp-body{padding:20px}
+.cpf{margin-bottom:14px}
+.cpf label{display:block;font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.cpf-wrap{position:relative}
+.cpf input{width:100%;padding:9px 36px 9px 36px;border-radius:7px;border:1.5px solid var(--bdr2);font-size:13px;font-family:var(--font);color:var(--txt);background:#fff;outline:none;transition:border-color .15s,box-shadow .15s}
+.cpf input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,204,.1)}
+.cpf input.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(192,57,43,.09)}
+.cpf input.ok{border-color:var(--green);box-shadow:0 0 0 3px rgba(26,127,75,.09)}
+.cpf .fic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--txt3);font-size:14px;pointer-events:none}
+.cpf .feye{position:absolute;right:9px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--txt3);font-size:14px;padding:2px;display:flex}
+.cpf .feye:hover{color:var(--txt)}
+/* strength meter */
+.str-meter{display:flex;gap:3px;margin-top:6px}
+.str-seg{flex:1;height:3px;border-radius:2px;background:#E3E6EC;transition:background .3s}
+.str-label{font-size:10px;font-weight:600;margin-top:4px}
+/* rules checklist */
+.pwd-rules{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.pwd-rule{font-size:10px;color:var(--txt3);display:flex;align-items:center;gap:4px;transition:color .2s}
+.pwd-rule.pass{color:var(--green)}
+.pwd-rule i{font-size:11px}
+.cp-err{background:var(--rlt);border:1px solid #FCA5A5;border-radius:7px;padding:8px 11px;font-size:12px;color:var(--red);display:none;align-items:center;gap:7px;margin-bottom:12px}
+.cp-err.show{display:flex}
+.cp-footer{padding:12px 20px;border-top:1px solid var(--bdr);display:flex;gap:7px;justify-content:flex-end;background:var(--surf2)}
+
+</style>
+</head>
+<body>
+<!-- ══════════ LOGIN SCREEN ══════════ -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-brand">
+      <div class="login-logo"><i class="ti ti-building-bank"></i></div>
+      <h1>AM Activity Tracker</h1>
+      <p>PeopleSoft Asset Management · Finance Operations</p>
+    </div>
+    <div class="login-card">
+      <h2>Sign in to continue</h2>
+      <div class="sub">Enter your credentials to access the dashboard</div>
+
+      <div class="lerr" id="lerr">
+        <i class="ti ti-alert-circle" style="font-size:15px;flex-shrink:0"></i>
+        <span id="lerr-msg">Invalid username or password. Please try again.</span>
+      </div>
+
+      <div class="lfield">
+        <label>Username</label>
+        <div class="lfield-wrap">
+          <i class="ti ti-user lico"></i>
+          <input type="text" id="l-user" placeholder="Enter username" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+      </div>
+
+      <div class="lfield">
+        <label>Password</label>
+        <div class="lfield-wrap">
+          <i class="ti ti-lock lico"></i>
+          <input type="password" id="l-pass" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+          <button class="eye-btn" onclick="togglePwd()" id="eye-btn" type="button" title="Show/hide password">
+            <i class="ti ti-eye" id="eye-icon"></i>
+          </button>
+        </div>
+      </div>
+
+      <button class="login-btn" id="login-btn" onclick="doLogin()">
+        <i class="ti ti-login"></i> Sign In
+      </button>
+
+      <div class="login-hint">
+        Use username <span>admin</span> · For access issues contact your system administrator
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app-shell" style="display:none;flex-direction:column;min-height:100vh">
+
+<!-- HEADER -->
+<header class="header">
+  <div class="hl">
+    <div class="logo-ic"><i class="ti ti-building-bank"></i></div>
+    <div class="hbr">
+      <div class="ht">AM Module Activity Tracker</div>
+      <div class="hs">PeopleSoft Asset Management · Finance Operations</div>
+    </div>
+    <div class="hdiv"></div>
+    <div class="ppills">
+      <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px">Period:</span>
+      <button class="ppill op act" id="pill-open" onclick="switchPeriod('open')">
+        <i class="ti ti-lock-open" style="font-size:10px;vertical-align:-1px"></i> Jun 2026 (Open)
+      </button>
+      <button class="ppill cl" id="pill-closed" onclick="switchPeriod('closed')">
+        <i class="ti ti-lock" style="font-size:10px;vertical-align:-1px"></i> May 2026 (Closed)
+      </button>
+      <button id="unlock-btn" onclick="showUnlockModal()" style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-family:var(--font);transition:all .18s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap" title="One-time unlock available this month">
+        <i class="ti ti-lock-open" style="font-size:10px"></i> Unlock Period
+      </button>
+    </div>
+  </div>
+  <div class="hr2">
+    <span class="hbdg"><span class="ldot"></span>System Online</span>
+    <span class="clk" id="clkEl"></span>
+    <!-- User profile menu -->
+    <div style="position:relative">
+      <button class="user-btn" id="user-menu-btn" onclick="toggleUserMenu()" title="Account settings">
+        <div class="user-avatar" id="user-avatar-initials">A</div>
+        <span id="user-display-name">admin</span>
+        <i class="ti ti-chevron-down" style="font-size:11px;opacity:.7" id="user-chevron"></i>
+      </button>
+      <div class="user-dropdown" id="user-dropdown">
+        <div class="udrop-header">
+          <div class="udrop-name" id="udrop-name">admin</div>
+          <div class="udrop-role">Finance · AM Administrator</div>
+        </div>
+        <button class="udrop-item" onclick="openChangePwd()"><i class="ti ti-lock-password"></i>Change Password</button>
+        <button class="udrop-item" onclick="closeUserMenu()"><i class="ti ti-user-circle"></i>My Profile</button>
+        <div class="udrop-divider"></div>
+        <button class="udrop-item danger" onclick="doLogout()"><i class="ti ti-logout"></i>Sign Out</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- PERIOD BANNER -->
+<div id="pband" class="pband ob">
+  <i class="ti ti-calendar-event"></i>
+  <strong id="btext">Jun 2026 – OPEN Period</strong>
+  <span id="bsub" style="margin-left:6px">Posting allowed · Depreciation run completed · Period close pending</span>
+</div>
+
+<main class="main">
+
+<!-- METRIC TILES -->
+<div class="metrics">
+  <div class="mc" onclick="tileClick('all')" id="tile-all">
+    <div class="mca" style="background:var(--blue)"></div>
+    <div class="mico mi-b"><i class="ti ti-settings-2"></i></div>
+    <div class="mlbl">Total Processes</div>
+    <div class="mval mv-b" id="mt-total">24</div>
+    <div class="msub">All scheduled</div>
+  </div>
+  <div class="mc" onclick="tileClick('Success')" id="tile-Success">
+    <div class="mca" style="background:var(--green)"></div>
+    <div class="mico mi-g"><i class="ti ti-circle-check"></i></div>
+    <div class="mlbl">Completed</div>
+    <div class="mval mv-g" id="mt-succ">18</div>
+    <div class="msub" id="mt-ss">75% success</div>
+  </div>
+  <div class="mc" onclick="tileClick('Running')" id="tile-Running">
+    <div class="mca" style="background:var(--teal)"></div>
+    <div class="mico mi-t"><i class="ti ti-loader"></i></div>
+    <div class="mlbl">Running Now</div>
+    <div class="mval mv-t" id="mt-run">2</div>
+    <div class="msub">Live</div>
+  </div>
+  <div class="mc" onclick="tileClick('Pending')" id="tile-Pending">
+    <div class="mca" style="background:var(--amber)"></div>
+    <div class="mico mi-a"><i class="ti ti-clock"></i></div>
+    <div class="mlbl">Pending</div>
+    <div class="mval mv-a" id="mt-pend">4</div>
+    <div class="msub">Awaiting run</div>
+  </div>
+  <div class="mc" onclick="tileClick('Error')" id="tile-Error">
+    <div class="mca" style="background:var(--red)"></div>
+    <div class="mico mi-r"><i class="ti ti-alert-circle"></i></div>
+    <div class="mlbl">Errors</div>
+    <div class="mval mv-r" id="mt-err">2</div>
+    <div class="msub">Action required</div>
+  </div>
+  <div class="mc" onclick="showTab('issues')" id="tile-issues">
+    <div class="mca" style="background:var(--orange)"></div>
+    <div class="mico mi-o"><i class="ti ti-bug"></i></div>
+    <div class="mlbl">Open Issues</div>
+    <div class="mval mv-o" id="mt-iss">9</div>
+    <div class="msub">GL · NBV · Journals</div>
+  </div>
+  <div class="mc" onclick="tileClick('monthend')" id="tile-monthend">
+    <div class="mca" style="background:var(--purple)"></div>
+    <div class="mico mi-p"><i class="ti ti-calendar-check"></i></div>
+    <div class="mlbl">Month-End</div>
+    <div class="mval mv-p">12</div>
+    <div class="msub" id="meDoneSub">5 of 12 done</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabrow">
+  <div class="tabs">
+    <button class="tab active" id="tab-processes" onclick="showTab('processes')"><i class="ti ti-settings-2"></i>Processes</button>
+    <button class="tab" id="tab-monitor" onclick="showTab('monitor')"><i class="ti ti-activity"></i>Process Monitor <span class="tb" id="mbadge" style="display:none">0</span></button>
+    <button class="tab" id="tab-issues" onclick="showTab('issues')"><i class="ti ti-bug"></i>Issue Tracker <span class="tb" id="iss-tab-badge">9</span></button>
+    <button class="tab" id="tab-queries" onclick="showTab('queries')"><i class="ti ti-database"></i>Queries</button>
+    <button class="tab" id="tab-monthend" onclick="showTab('monthend')"><i class="ti ti-calendar-check"></i>Month-End</button>
+    <button class="tab" id="tab-timeline" onclick="showTab('timeline')"><i class="ti ti-timeline"></i>Timeline</button>
+  </div>
+  <button class="cbtn" onclick="exportCSV()"><i class="ti ti-download"></i>Export CSV</button>
+</div>
+
+<!-- ===== PROCESSES ===== -->
+<div class="sec active" id="sec-processes">
+  <div id="afs" style="display:none" class="istrip">
+    <i class="ti ti-filter"></i><span id="afst"></span>
+    <button onclick="clearTF()" style="margin-left:auto;background:var(--blue);color:#fff;border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--font)">Clear</button>
+  </div>
+  <div class="flt">
+    <select id="pst" onchange="renderP()">
+      <option value="">All Status</option><option value="Success">Success</option>
+      <option value="Running">Running</option><option value="Pending">Pending</option><option value="Error">Error</option>
+    </select>
+    <select id="pct" onchange="renderP()">
+      <option value="">All Categories</option><option value="Depreciation">Depreciation</option>
+      <option value="Capitalization">Capitalization</option><option value="Retirement">Retirement</option>
+      <option value="Reporting">Reporting</option><option value="Interface">Interface</option>
+      <option value="Reconciliation">Reconciliation</option>
+    </select>
+    <input type="text" id="psr" placeholder="Search process or ID…" style="width:180px" oninput="renderP()">
+  </div>
+  <div class="card">
+    <div class="ch"><h2><i class="ti ti-settings-2"></i>AM Processes</h2><span class="badge b-b" id="pcnt">24</span></div>
+    <div class="tblw"><table>
+      <thead><tr>
+        <th style="width:25%">Process Name</th><th style="width:12%">Category</th>
+        <th style="width:11%">Process ID</th><th style="width:12%">Last Run</th>
+        <th style="width:9%">Duration</th><th style="width:10%">Status</th><th style="width:21%">Actions</th>
+      </tr></thead>
+      <tbody id="pb"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ===== PROCESS MONITOR ===== -->
+<div class="sec" id="sec-monitor">
+  <div class="pmst">
+    <div class="pms"><div class="pmsv mv-t" id="pmc-r">0</div><div class="pmsl"><span class="ldot"></span>Running</div></div>
+    <div class="pms"><div class="pmsv mv-g" id="pmc-ok">0</div><div class="pmsl">Completed</div></div>
+    <div class="pms"><div class="pmsv mv-r" id="pmc-er">0</div><div class="pmsl">Errors</div></div>
+    <div class="pms"><div class="pmsv mv-b" id="pmc-tot">0</div><div class="pmsl">Submitted</div></div>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <h2><i class="ti ti-activity"></i>Process Monitor – Live</h2>
+      <div style="display:flex;gap:6px">
+        <select id="pmf" onchange="renderMon()" style="font-size:11px;padding:5px 8px;border-radius:6px;border:1px solid var(--bdr2);background:var(--surf);font-family:var(--font)">
+          <option value="">All</option><option value="Running">Running</option>
+          <option value="Success">Success</option><option value="Error">Error</option>
+        </select>
+        <button class="vbtn" onclick="renderMon()"><i class="ti ti-refresh"></i>Refresh</button>
+        <button class="cbtn" onclick="exportMonCSV()" style="font-size:10px"><i class="ti ti-download"></i>CSV</button>
+      </div>
+    </div>
+    <div id="pm-empty" style="text-align:center;padding:44px;color:var(--txt3)">
+      <i class="ti ti-player-play" style="font-size:38px;display:block;margin-bottom:10px;color:var(--bdr2)"></i>
+      <div style="font-size:13px;font-weight:600;color:var(--txt2)">No processes submitted yet</div>
+      <div style="font-size:11px;margin-top:4px">Go to <strong>Processes</strong> tab and click <strong>Run</strong></div>
+    </div>
+    <div class="tblw" id="pm-tw" style="display:none"><table>
+      <thead><tr>
+        <th style="width:7%">Instance</th><th style="width:11%">Process ID</th>
+        <th style="width:20%">Name</th><th style="width:10%">Submitted By</th>
+        <th style="width:12%">Start Time</th><th style="width:12%">End Time</th>
+        <th style="width:10%">Duration</th><th style="width:9%">Progress</th><th style="width:9%">Status</th>
+      </tr></thead>
+      <tbody id="pmb"></tbody>
+    </table></div>
+  </div>
+  <div id="pm-lw" style="display:none">
+    <div class="card">
+      <div class="ch"><h2><i class="ti ti-terminal"></i>Activity Log</h2><span class="badge b-gray" id="pm-lc">0 events</span></div>
+      <div id="pm-log" style="font-size:11px;font-family:var(--mono);max-height:170px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ISSUE TRACKER ===== -->
+<div class="sec" id="sec-issues">
+  <div class="igrid">
+    <div class="icc ic-gl" onclick="filterIss('GL')">
+      <div class="ics"></div>
+      <div class="iico"><i class="ti ti-scale"></i></div>
+      <div class="ict">AM-GL Imbalance</div>
+      <div class="icst">Book vs GL out-of-balance conditions</div>
+      <div id="gl-counts" style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge b-r">3 Critical</span><span class="badge b-a">1 High</span></div>
+    </div>
+    <div class="icc ic-nbv" onclick="filterIss('NBV')">
+      <div class="ics"></div>
+      <div class="iico"><i class="ti ti-chart-line"></i></div>
+      <div class="ict">NBV Issues</div>
+      <div class="icst">Meagre values, negative NBV, sync lag</div>
+      <div id="nbv-counts" style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge b-o">2 High</span><span class="badge b-a">1 Medium</span></div>
+    </div>
+    <div class="icc ic-jrn" onclick="filterIss('JOURNAL')">
+      <div class="ics"></div>
+      <div class="iico"><i class="ti ti-file-alert"></i></div>
+      <div class="ict">Error Journals</div>
+      <div class="icst">Suspended and failed journal entries</div>
+      <div id="jrn-counts" style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge b-r">1 Critical</span><span class="badge b-a">1 Medium</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <h2><i class="ti ti-bug"></i>Issue Register</h2>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select id="ityp" onchange="renderIss()" style="font-size:11px;padding:5px 8px;border-radius:6px;border:1px solid var(--bdr2);background:var(--surf);font-family:var(--font)">
+          <option value="">All Types</option><option value="GL">AM-GL Imbalance</option>
+          <option value="NBV">NBV Issues</option><option value="JOURNAL">Error Journals</option>
+        </select>
+        <select id="isev" onchange="renderIss()" style="font-size:11px;padding:5px 8px;border-radius:6px;border:1px solid var(--bdr2);background:var(--surf);font-family:var(--font)">
+          <option value="">All Severity</option><option value="Critical">Critical</option>
+          <option value="High">High</option><option value="Medium">Medium</option>
+        </select>
+        <select id="istat" onchange="renderIss()" style="font-size:11px;padding:5px 8px;border-radius:6px;border:1px solid var(--bdr2);background:var(--surf);font-family:var(--font)">
+          <option value="">All Status</option><option value="Open">Open</option><option value="Resolved">Resolved</option>
+        </select>
+        <input type="text" id="isr2" placeholder="Search…" style="width:140px;font-size:11px;padding:5px 9px;border-radius:6px;border:1px solid var(--bdr2);background:var(--surf);font-family:var(--font)" oninput="renderIss()">
+        <span class="badge b-o" id="icnt">9 issues</span>
+        <button class="cbtn" onclick="exportIssCSV()" style="font-size:10px"><i class="ti ti-download"></i>CSV</button>
+      </div>
+    </div>
+    <div id="iss-list"></div>
+  </div>
+</div>
+
+<!-- ===== QUERIES ===== -->
+<div class="sec" id="sec-queries">
+  <div class="flt">
+    <select id="qfr" onchange="renderQ()"><option value="">All Frequency</option><option value="Daily">Daily</option><option value="Weekly">Weekly</option><option value="Monthly">Monthly</option></select>
+    <select id="qst" onchange="renderQ()"><option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Running">Running</option></select>
+    <input type="text" id="qsr" placeholder="Search query…" style="width:180px" oninput="renderQ()">
+    <button class="cbtn" onclick="exportQCSV()" style="font-size:10px"><i class="ti ti-download"></i>CSV</button>
+  </div>
+  <div class="card">
+    <div class="ch"><h2><i class="ti ti-database"></i>Scheduled Queries</h2><span class="badge b-p" id="qcnt">16</span></div>
+    <div class="tblw"><table>
+      <thead><tr>
+        <th style="width:19%">Query Name</th><th style="width:16%">Description</th>
+        <th style="width:9%">Frequency</th><th style="width:13%">Next Run</th>
+        <th style="width:12%">Last Output</th><th style="width:10%">Owner</th>
+        <th style="width:10%">Status</th><th style="width:11%">Action</th>
+      </tr></thead>
+      <tbody id="qb"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ===== MONTH-END ===== -->
+<div class="sec" id="sec-monthend">
+  <div style="display:grid;grid-template-columns:320px 1fr;gap:14px;align-items:start">
+
+    <!-- LEFT COLUMN: Progress + By Area stacked -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+
+      <!-- Progress card -->
+      <div class="card" style="margin-bottom:0">
+        <div class="ch"><h2><i class="ti ti-chart-donut"></i>Progress</h2></div>
+        <div style="margin-bottom:9px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txt2);margin-bottom:4px">
+            <span>Completion</span><span id="mepct" style="font-weight:700;color:var(--txt)">42%</span>
+          </div>
+          <div class="pb"><div class="pf" id="mebar" style="width:42%;background:var(--blue)"></div></div>
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <span class="badge b-g" style="cursor:pointer" onclick="filterCL('done')"><i class="ti ti-check"></i><span id="medn">5</span> Done</span>
+          <span class="badge b-a" style="cursor:pointer" onclick="filterCL('pend')"><i class="ti ti-clock"></i><span id="mepd">5</span> Pending</span>
+          <span class="badge b-r" style="cursor:pointer" onclick="filterCL('block')"><i class="ti ti-alert-circle"></i><span id="mebl">2</span> Blocked</span>
+          <span class="badge b-gray" style="cursor:pointer" onclick="filterCL('all')">All</span>
+        </div>
+      </div>
+
+      <!-- By Area card -->
+      <div class="card" style="margin-bottom:0">
+        <div class="ch"><h2><i class="ti ti-layout-grid"></i>By Area</h2></div>
+        <div id="areab"></div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: Checklist -->
+    <div class="card" style="margin-bottom:0;height:100%">
+      <div class="ch"><h2><i class="ti ti-list-check"></i>Checklist</h2><span style="font-size:11px;color:var(--txt3)">Click row · Toggle checkbox</span></div>
+      <div id="melist" style="max-height:520px;overflow-y:auto"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== TIMELINE ===== -->
+<div class="sec" id="sec-timeline">
+  <div class="card">
+    <div class="ch">
+      <h2><i class="ti ti-timeline"></i>June 2026 – Activity Timeline</h2>
+      <div style="display:flex;gap:10px;font-size:11px;color:var(--txt2);align-items:center">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--blue);display:inline-block"></span>Done</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--amber);display:inline-block"></span>Active</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:var(--bdr2);display:inline-block"></span>Pending</span>
+      </div>
+    </div>
+    <div class="tl" id="tlb"></div>
+  </div>
+</div>
+
+</main>
+</div><!-- end app-shell -->
+
+<!-- MODAL -->
+<div class="mo" id="mover" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="mh">
+      <div class="mhl">
+        <div class="mic" id="micEl"></div>
+        <div><div class="mttl" id="mttl"></div><div class="msb" id="msubb"></div></div>
+      </div>
+      <button class="mcl" onclick="closeMod()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="mbdy" id="mbdy"></div>
+    <div class="mft" id="mft"></div>
+  </div>
+</div>
+<div class="toast" id="toast"><i class="ti" id="tic"></i><span id="tmsg"></span></div>
+<script>
+
+// ── DATA: PROCESSES ──
+const procs=[
+  {name:"AMDEPR000 - Calculate Depreciation",cat:"Depreciation",pid:"AMDEPR000",last:"Jun 01 02:00",dur:"14m 22s",status:"Success",next:"Jul 01 02:00",owner:"AM Team",desc:"Runs depreciation engine for all open books and BUs.",book:"CORP, TAX",bu:"ALL"},
+  {name:"AMDEPR001 - Depreciation Preview",cat:"Depreciation",pid:"AMDEPR001",last:"May 31 18:00",dur:"8m 10s",status:"Success",next:"Jun 30 18:00",owner:"AM Team",desc:"Preview depreciation amounts without posting.",book:"CORP",bu:"ALL"},
+  {name:"AMCOPYAD - Copy Asset Definition",cat:"Capitalization",pid:"AMCOPYAD",last:"Jun 01 06:00",dur:"3m 05s",status:"Success",next:"On Demand",owner:"AM Team",desc:"Copies existing asset definition to create new asset.",book:"N/A",bu:"BU001"},
+  {name:"AMIF1000 - AM/AP Interface",cat:"Interface",pid:"AMIF1000",last:"Jun 01 07:00",dur:"22m 44s",status:"Running",next:"—",owner:"AP Team",desc:"Processes AP vouchers to create asset additions in AM.",book:"CORP",bu:"ALL"},
+  {name:"AMIF2000 - AM/PO Interface",cat:"Interface",pid:"AMIF2000",last:"May 31 22:00",dur:"11m 30s",status:"Success",next:"Jun 02 22:00",owner:"PO Team",desc:"Interfaces PO receipts to AM for capitalization.",book:"CORP",bu:"ALL"},
+  {name:"AMRET000 - Process Retirements",cat:"Retirement",pid:"AMRET000",last:"May 31 20:00",dur:"5m 12s",status:"Success",next:"On Demand",owner:"AM Team",desc:"Processes asset retirements and generates gain/loss entries.",book:"CORP, TAX",bu:"ALL"},
+  {name:"AMRT1000 - Retirement Preview",cat:"Retirement",pid:"AMRT1000",last:"Jun 01 09:00",dur:"—",status:"Pending",next:"Jun 01 12:00",owner:"AM Team",desc:"Preview retirement gain/loss amounts before posting.",book:"CORP",bu:"ALL"},
+  {name:"AMRECON - Asset Reconciliation",cat:"Reconciliation",pid:"AMRECON",last:"May 30 23:00",dur:"38m 17s",status:"Error",next:"Retry Required",owner:"Finance",desc:"Reconciles asset balances to GL control accounts. Error: BU002 mismatch.",book:"CORP",bu:"BU002"},
+  {name:"AMRPT001 - Asset Register Report",cat:"Reporting",pid:"AMRPT001",last:"Jun 01 01:00",dur:"6m 55s",status:"Success",next:"Jul 01 01:00",owner:"AM Team",desc:"Full asset register: cost, accum. depreciation, and NBV.",book:"CORP",bu:"ALL"},
+  {name:"AMRPT002 - Depreciation Report",cat:"Reporting",pid:"AMRPT002",last:"Jun 01 01:30",dur:"9m 02s",status:"Success",next:"Jul 01 01:30",owner:"Finance",desc:"Monthly depreciation expense report by cost center.",book:"CORP",bu:"ALL"},
+  {name:"AMRPT003 - NBV Report",cat:"Reporting",pid:"AMRPT003",last:"Jun 01 02:30",dur:"7m 44s",status:"Success",next:"Jul 01 02:30",owner:"Finance",desc:"Net Book Value report for all active assets at period end.",book:"CORP, TAX",bu:"ALL"},
+  {name:"AMRPT004 - Disposal Gain/Loss",cat:"Reporting",pid:"AMRPT004",last:"Jun 01 08:00",dur:"—",status:"Pending",next:"Jun 01 11:00",owner:"Finance",desc:"Gain or loss on asset disposals for the period.",book:"CORP",bu:"ALL"},
+  {name:"AMRPT005 - Capital Expenditure",cat:"Reporting",pid:"AMRPT005",last:"May 31 23:59",dur:"12m 11s",status:"Success",next:"Jun 30 23:59",owner:"Finance",desc:"Capital expenditure report for management.",book:"CORP",bu:"ALL"},
+  {name:"AMCAP000 - Capitalize Assets",cat:"Capitalization",pid:"AMCAP000",last:"Jun 01 05:00",dur:"4m 33s",status:"Success",next:"On Demand",owner:"AM Team",desc:"Capitalizes CIP assets to fixed asset books.",book:"CORP, TAX",bu:"ALL"},
+  {name:"AMCAP001 - Mass Cap Preview",cat:"Capitalization",pid:"AMCAP001",last:"Jun 01 05:30",dur:"—",status:"Pending",next:"Jun 01 10:00",owner:"AM Team",desc:"Preview mass capitalization before finalizing CIP transfer.",book:"CORP",bu:"ALL"},
+  {name:"AMIFGL - AM/GL Interface",cat:"Interface",pid:"AMIFGL",last:"Jun 01 03:00",dur:"19m 08s",status:"Success",next:"Jul 01 03:00",owner:"GL Team",desc:"Posts AM accounting entries to the General Ledger.",book:"CORP",bu:"ALL"},
+  {name:"AMCAT000 - Asset Category Update",cat:"Capitalization",pid:"AMCAT000",last:"May 30 12:00",dur:"2m 12s",status:"Success",next:"On Demand",owner:"AM Team",desc:"Updates asset category attributes in bulk.",book:"CORP",bu:"BU001"},
+  {name:"AMTRANS - Asset Transfer",cat:"Reporting",pid:"AMTRANS",last:"May 29 15:00",dur:"3m 44s",status:"Success",next:"On Demand",owner:"AM Team",desc:"Processes inter-BU asset transfers and accounting.",book:"CORP",bu:"ALL"},
+  {name:"AMRECGL - Reconcile to GL",cat:"Reconciliation",pid:"AMRECGL",last:"May 31 23:59",dur:"—",status:"Error",next:"Retry Required",owner:"Finance",desc:"Compares AM sub-ledger with GL control accounts. Error: $4,210 out-of-balance.",book:"CORP",bu:"BU003"},
+  {name:"AMIF3000 - AM/GL Accounting",cat:"Interface",pid:"AMIF3000",last:"Jun 01 04:00",dur:"15m 00s",status:"Running",next:"—",owner:"GL Team",desc:"Generates accounting entries for all AM transactions.",book:"CORP, TAX",bu:"ALL"},
+  {name:"AMPCONV - Profile Conversion",cat:"Depreciation",pid:"AMPCONV",last:"May 28 10:00",dur:"44m 02s",status:"Success",next:"On Demand",owner:"AM Team",desc:"Converts asset depreciation profiles in bulk.",book:"CORP",bu:"ALL"},
+  {name:"AMSWITCH - Switch Books",cat:"Depreciation",pid:"AMSWITCH",last:"May 25 09:00",dur:"1m 58s",status:"Success",next:"On Demand",owner:"AM Team",desc:"Switches asset between depreciation books.",book:"TAX",bu:"BU001"},
+  {name:"AMCLOSE - Period Close",cat:"Reconciliation",pid:"AMCLOSE",last:"—",dur:"—",status:"Pending",next:"Jun 07 17:00",owner:"AM Team",desc:"Final AM period close. Run after all reconciliations cleared.",book:"CORP, TAX",bu:"ALL"},
+  {name:"AMRPT010 - Tax Depreciation Rpt",cat:"Reporting",pid:"AMRPT010",last:"May 31 22:00",dur:"18m 40s",status:"Success",next:"Jun 30 22:00",owner:"Tax Team",desc:"Tax depreciation schedule by asset class.",book:"TAX",bu:"ALL"},
+];
+const runD={AMDEPR000:45,AMDEPR001:28,AMCOPYAD:12,AMIF1000:60,AMIF2000:38,AMRET000:18,AMRT1000:22,AMRECON:90,AMRPT001:25,AMRPT002:30,AMRPT003:27,AMRPT004:20,AMRPT005:35,AMCAP000:15,AMCAP001:18,AMIFGL:55,AMCAT000:10,AMTRANS:14,AMRECGL:75,AMIF3000:50,AMPCONV:120,AMSWITCH:8,AMCLOSE:40,AMRPT010:58};
+
+// ── DATA: ISSUES ──
+const issues=[
+  {id:'ISS-001',type:'GL',title:'AM-GL Book Unsync – CORP Book BU003',sev:'Critical',period:'Jun 2026',asset:'N/A',proj:'INFRA-2024',dept:'D-0031',status:'Open',
+   desc:'CORP depreciation book shows $4,210 higher balance than GL control account 168000. Root cause: AMIFGL failed mid-run on Jun 01 04:45. Entries posted to AM but GL update was interrupted. Reconciliation query AM_GL_RECON returning 0 rows – rule currently inactive.',
+   params:['BU: BU003','Book: CORP','Account: 168000','Diff: $4,210','Period: JUN-26'],
+   res:'Re-run AMIFGL for BU003 only. Verify journal IDs 8821-8834 in GL. Activate AM_GL_RECON query.'},
+  {id:'ISS-002',type:'GL',title:'Intercompany AM-GL Mismatch – BU001 vs BU002',sev:'Critical',period:'Jun 2026',asset:'N/A',proj:'IC-TRANSFER-05',dept:'D-0010',status:'Open',
+   desc:'Intercompany asset transfer (AMTRANS) between BU001 and BU002 posted eliminating entry in AM but GL account 170000 in BU002 was not credited. Net difference: $18,750. Project IC-TRANSFER-05 is the triggering transaction.',
+   params:['BU: BU001/BU002','Book: CORP','Account: 170000','Diff: $18,750','Project: IC-TRANSFER-05'],
+   res:'Manually post correcting journal in BU002 GL. Re-run AMTRANS for IC transactions only.'},
+  {id:'ISS-003',type:'GL',title:'Retired Asset Balance Lingering in GL',sev:'Critical',period:'Jun 2026',asset:'ASSET-44821',proj:'N/A',dept:'D-0055',status:'Open',
+   desc:'Asset ASSET-44821 (IT Equipment) was retired via AMRET000 on May 31. GL control account 165000 still shows $3,200 cost balance. Retirement gain/loss journal generated but not posted due to inactive Dept D-0055 chartfield combination.',
+   params:['Asset: ASSET-44821','Dept: D-0055 (Inactive)','Account: 165000','Amount: $3,200','Book: CORP'],
+   res:'Activate Dept D-0055 or remap to valid dept. Re-process retirement for ASSET-44821.'},
+  {id:'ISS-004',type:'GL',title:'Depreciation Overstatement – Tax Book Period Lag',sev:'High',period:'Jun 2026',asset:'N/A',proj:'N/A',dept:'ALL',status:'Open',
+   desc:'Tax book depreciation for Jun 2026 calculated using May 2026 asset cost values due to sequencing issue – AMPCONV ran before AMDEPR000. Overstatement of ~$1,100 across 14 assets in LOW-VALUE-POOL category.',
+   params:['Book: TAX','Category: LOW-VALUE-POOL','Assets: 14','Overstatement: ~$1,100','Period: JUN-26'],
+   res:'Reverse tax book depreciation entries. Re-run AMDEPR000 for TAX book after confirming asset costs.'},
+  {id:'ISS-005',type:'NBV',title:'Meagre NBV – Assets Below Threshold Not Flagged',sev:'High',period:'Jun 2026',asset:'Multiple',proj:'N/A',dept:'D-0022',status:'Open',
+   desc:'AM_FULLY_DEPR query identified 47 assets in Dept D-0022 with NBV below company threshold of $500 still actively depreciating. Finance Policy FP-AM-004 mandates disposal review. System parameter MIN_NBV_THRESHOLD is set to $0 (effectively inactive).',
+   params:['Dept: D-0022','Asset Count: 47','Threshold: $500','Param: MIN_NBV_THRESHOLD=$0','Category: IT-EQUIP'],
+   res:'Update system parameter MIN_NBV_THRESHOLD to $500 in AM Setup. Run AMRPT003 with threshold filter. Initiate disposal review.'},
+  {id:'ISS-006',type:'NBV',title:'Negative NBV on Active Asset – Useful Life Error',sev:'High',period:'Jun 2026',asset:'ASSET-31044',proj:'PROJ-288',dept:'D-0041',status:'Open',
+   desc:'Asset ASSET-31044 (Leasehold Improvement) shows NBV of -$2,180 in CORP book. Accumulated depreciation ($52,180) exceeds cost ($50,000). Useful life incorrectly set to 48 months instead of 60 months causing over-depreciation.',
+   params:['Asset: ASSET-31044','Book: CORP','NBV: -$2,180','Useful Life Set: 48M','Correct Life: 60M','Project: PROJ-288'],
+   res:'Correct useful life to 60 months. Reverse excess depreciation via AMSWITCH. Recalculate from acquisition date.'},
+  {id:'ISS-007',type:'NBV',title:'NBV Sync Lag – Closed Period Data in Open Period',sev:'Medium',period:'Jun 2026',asset:'N/A',proj:'N/A',dept:'ALL',status:'Open',
+   desc:'May 2026 NBV values are being referenced in Jun 2026 for 3 reporting queries. AM_ASSET_NBV pulls from prior period snapshot table PS_ASSET_NBV_SNAP instead of live PS_ASSET_VW. Parameter REPORT_PERIOD is hardcoded to MAY-26.',
+   params:['Query: AM_ASSET_NBV','Param: REPORT_PERIOD=MAY-26','Table: PS_ASSET_NBV_SNAP','Expected: PS_ASSET_VW','Period: JUN-26'],
+   res:'Update REPORT_PERIOD to JUN-26 in query AM_ASSET_NBV. Verify AM_DEPR_SUMMARY and AM_FULLY_DEPR also use dynamic period.'},
+  {id:'ISS-008',type:'JOURNAL',title:'Suspended Journal – Inactive Project PROJ-512',sev:'Critical',period:'Jun 2026',asset:'N/A',proj:'PROJ-512',dept:'D-0031',status:'Open',
+   desc:'Journal JRNL-AM-20260601-0044 generated by AMIFGL is SUSPENDED. Journal references Project PROJ-512 which became INACTIVE as of Jun 01 2026. Project closed in PeopleSoft Projects but AP vouchers still route to it. 12 asset lines affected, total value $94,200.',
+   params:['Journal: JRNL-AM-20260601-0044','Project: PROJ-512 (Inactive)','Dept: D-0031','Lines: 12','Amount: $94,200','BU: BU003'],
+   res:'Activate PROJ-512 or remap AP vouchers to PROJ-514 (successor). Re-post journal after correction. Update project routing rules in AP.'},
+  {id:'ISS-009',type:'JOURNAL',title:'Error Journal – Department Chartfield Inactive',sev:'Medium',period:'Jun 2026',asset:'ASSET-58301',proj:'N/A',dept:'D-0099',status:'Open',
+   desc:'Depreciation journal for ASSET-58301 (Furniture and Fixtures) failed to post because Dept D-0099 was deactivated on May 15 2026 per org restructure. Asset still holds D-0099 as its cost center. Monthly depreciation charge of $420 cannot post.',
+   params:['Asset: ASSET-58301','Dept: D-0099 (Inactive since May-15)','Category: FURN-FIX','Monthly Depr: $420','Book: CORP'],
+   res:'Update ASSET-58301 cost center to D-0088 (successor dept). Re-run AMDEPR000 for this asset. Archive D-0099 in ChartField setup.'},
+];
+
+// ── DATA: QUERIES ──
+const queries=[
+  {name:"AM_ASSET_NBV",desc:"Net book value by BU",freq:"Daily",next:"Jun 02 06:00",output:"4,382 rows",owner:"AM Team",status:"Active",purpose:"Tracks NBV of all active assets per BU for daily reporting.",lastMod:"May 15 2026"},
+  {name:"AM_DEPR_SUMMARY",desc:"Depreciation summary",freq:"Monthly",next:"Jul 01 02:00",output:"12 rows",owner:"Finance",status:"Active",purpose:"Summarises total depreciation by category for month-end statements.",lastMod:"Apr 01 2026"},
+  {name:"AM_ASSET_ADDITIONS",desc:"New assets added",freq:"Daily",next:"Jun 02 08:00",output:"156 rows",owner:"AM Team",status:"Active",purpose:"Lists all assets added in the last 24 hours for review.",lastMod:"May 20 2026"},
+  {name:"AM_RETIREMENTS_MTD",desc:"Retirements MTD",freq:"Weekly",next:"Jun 07 07:00",output:"34 rows",owner:"AM Team",status:"Active",purpose:"Asset retirements month-to-date with gain/loss details.",lastMod:"May 01 2026"},
+  {name:"AM_CAPEX_TRACKER",desc:"Capital expenditure",freq:"Weekly",next:"Jun 08 08:00",output:"89 rows",owner:"Finance",status:"Active",purpose:"Tracks capital expenditure against approved budgets.",lastMod:"Mar 12 2026"},
+  {name:"AM_GL_RECON",desc:"AM to GL reconciliation",freq:"Monthly",next:"Jul 01 03:00",output:"0 rows",owner:"GL Team",status:"Inactive",purpose:"Compares AM sub-ledger to GL control accounts. Currently inactive.",lastMod:"Jan 10 2026"},
+  {name:"AM_CATEGORY_LIST",desc:"Asset categories",freq:"Monthly",next:"Jul 01 06:00",output:"218 rows",owner:"AM Team",status:"Active",purpose:"Full list of asset categories with depreciation rules.",lastMod:"Feb 28 2026"},
+  {name:"AM_LEASE_ASSETS",desc:"Leased asset register",freq:"Weekly",next:"Jun 07 09:00",output:"42 rows",owner:"AM Team",status:"Running",purpose:"Lists all IFRS 16 right-of-use assets.",lastMod:"May 30 2026"},
+  {name:"AM_FULLY_DEPR",desc:"Fully deprecated assets",freq:"Monthly",next:"Jul 01 07:00",output:"1,204 rows",owner:"Finance",status:"Active",purpose:"Assets with zero NBV still in service for disposal review.",lastMod:"Apr 15 2026"},
+  {name:"AM_LOW_VALUE_POOL",desc:"Low value pool assets",freq:"Weekly",next:"Jun 07 10:00",output:"388 rows",owner:"Tax Team",status:"Active",purpose:"Low-value asset pool schedule for tax depreciation.",lastMod:"May 01 2026"},
+  {name:"AM_ASSET_CUSTODIAN",desc:"Custodian assignments",freq:"Daily",next:"Jun 02 11:00",output:"2,910 rows",owner:"AM Team",status:"Active",purpose:"Full asset register with custodian for physical verification.",lastMod:"May 25 2026"},
+  {name:"AM_PENDING_CAP",desc:"Pending capitalization",freq:"Daily",next:"Jun 02 12:00",output:"27 rows",owner:"AM Team",status:"Active",purpose:"CIP assets awaiting capitalization decision.",lastMod:"May 20 2026"},
+  {name:"AM_DISPOSAL_GAIN",desc:"Disposal gain/loss",freq:"Monthly",next:"Jul 01 08:00",output:"8 rows",owner:"Finance",status:"Active",purpose:"Gain and loss on disposal entries for the period.",lastMod:"Apr 01 2026"},
+  {name:"AM_IFRS16_SCHEDULE",desc:"IFRS 16 lease schedule",freq:"Monthly",next:"Jul 01 09:00",output:"42 rows",owner:"Finance",status:"Active",purpose:"IFRS 16 amortisation schedule for right-of-use assets.",lastMod:"Mar 31 2026"},
+  {name:"AM_TAX_DEPR",desc:"Tax depreciation schedule",freq:"Monthly",next:"Jul 01 04:00",output:"3,100 rows",owner:"Tax Team",status:"Active",purpose:"Full tax depreciation schedule by asset class.",lastMod:"Apr 10 2026"},
+  {name:"AM_ASSET_LOCATION",desc:"Assets by location",freq:"Daily",next:"Jun 02 13:00",output:"4,382 rows",owner:"AM Team",status:"Inactive",purpose:"Asset count and value by physical location. Under revision.",lastMod:"Dec 01 2025"},
+];
+
+// ── DATA: MONTH-END ──
+const meItems=[
+  {id:1,title:"Run period-end depreciation (AMDEPR000)",area:"Depreciation",pri:"high",done:true,due:"Jun 01",owner:"AM Team",notes:"Completed. All 4,382 assets processed across CORP and TAX books."},
+  {id:2,title:"Review and approve depreciation exceptions",area:"Depreciation",pri:"high",done:true,due:"Jun 02",owner:"Finance",notes:"3 exceptions reviewed. 2 approved, 1 corrected and rerun."},
+  {id:3,title:"Process all pending asset additions",area:"Capitalization",pri:"high",done:true,due:"Jun 01",owner:"AM Team",notes:"156 assets added via AMIF1000. All validated and capitalised."},
+  {id:4,title:"Capitalize WIP assets (AMCAP000)",area:"Capitalization",pri:"high",done:true,due:"Jun 02",owner:"AM Team",notes:"27 WIP assets capitalised. Projects PROJ-401 to PROJ-427 closed."},
+  {id:5,title:"Process asset retirements (AMRET000)",area:"Retirement",pri:"med",done:true,due:"Jun 02",owner:"AM Team",notes:"34 retirements processed. Gain/loss entries generated."},
+  {id:6,title:"Run AM to GL accounting entries (AMIFGL)",area:"Interface",pri:"high",done:false,due:"Jun 03",owner:"GL Team",notes:"Scheduled for Jun 03. Depends on AMIF3000 completing first."},
+  {id:7,title:"Reconcile AM to GL balances (AMRECGL)",area:"Reconciliation",pri:"high",done:false,due:"Jun 04",owner:"Finance",notes:"Currently ERROR. BU003 $4,210 discrepancy. ISS-001 open."},
+  {id:8,title:"Resolve AM/AP interface exceptions (AMIF1000)",area:"Interface",pri:"med",done:false,due:"Jun 03",owner:"AP Team",notes:"AMIF1000 running. 12 vouchers have validation errors per ISS-008."},
+  {id:9,title:"Generate Asset Register report (AMRPT001)",area:"Reporting",pri:"med",done:false,due:"Jun 05",owner:"AM Team",notes:"To be run after period close. Output to SharePoint."},
+  {id:10,title:"Prepare NBV report for management",area:"Reporting",pri:"low",done:false,due:"Jun 06",owner:"Finance",notes:"AMRPT003 output to be formatted into management template."},
+  {id:11,title:"Review disposal gain/loss entries",area:"Retirement",pri:"med",done:false,due:"Jun 05",owner:"Finance",notes:"8 disposal entries to review against approved forms."},
+  {id:12,title:"Close AM period (AMCLOSE)",area:"Reconciliation",pri:"high",done:false,due:"Jun 07",owner:"AM Team",notes:"Final step. Blocked until AMRECGL error resolved."},
+];
+
+// ── DATA: TIMELINE ──
+const tlItems=[
+  {date:"Jun 01 00:00",title:"Period open – AM Module",desc:"AM period 06-2026 opened for all BUs",state:"done",detail:"Period opened by system scheduler. All books open for posting."},
+  {date:"Jun 01 02:00",title:"Depreciation run completed",desc:"AMDEPR000 processed 4,382 assets",state:"done",detail:"CORP and TAX books calculated. 3 exceptions flagged. ISS-004 logged."},
+  {date:"Jun 01 03:00",title:"AM/GL Accounting posted",desc:"AMIFGL journal entries generated",state:"done",detail:"19m 08s runtime. Partial failure on BU003 triggered ISS-001."},
+  {date:"Jun 01 05:00",title:"Asset capitalization processed",desc:"AMCAP000 – 27 WIP assets capitalized",state:"done",detail:"Projects PROJ-401 to PROJ-427 closed. Total value: $2.4M."},
+  {date:"Jun 01 07:00",title:"AM/AP Interface running",desc:"AMIF1000 – 156 vouchers in process",state:"active",detail:"12 vouchers suspended due to PROJ-512 inactive (see ISS-008)."},
+  {date:"Jun 03 08:00",title:"AM/GL Reconciliation due",desc:"AMRECGL – Error state, action required",state:"active",detail:"BU003 $4,210 imbalance. ISS-001 open. Finance investigating."},
+  {date:"Jun 03 10:00",title:"GL Journal entries deadline",desc:"All AM entries must be in GL",state:"pending",detail:"Hard deadline set by Group Finance."},
+  {date:"Jun 05 12:00",title:"Management reports due",desc:"NBV, Depreciation, Disposal reports",state:"pending",detail:"AMRPT001-004 for Finance Controller review."},
+  {date:"Jun 07 17:00",title:"Period close (AMCLOSE)",desc:"Final period close – June 2026",state:"pending",detail:"Blocked until AMRECGL and ISS-001 resolved."},
+  {date:"Jun 08 09:00",title:"Finance controller sign-off",desc:"Period-end approval by controller",state:"pending",detail:"Final approval in Oracle Approvals Management."},
+];
+// ── STATE ──
+let aPer='open', monLog=[], iCtr=100000, aTmr={}, clFlt='all', tFlt='';
+
+// Closed period unlock state – one unlock allowed per calendar month
+// Key: 'unlock_may2026_YYYY-MM' → tracks which month the unlock was used
+const UNLOCK_STORAGE_KEY='am_closed_period_unlock_'+new Date().getFullYear()+'-'+(new Date().getMonth()+1);
+let closedPeriodUnlocked=false;  // true = currently unlocked
+let unlockUsedThisMonth=false;   // true = quota consumed (whether still unlocked or re-locked)
+
+function initUnlockState(){
+  // Restore unlock state from sessionStorage so it persists across page refreshes
+  // until the user explicitly re-locks
+  try{
+    const stored=sessionStorage.getItem(UNLOCK_STORAGE_KEY);
+    if(stored==='unlocked'){
+      // User unlocked and hasn't re-locked yet — restore the unlocked state
+      closedPeriodUnlocked=true;
+      unlockUsedThisMonth=true;
+    } else if(stored==='relocked'){
+      // User unlocked then re-locked — quota consumed, period is locked again
+      closedPeriodUnlocked=false;
+      unlockUsedThisMonth=true;
+    }
+    // stored===null means unlock not yet used this month
+  }catch(e){}
+  updateClosedPill();
+}
+
+function updateClosedPill(){
+  const pill=document.getElementById('pill-closed');
+  if(!pill)return;
+  if(closedPeriodUnlocked){
+    pill.innerHTML='<i class="ti ti-lock-open" style="font-size:10px;vertical-align:-1px"></i> May 2026 (Unlocked)';
+    pill.title='Period is unlocked. Click Unlock Period button to re-lock.';
+  } else if(unlockUsedThisMonth){
+    // Re-locked after using quota
+    pill.innerHTML='<i class="ti ti-lock" style="font-size:10px;vertical-align:-1px"></i> May 2026 (Locked)';
+    pill.title='Period was unlocked and re-locked. No more unlocks available this month.';
+  } else {
+    pill.innerHTML='<i class="ti ti-lock" style="font-size:10px;vertical-align:-1px"></i> May 2026 (Closed)';
+    pill.title='One-time unlock available. Click Unlock Period to enable editing.';
+  }
+}
+
+function switchPeriod(p){
+  aPer=p;
+  document.getElementById('pill-open').classList.toggle('act',p==='open');
+  document.getElementById('pill-closed').classList.toggle('act',p==='closed');
+  const b=document.getElementById('pband');
+  if(p==='open'){
+    b.className='pband ob';
+    document.getElementById('btext').textContent='Jun 2026 – OPEN Period';
+    document.getElementById('bsub').textContent='Posting allowed · Depreciation run completed · Period close pending';
+  } else if(closedPeriodUnlocked){
+    b.className='pband ub';
+    document.getElementById('btext').textContent='May 2026 – TEMPORARILY UNLOCKED';
+    document.getElementById('bsub').textContent='One-time unlock active · Clear pending processes · Re-lock when done';
+  } else {
+    b.className='pband cb';
+    document.getElementById('btext').textContent='May 2026 – CLOSED Period';
+    document.getElementById('bsub').textContent='All postings locked · Final reports generated · Reconciliation complete';
+  }
+  renderP();
+  renderME(); // re-render month-end checklist to apply period lock state
+  showToast('info','ti-calendar','Switched to '+(p==='open'?'Jun 2026 (Open)':closedPeriodUnlocked?'May 2026 (Unlocked)':'May 2026 (Closed)'));
+}
+
+function showUnlockModal(){
+  if(unlockUsedThisMonth&&!closedPeriodUnlocked){
+    // Quota used and re-locked — no more unlocks available
+    showToast('warning','ti-alert-circle','One-time unlock already used and period was re-locked. No more unlocks available for '+new Date().toLocaleString('en',{month:'long',year:'numeric'}));
+    return;
+  }
+  if(closedPeriodUnlocked){
+    // Show re-lock confirmation
+    setModal('#FEF3E2','#B45309','ti-lock','Re-lock May 2026 Period','Restore closed period restrictions');
+    document.getElementById('mbdy').innerHTML=`
+      <p style="font-size:12px;color:var(--txt2);line-height:1.6;margin-bottom:12px">Re-locking will restore all restrictions for May 2026. Processes and checklist will return to read-only.</p>
+      <div style="background:#FEF3E2;border:1px solid #FCD34D;border-radius:7px;padding:10px 12px;font-size:12px;color:#92400E"><i class="ti ti-alert-triangle" style="vertical-align:-2px;margin-right:5px"></i> <strong>This action cannot be undone.</strong> Once re-locked, the one-time unlock quota for this month is fully consumed and cannot be used again.</div>`;
+    document.getElementById('mft').innerHTML=`<button class="btn3" onclick="closeMod()">Cancel</button><button class="btn1" style="background:#B45309" onclick="relockPeriod()"><i class="ti ti-lock"></i>Re-lock Period</button>`;
+    openMod();
+    return;
+  }
+  // Show unlock confirmation — quota not yet used
+  const now=new Date();
+  const monthName=now.toLocaleString('en',{month:'long',year:'numeric'});
+  setModal('#FEF3E2','#B45309','ti-lock-open','Unlock May 2026 Closed Period','One-time unlock for '+monthName);
+  document.getElementById('mbdy').innerHTML=`
+    <div style="background:#FEF3E2;border:1px solid #FCD34D;border-radius:7px;padding:11px 13px;font-size:12px;color:#92400E;display:flex;gap:9px;align-items:flex-start;margin-bottom:14px">
+      <i class="ti ti-alert-triangle" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
+      <div><strong>One-time unlock per month.</strong> This period can be unlocked once for ${monthName}. It will <strong>stay unlocked</strong> until you manually re-lock it — even after refreshing or reopening the page.</div>
+    </div>
+    <div class="mst">What this allows while unlocked</div>
+    <div class="mr"><span class="ll" style="color:var(--green)"><i class="ti ti-check" style="font-size:12px"></i> Run pending/error processes</span><span class="vv">Enabled</span></div>
+    <div class="mr"><span class="ll" style="color:var(--green)"><i class="ti ti-check" style="font-size:12px"></i> Update month-end checklist</span><span class="vv">Enabled</span></div>
+    <div class="mr"><span class="ll" style="color:var(--red)"><i class="ti ti-x" style="font-size:12px"></i> Post new journals</span><span class="vv">Still locked</span></div>
+    <div class="mr"><span class="ll" style="color:var(--red)"><i class="ti ti-x" style="font-size:12px"></i> Change asset data</span><span class="vv">Still locked</span></div>
+    <div class="mst">Authorization</div>
+    <div class="mr"><span class="ll">Requested By</span><span class="vv">Current User (admin)</span></div>
+    <div class="mr"><span class="ll">Persists Until</span><span class="vv" style="color:var(--amber);font-weight:700">Manual re-lock by user</span></div>
+    <div class="mr"><span class="ll">Unlock Quota</span><span class="vv" style="color:var(--amber);font-weight:700">1 of 1 remaining</span></div>`;
+  document.getElementById('mft').innerHTML=`<button class="btn3" onclick="closeMod()">Cancel</button><button class="btn1" style="background:#B45309" onclick="confirmUnlock()"><i class="ti ti-lock-open"></i>Unlock Period</button>`;
+  openMod();
+}
+
+function confirmUnlock(){
+  closedPeriodUnlocked=true;
+  unlockUsedThisMonth=true;
+  try{sessionStorage.setItem(UNLOCK_STORAGE_KEY,'unlocked');}catch(e){} // persists until re-lock
+  closeMod();
+  updateClosedPill();
+  updateUnlockBtn();
+  switchPeriod('closed');
+  showToast('warning','ti-lock-open','May 2026 unlocked – stays open until you manually re-lock');
+}
+
+function relockPeriod(){
+  closedPeriodUnlocked=false;
+  unlockUsedThisMonth=true; // quota consumed - can't unlock again this month
+  try{sessionStorage.setItem(UNLOCK_STORAGE_KEY,'relocked');}catch(e){}
+  closeMod();
+  updateClosedPill();
+  updateUnlockBtn();
+  switchPeriod('closed');
+  showToast('info','ti-lock','May 2026 re-locked. One-time unlock quota consumed for this month.');
+}
+
+function updateUnlockBtn(){
+  const btn=document.getElementById('unlock-btn');
+  if(!btn)return;
+  if(closedPeriodUnlocked){
+    // Currently unlocked — show re-lock option
+    btn.innerHTML='<i class="ti ti-lock"></i> Re-lock Period';
+    btn.style.background='rgba(255,140,0,.25)';
+    btn.style.borderColor='rgba(255,180,0,.5)';
+    btn.style.color='#FFD580';
+    btn.disabled=false;
+    btn.title='Click to re-lock the period';
+  } else if(unlockUsedThisMonth){
+    // Quota used and re-locked — disable permanently for this month
+    btn.innerHTML='<i class="ti ti-lock"></i> Locked';
+    btn.style.background='rgba(255,255,255,.06)';
+    btn.style.borderColor='rgba(255,255,255,.12)';
+    btn.style.color='rgba(255,255,255,.35)';
+    btn.disabled=true;
+    btn.title='Unlock quota consumed for this month';
+  } else {
+    // Not yet used — available to unlock
+    btn.innerHTML='<i class="ti ti-lock-open"></i> Unlock Period';
+    btn.style.background='rgba(255,255,255,.12)';
+    btn.style.borderColor='rgba(255,255,255,.35)';
+    btn.style.color='#fff';
+    btn.disabled=false;
+    btn.title='One-time unlock available this month';
+  }
+}
+
+
+// ── HELPERS ──
+function ft(d){return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function fd(s){if(s<60)return s+'s';const m=Math.floor(s/60),r=s%60;if(m<60)return m+'m'+(r?' '+r+'s':'');return Math.floor(m/60)+'h '+m%60+'m';}
+function sBdg(s){
+  if(s==='Success')return'<span class="badge b-g"><i class="ti ti-circle-check"></i>Success</span>';
+  if(s==='Running')return'<span class="badge b-t"><i class="ti ti-loader spinning"></i>Running</span>';
+  if(s==='Pending')return'<span class="badge b-a"><i class="ti ti-clock"></i>Pending</span>';
+  if(s==='Error')return'<span class="badge b-r"><i class="ti ti-alert-circle"></i>Error</span>';
+  if(s==='Active')return'<span class="badge b-g">Active</span>';
+  if(s==='Inactive')return'<span class="badge b-gray">Inactive</span>';
+  return s;
+}
+function cBdg(c){const m={Depreciation:'b-b',Capitalization:'b-p',Retirement:'b-a',Reporting:'b-i',Interface:'b-gray',Reconciliation:'b-r'};return`<span class="badge ${m[c]||'b-gray'}">${c}</span>`;}
+function fBdg(f){return`<span class="badge ${f==='Daily'?'b-g':f==='Weekly'?'b-b':'b-p'}">${f}</span>`;}
+function sevBdg(s){
+  if(s==='Critical')return'<span class="badge b-r"><i class="ti ti-flame"></i>Critical</span>';
+  if(s==='High')return'<span class="badge b-o"><i class="ti ti-alert-triangle"></i>High</span>';
+  if(s==='Medium')return'<span class="badge b-a"><i class="ti ti-alert-circle"></i>Medium</span>';
+  return'<span class="badge b-gray">Low</span>';
+}
+function miniBar(p){const c=p===100?'#1A7F4B':p>60?'#0066CC':'#B45309';return`<div style="display:flex;align-items:center;gap:4px"><div style="width:54px;height:4px;background:#E3E6EC;border-radius:2px;overflow:hidden"><div style="width:${p}%;height:100%;background:${c};border-radius:2px;transition:width .3s"></div></div><span style="font-size:10px;color:var(--txt2)">${p}%</span></div>`;}
+
+// ── RUN PROCESS ──
+function runProcess(idx,fromMod){
+  const p=procs[idx];if(!p)return;
+  if(monLog.find(m=>m.pid===p.pid&&m.status==='Running')){showToast('warning','ti-alert-circle',p.pid+' already running!');return;}
+  const id=++iCtr,st=new Date(),ps=runD[p.pid]||30;
+  const e={instanceId:id,pid:p.pid,name:p.name,submittedBy:'Current User',startTime:st,endTime:null,status:'Running',durationSec:0,plannedSec:ps,progressPct:0,outcome:Math.random()>.12?'Success':'Error',logs:[]};
+  monLog.unshift(e);
+  updateMBadge();showTab('monitor');renderMon();renderP();updateTiles();
+  showToast('running','ti-player-play','Submitted '+p.pid+' · Instance #'+id);
+  addLog(id,p.pid,'Process submitted to queue');
+  addLog(id,p.pid,'Initializing process engine...');
+  let elapsed=0;
+  aTmr[p.pid]=setInterval(()=>{
+    elapsed+=.5;e.durationSec=Math.round(elapsed);e.progressPct=Math.min(99,Math.round(elapsed/ps*100));
+    if(Math.round(elapsed)===2)addLog(id,p.pid,'Loading parameters and asset set');
+    if(Math.round(elapsed)===Math.round(ps*.25))addLog(id,p.pid,'25% – processing records batch 1');
+    if(Math.round(elapsed)===Math.round(ps*.5))addLog(id,p.pid,'50% – mid-point checkpoint OK');
+    if(Math.round(elapsed)===Math.round(ps*.75))addLog(id,p.pid,'75% – finalizing calculations');
+    const row=document.getElementById('pmr-'+id);
+    if(row){
+      const dc=row.querySelector('.dc');const pc=row.querySelector('.pc');
+      if(dc)dc.textContent=fd(e.durationSec);if(pc)pc.innerHTML=miniBar(e.progressPct);
+    }
+    if(elapsed>=ps){
+      clearInterval(aTmr[p.pid]);delete aTmr[p.pid];
+      e.endTime=new Date();e.status=e.outcome;e.progressPct=100;e.durationSec=Math.round(elapsed);
+      const pr=procs.find(x=>x.pid===p.pid);
+      if(pr){pr.last=ft(st);pr.dur=fd(e.durationSec);pr.status=e.status==='Success'?'Success':'Error';}
+      addLog(id,p.pid,e.status==='Success'?'Completed successfully':'Ended with ERROR');
+      renderMon();renderP();updateTiles();updateMBadge();
+      showToast(e.status==='Success'?'success':'error',e.status==='Success'?'ti-circle-check':'ti-alert-circle',p.pid+' '+e.status+' in '+fd(e.durationSec));
+    }
+  },500);
+  if(fromMod)closeMod();
+}
+
+function addLog(id,pid,msg){
+  const ts=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  monLog.find(e=>e.instanceId===id)?.logs?.push({ts,msg});
+  const d=document.getElementById('pm-log');
+  if(d){const l=document.createElement('div');l.style.cssText='padding:2px 0;border-bottom:1px solid var(--bdr);';l.innerHTML=`<span style="color:var(--txt3)">[${ts}]</span> <span style="color:var(--blue)">#${id}</span> <span style="color:var(--txt2)">${pid}</span> – ${msg}`;d.prepend(l);document.getElementById('pm-lc').textContent=d.children.length+' events';}
+}
+
+// ── RENDER PROCESSES ──
+function renderP(){
+  const sf=document.getElementById('pst').value,cf=document.getElementById('pct').value,tf=document.getElementById('psr').value.toLowerCase();
+  const cl=aPer==='closed'&&!closedPeriodUnlocked; // truly locked only if closed AND not unlocked
+  const fi=procs.filter(p=>(!sf||p.status===sf)&&(!cf||p.cat===cf)&&(!tf||p.name.toLowerCase().includes(tf)||p.pid.toLowerCase().includes(tf)));
+  document.getElementById('pcnt').textContent=fi.length;
+  document.getElementById('pb').innerHTML=fi.map(p=>{
+    const isR=monLog.some(e=>e.pid===p.pid&&e.status==='Running'),idx=procs.indexOf(p),ds=cl?'Success':p.status;
+    return`<tr onclick="openPMod(${idx})">
+      <td style="font-weight:600" title="${p.name}">${p.name}</td>
+      <td>${cBdg(p.cat)}</td><td class="mono">${p.pid}</td>
+      <td class="tm txs">${p.last}</td><td class="tm txs">${p.dur}</td>
+      <td>${sBdg(ds)}</td>
+      <td>
+        <button class="run-btn" ${(isR||cl)?'disabled':''} onclick="event.stopPropagation();runProcess(${idx},false)">
+          ${isR?'<i class="ti ti-loader spinning"></i>Running…':cl?'<i class="ti ti-lock"></i>Closed':'<i class="ti ti-player-play"></i>Run'}
+        </button>
+        <button class="vbtn" onclick="event.stopPropagation();openPMod(${idx})" style="margin-left:3px"><i class="ti ti-eye"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openPMod(idx){
+  const p=procs[idx],isR=monLog.some(e=>e.pid===p.pid&&e.status==='Running'),cl=aPer==='closed'&&!closedPeriodUnlocked;
+  const ic=p.status==='Success'?{bg:'#E6F5ED',c:'#1A7F4B',i:'ti-circle-check'}:p.status==='Error'?{bg:'#FDECEA',c:'#C0392B',i:'ti-alert-circle'}:isR||p.status==='Running'?{bg:'#E0F4F6',c:'#007B8A',i:'ti-loader'}:{bg:'#FEF3E2',c:'#B45309',i:'ti-clock'};
+  setModal(ic.bg,ic.c,ic.i,p.pid,p.name);
+  const li=monLog.find(e=>e.pid===p.pid);
+  let body=`<p style="font-size:12px;color:var(--txt2);margin-bottom:11px;line-height:1.6">${p.desc}</p>
+    <div class="mst">Process Details</div>
+    <div class="mr"><span class="ll">Category</span><span class="vv">${cBdg(p.cat)}</span></div>
+    <div class="mr"><span class="ll">Status</span><span class="vv">${sBdg(p.status)}</span></div>
+    <div class="mr"><span class="ll">Last Run</span><span class="vv mono">${p.last}</span></div>
+    <div class="mr"><span class="ll">Duration</span><span class="vv mono">${p.dur}</span></div>
+    <div class="mr"><span class="ll">Next Run</span><span class="vv">${p.next}</span></div>
+    <div class="mr"><span class="ll">Owner</span><span class="vv">${p.owner}</span></div>
+    <div class="mr"><span class="ll">Book(s)</span><span class="vv">${p.book}</span></div>
+    <div class="mr"><span class="ll">Business Unit</span><span class="vv">${p.bu}</span></div>`;
+  if(li)body+=`<div class="mst">Latest Session Instance</div>
+    <div class="mr"><span class="ll">Instance #</span><span class="vv" style="color:var(--blue);font-weight:700">${li.instanceId}</span></div>
+    <div class="mr"><span class="ll">Start Time</span><span class="vv mono">${ft(li.startTime)}</span></div>
+    <div class="mr"><span class="ll">End Time</span><span class="vv mono">${li.endTime?ft(li.endTime):'Still running...'}</span></div>
+    <div class="mr"><span class="ll">Duration</span><span class="vv mono">${fd(li.durationSec)}</span></div>`;
+  if(p.status==='Error')body+=`<div style="background:var(--rlt);border:1px solid #FCA5A5;border-radius:7px;padding:9px;margin-top:11px;font-size:11px;color:var(--red)"><i class="ti ti-alert-triangle"></i> Action Required: Check PSPRCSRQST and process log.</div>`;
+  if(cl)body+=`<div style="background:#F3F4F6;border:1px solid var(--bdr2);border-radius:7px;padding:9px;margin-top:11px;font-size:11px;color:var(--txt2)"><i class="ti ti-lock"></i> May 2026 is a <strong>closed period</strong>. Use the Unlock Period button to enable runs.</div>`;
+  if(aPer==='closed'&&closedPeriodUnlocked&&!cl)body+=`<div style="background:#FEF3E2;border:1px solid #FCD34D;border-radius:7px;padding:9px;margin-top:11px;font-size:11px;color:#92400E"><i class="ti ti-lock-open"></i> Period temporarily <strong>unlocked</strong> for pending clearance. Re-lock when done.</div>`;
+  document.getElementById('mbdy').innerHTML=body;
+  document.getElementById('mft').innerHTML=`
+    <button class="btn3" onclick="closeMod()">Close</button>
+    ${li&&li.status!=='Running'?`<button class="btn1" onclick="closeMod();showTab('monitor')"><i class="ti ti-activity"></i>Monitor</button>`:''}
+    <button class="btn2" ${(isR||cl)?'disabled':''} onclick="runProcess(${idx},true)">
+      <i class="ti ti-player-play"></i>${isR?'Running…':cl?'Period Closed':'Run Now'}
+    </button>`;
+  openMod();
+}
+
+// ── RENDER MONITOR ──
+function renderMon(){
+  const flt=document.getElementById('pmf')?.value||'';
+  const fi=monLog.filter(e=>!flt||e.status===flt);
+  document.getElementById('pmc-r').textContent=monLog.filter(e=>e.status==='Running').length;
+  document.getElementById('pmc-ok').textContent=monLog.filter(e=>e.status==='Success').length;
+  document.getElementById('pmc-er').textContent=monLog.filter(e=>e.status==='Error').length;
+  document.getElementById('pmc-tot').textContent=monLog.length;
+  if(!monLog.length){document.getElementById('pm-empty').style.display='block';document.getElementById('pm-tw').style.display='none';document.getElementById('pm-lw').style.display='none';return;}
+  document.getElementById('pm-empty').style.display='none';document.getElementById('pm-tw').style.display='block';document.getElementById('pm-lw').style.display='block';
+  document.getElementById('pmb').innerHTML=fi.map(e=>{
+    const rc=e.status==='Running'?'pr-run':e.status==='Success'?'pr-ok':'pr-err';
+    const sb=e.status==='Running'?`<span class="badge b-t"><i class="ti ti-loader spinning"></i>Running</span>`:e.status==='Success'?`<span class="badge b-g"><i class="ti ti-circle-check"></i>Success</span>`:`<span class="badge b-r"><i class="ti ti-alert-circle"></i>Error</span>`;
+    return`<tr class="${rc}" id="pmr-${e.instanceId}" onclick="openMonDet(${e.instanceId})" style="cursor:pointer">
+      <td style="font-weight:700;color:var(--blue)">#${e.instanceId}</td>
+      <td class="mono">${e.pid}</td>
+      <td style="font-weight:600;max-width:160px" title="${e.name}">${e.name}</td>
+      <td class="txs">${e.submittedBy}</td>
+      <td class="txs mono">${ft(e.startTime)}</td>
+      <td class="txs mono">${e.endTime?ft(e.endTime):'<span style="color:var(--txt3)">—</span>'}</td>
+      <td class="dc mono" style="font-weight:700">${fd(e.durationSec)}</td>
+      <td class="pc">${miniBar(e.progressPct)}</td>
+      <td>${sb}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openMonDet(id){
+  const e=monLog.find(x=>x.instanceId===id);if(!e)return;
+  const ic=e.status==='Running'?{bg:'#E0F4F6',c:'#007B8A',i:'ti-loader'}:e.status==='Success'?{bg:'#E6F5ED',c:'#1A7F4B',i:'ti-circle-check'}:{bg:'#FDECEA',c:'#C0392B',i:'ti-alert-circle'};
+  setModal(ic.bg,ic.c,ic.i+(e.status==='Running'?' spinning':''),'Instance #'+e.instanceId+' – '+e.pid,e.name);
+  let logs=(e.logs||[]).map(l=>`<div style="padding:2px 0;border-bottom:1px solid var(--bdr)"><span style="color:var(--txt3)">[${l.ts}]</span> ${l.msg}</div>`).join('')||'<span style="color:var(--txt3)">No log entries</span>';
+  document.getElementById('mbdy').innerHTML=`<div class="mst">Execution Details</div>
+    <div class="mr"><span class="ll">Instance #</span><span class="vv" style="color:var(--blue);font-weight:700">${e.instanceId}</span></div>
+    <div class="mr"><span class="ll">Process ID</span><span class="vv mono">${e.pid}</span></div>
+    <div class="mr"><span class="ll">Submitted By</span><span class="vv">${e.submittedBy}</span></div>
+    <div class="mr"><span class="ll">Start Time</span><span class="vv mono">${ft(e.startTime)}</span></div>
+    <div class="mr"><span class="ll">End Time</span><span class="vv mono">${e.endTime?ft(e.endTime):'Still running...'}</span></div>
+    <div class="mr"><span class="ll">Duration</span><span class="vv mono" style="font-weight:700">${fd(e.durationSec)}</span></div>
+    <div class="mr"><span class="ll">Progress</span><span class="vv">${miniBar(e.progressPct)}</span></div>
+    <div class="mr"><span class="ll">Status</span><span class="vv">${e.status==='Running'?'<span class="badge b-t"><i class="ti ti-loader spinning"></i>Running</span>':e.status==='Success'?'<span class="badge b-g"><i class="ti ti-circle-check"></i>Success</span>':'<span class="badge b-r"><i class="ti ti-alert-circle"></i>Error</span>'}</span></div>
+    <div class="mst">Process Log</div>
+    <div style="background:var(--surf2);border-radius:7px;padding:7px 10px;font-family:var(--mono);font-size:11px;max-height:130px;overflow-y:auto;border:1px solid var(--bdr)">${logs}</div>
+    ${e.status==='Error'?'<div style="background:var(--rlt);border:1px solid #FCA5A5;border-radius:7px;padding:9px;margin-top:11px;font-size:11px;color:var(--red)"><i class="ti ti-alert-triangle"></i> Process terminated abnormally. Check PSPRCSRQST.</div>':''}`;
+  document.getElementById('mft').innerHTML=`<button class="btn3" onclick="closeMod()">Close</button>${e.status!=='Running'?`<button class="btn1" onclick="closeMod();runProcess(${procs.findIndex(p=>p.pid===e.pid)},false)"><i class="ti ti-refresh"></i>Re-run</button>`:''}`;
+  openMod();
+}
+
+function updateMBadge(){const r=monLog.filter(e=>e.status==='Running').length;const b=document.getElementById('mbadge');b.textContent=r||monLog.length;b.style.display=(r||monLog.length)?'inline':'none';}
+// ── RENDER ISSUES ──
+function resolveIss(id){
+  const iss=issues.find(x=>x.id===id);
+  if(!iss)return;
+  iss.status=iss.status==='Open'?'Resolved':'Open';
+  if(iss.status==='Resolved'){
+    iss.resolvedAt=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+', '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    iss.resolvedBy='Current User';
+  } else {
+    iss.resolvedAt=null;iss.resolvedBy=null;
+  }
+  closeMod();
+  renderIss();
+  updateIssTile();
+  showToast(iss.status==='Resolved'?'success':'warning',iss.status==='Resolved'?'ti-circle-check':'ti-rotate','Issue '+id+' marked as '+iss.status);
+}
+
+function updateIssTile(){
+  const openCount=issues.filter(i=>i.status==='Open').length;
+  const totalCount=issues.length;
+
+  // Metric tile
+  document.getElementById('mt-iss').textContent=openCount;
+
+  // Tab badge
+  const tabBadge=document.getElementById('iss-tab-badge');
+  if(tabBadge){tabBadge.textContent=openCount;tabBadge.style.display=openCount?'inline':'none';}
+
+  // GL card
+  const glOpen=issues.filter(i=>i.type==='GL'&&i.status==='Open');
+  const glCrit=glOpen.filter(i=>i.sev==='Critical').length;
+  const glHigh=glOpen.filter(i=>i.sev==='High').length;
+  const glEl=document.getElementById('gl-counts');
+  if(glEl){
+    if(glOpen.length===0){
+      glEl.innerHTML='<span class="badge b-g"><i class="ti ti-circle-check"></i>All Resolved</span>';
+    } else {
+      let h='';
+      if(glCrit)h+=`<span class="badge b-r">${glCrit} Critical</span>`;
+      if(glHigh)h+=`<span class="badge b-a">${glHigh} High</span>`;
+      glEl.innerHTML=h;
+    }
+  }
+
+  // NBV card
+  const nbvOpen=issues.filter(i=>i.type==='NBV'&&i.status==='Open');
+  const nbvHigh=nbvOpen.filter(i=>i.sev==='High').length;
+  const nbvMed=nbvOpen.filter(i=>i.sev==='Medium').length;
+  const nbvEl=document.getElementById('nbv-counts');
+  if(nbvEl){
+    if(nbvOpen.length===0){
+      nbvEl.innerHTML='<span class="badge b-g"><i class="ti ti-circle-check"></i>All Resolved</span>';
+    } else {
+      let h='';
+      if(nbvHigh)h+=`<span class="badge b-o">${nbvHigh} High</span>`;
+      if(nbvMed)h+=`<span class="badge b-a">${nbvMed} Medium</span>`;
+      nbvEl.innerHTML=h;
+    }
+  }
+
+  // Journal card
+  const jrnOpen=issues.filter(i=>i.type==='JOURNAL'&&i.status==='Open');
+  const jrnCrit=jrnOpen.filter(i=>i.sev==='Critical').length;
+  const jrnMed=jrnOpen.filter(i=>i.sev==='Medium').length;
+  const jrnEl=document.getElementById('jrn-counts');
+  if(jrnEl){
+    if(jrnOpen.length===0){
+      jrnEl.innerHTML='<span class="badge b-g"><i class="ti ti-circle-check"></i>All Resolved</span>';
+    } else {
+      let h='';
+      if(jrnCrit)h+=`<span class="badge b-r">${jrnCrit} Critical</span>`;
+      if(jrnMed)h+=`<span class="badge b-a">${jrnMed} Medium</span>`;
+      jrnEl.innerHTML=h;
+    }
+  }
+}
+
+function filterIss(t){document.getElementById('ityp').value=t;renderIss();}
+function renderIss(){
+  const tp=document.getElementById('ityp').value,sv=document.getElementById('isev').value,st=document.getElementById('istat').value,tf=(document.getElementById('isr2').value||'').toLowerCase();
+  const fi=issues.filter(i=>(!tp||i.type===tp)&&(!sv||i.sev===sv)&&(!st||i.status===st)&&(!tf||i.title.toLowerCase().includes(tf)||i.id.toLowerCase().includes(tf)));
+  document.getElementById('icnt').textContent=fi.length+' issues';
+  const tc={'GL':'GL Imbalance','NBV':'NBV Issue','JOURNAL':'Error Journal'},bc={'GL':'b-o','NBV':'b-b','JOURNAL':'b-p'};
+  document.getElementById('iss-list').innerHTML=fi.map(iss=>{
+    const sc=iss.status==='Resolved'?'ii-l':iss.sev==='Critical'?'ii-c':iss.sev==='High'?'ii-h':iss.sev==='Medium'?'ii-m':'ii-l';
+    const resolved=iss.status==='Resolved';
+    return`<div class="ii ${sc}" onclick="openIssMod('${iss.id}')" style="${resolved?'opacity:.65':''}">
+      <div class="iib" style="${resolved?'background:var(--green)':''}"></div>
+      <div style="padding-left:10px">
+        <div class="iihd">
+          <div>
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+              <span class="mono" style="font-size:10px;color:var(--blue);font-weight:700">${iss.id}</span>
+              <span class="badge ${bc[iss.type]}">${tc[iss.type]}</span>
+              ${resolved?'':sevBdg(iss.sev)}
+              <span class="badge b-gray">${iss.period}</span>
+            </div>
+            <div class="iittl" style="${resolved?'text-decoration:line-through;color:var(--txt3)':''}">${iss.title}</div>
+          </div>
+          <span class="badge ${resolved?'b-g':'b-r'}" style="flex-shrink:0">${resolved?'<i class="ti ti-circle-check"></i> Resolved':'<i class="ti ti-alert-circle"></i> Open'}</span>
+        </div>
+        ${resolved
+          ?`<div style="font-size:11px;color:var(--green);margin-top:4px;display:flex;align-items:center;gap:5px"><i class="ti ti-circle-check"></i> Resolved${iss.resolvedAt?' at '+iss.resolvedAt+' by '+iss.resolvedBy:''}</div>`
+          :`<div class="iidesc">${iss.desc.length>180?iss.desc.substring(0,180)+'...':iss.desc}</div>`}
+        ${!resolved?`<div class="iipar">${iss.params.map(p=>`<span class="iip">${p}</span>`).join('')}</div>`:''}
+        <div class="iimeta" style="margin-top:7px">
+          ${iss.proj&&iss.proj!=='N/A'?`<span><i class="ti ti-briefcase" style="font-size:11px"></i>${iss.proj}</span>`:''}
+          ${iss.dept&&iss.dept!=='ALL'?`<span><i class="ti ti-building" style="font-size:11px"></i>${iss.dept}</span>`:''}
+          ${iss.asset&&iss.asset!=='N/A'&&iss.asset!=='Multiple'?`<span><i class="ti ti-package" style="font-size:11px"></i>${iss.asset}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('')||`<div style="padding:32px;text-align:center;color:var(--txt3)"><i class="ti ti-check" style="font-size:28px;display:block;margin-bottom:8px;color:var(--green)"></i>No issues match filter</div>`;
+}
+
+function openIssMod(id){
+  const iss=issues.find(x=>x.id===id);if(!iss)return;
+  const tc={'GL':'AM-GL Imbalance','NBV':'NBV Issue','JOURNAL':'Error Journal'};
+  const im={'GL':{bg:'#FEF5EC',c:'#C05621',i:'ti-scale'},'NBV':{bg:'#EFF6FF',c:'#0066CC',i:'ti-chart-line'},'JOURNAL':{bg:'#FDF2F8',c:'#9B2C7E',i:'ti-file-alert'}};
+  const t=iss.status==='Resolved'?{bg:'#E6F5ED',c:'#1A7F4B',i:'ti-circle-check'}:im[iss.type];
+  setModal(t.bg,t.c,t.i,iss.id+' – '+tc[iss.type],iss.title);
+  document.getElementById('mbdy').innerHTML=`
+    ${iss.status==='Resolved'?`<div style="background:#E6F5ED;border:1px solid #86EFAC;border-radius:7px;padding:10px 12px;font-size:12px;color:#14532D;display:flex;align-items:center;gap:8px;margin-bottom:11px"><i class="ti ti-circle-check" style="font-size:16px;flex-shrink:0"></i><div><strong>Issue Resolved</strong>${iss.resolvedAt?' · Resolved at '+iss.resolvedAt+' by '+iss.resolvedBy:''}</div></div>`:''}
+    <div style="background:var(--surf2);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--txt2);line-height:1.7;margin-bottom:11px;border:1px solid var(--bdr);${iss.status==='Resolved'?'opacity:.7':''}">${iss.desc}</div>
+    <div class="mst">Issue Details</div>
+    <div class="mr"><span class="ll">Issue ID</span><span class="vv mono" style="color:var(--blue)">${iss.id}</span></div>
+    <div class="mr"><span class="ll">Type</span><span class="vv">${tc[iss.type]}</span></div>
+    <div class="mr"><span class="ll">Severity</span><span class="vv">${sevBdg(iss.sev)}</span></div>
+    <div class="mr"><span class="ll">Period</span><span class="vv">${iss.period}</span></div>
+    <div class="mr"><span class="ll">Status</span><span class="vv"><span class="badge ${iss.status==='Open'?'b-r':'b-g'}">${iss.status==='Open'?'<i class="ti ti-alert-circle"></i> Open':'<i class="ti ti-circle-check"></i> Resolved'}</span></span></div>
+    ${iss.proj&&iss.proj!=='N/A'?`<div class="mr"><span class="ll">Project</span><span class="vv mono">${iss.proj}</span></div>`:''}
+    ${iss.dept&&iss.dept!=='ALL'?`<div class="mr"><span class="ll">Department</span><span class="vv mono">${iss.dept}</span></div>`:''}
+    ${iss.asset&&iss.asset!=='N/A'?`<div class="mr"><span class="ll">Asset ID</span><span class="vv mono">${iss.asset}</span></div>`:''}
+    <div class="mst">Affected Parameters</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:11px">${iss.params.map(p=>`<span class="iip">${p}</span>`).join('')}</div>
+    <div class="mst">Resolution Steps</div>
+    <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:7px;padding:10px 12px;font-size:12px;color:#14532D;line-height:1.7">${iss.res}</div>`;
+  document.getElementById('mft').innerHTML=`
+    <button class="btn3" onclick="closeMod()">Close</button>
+    <button class="cbtn" onclick="exportSingle('${iss.id}')"><i class="ti ti-download"></i>Export</button>
+    <button class="btn1" onclick="resolveIss('${iss.id}')"><i class="ti ti-check"></i>${iss.status==='Open'?'Mark Resolved':'Reopen Issue'}</button>`;
+  openMod();
+}
+
+// ── RENDER QUERIES ──
+function renderQ(){
+  const ff=document.getElementById('qfr').value,sf=document.getElementById('qst').value,tf=document.getElementById('qsr').value.toLowerCase();
+  const fi=queries.filter(q=>(!ff||q.freq===ff)&&(!sf||q.status===sf)&&(!tf||q.name.toLowerCase().includes(tf)||q.desc.toLowerCase().includes(tf)));
+  document.getElementById('qcnt').textContent=fi.length;
+  document.getElementById('qb').innerHTML=fi.map(q=>`<tr onclick="openQMod('${q.name}')">
+    <td class="mono" style="font-weight:600">${q.name}</td><td class="tm txs">${q.desc}</td>
+    <td>${fBdg(q.freq)}</td><td class="txs mono">${q.next}</td>
+    <td class="txs">${q.output}</td><td class="txs">${q.owner}</td>
+    <td>${sBdg(q.status)}</td>
+    <td><button class="run-btn" style="font-size:10px;padding:4px 8px" onclick="event.stopPropagation();runQ('${q.name}')"><i class="ti ti-player-play"></i>Run</button></td>
+  </tr>`).join('');
+}
+function runQ(n){const q=queries.find(x=>x.name===n);if(!q)return;showToast('running','ti-database',n+' submitted');setTimeout(()=>showToast('success','ti-circle-check',n+' done – '+q.output),3000);}
+function openQMod(n){
+  const q=queries.find(x=>x.name===n);if(!q)return;
+  setModal('var(--plt)','var(--purple)','ti-database',q.name,q.desc+' · '+q.freq);
+  document.getElementById('mbdy').innerHTML=`<p style="font-size:12px;color:var(--txt2);margin-bottom:11px;line-height:1.6">${q.purpose}</p>
+    <div class="mst">Query Details</div>
+    <div class="mr"><span class="ll">Status</span><span class="vv">${sBdg(q.status)}</span></div>
+    <div class="mr"><span class="ll">Frequency</span><span class="vv">${fBdg(q.freq)}</span></div>
+    <div class="mr"><span class="ll">Next Run</span><span class="vv mono">${q.next}</span></div>
+    <div class="mr"><span class="ll">Last Output</span><span class="vv">${q.output}</span></div>
+    <div class="mr"><span class="ll">Owner</span><span class="vv">${q.owner}</span></div>
+    <div class="mr"><span class="ll">Last Modified</span><span class="vv">${q.lastMod}</span></div>
+    ${q.status==='Inactive'?'<div style="background:var(--alt);border:1px solid #FCD34D;border-radius:7px;padding:9px;margin-top:11px;font-size:11px;color:var(--amber)"><i class="ti ti-info-circle"></i> Inactive: Enable in PeopleSoft Query Scheduler to resume.</div>':''}`;
+  document.getElementById('mft').innerHTML=`<button class="btn3" onclick="closeMod()">Close</button><button class="btn2" onclick="closeMod();runQ('${q.name}')"><i class="ti ti-player-play"></i>Run Query</button>`;
+  openMod();
+}
+
+// ── MONTH-END ──
+function filterCL(f){clFlt=f;renderME();}
+function renderME(){
+  const isClosed=aPer==='closed' && !closedPeriodUnlocked; // locked only when closed AND not unlocked
+  const done=meItems.filter(i=>i.done).length,hp=meItems.filter(i=>!i.done&&i.pri==='high').length,pend=meItems.filter(i=>!i.done).length-hp,pct=Math.round(done/meItems.length*100);
+  document.getElementById('mepct').textContent=pct+'%';document.getElementById('mebar').style.width=pct+'%';
+  document.getElementById('medn').textContent=done;document.getElementById('mepd').textContent=pend;document.getElementById('mebl').textContent=hp;
+  document.getElementById('meDoneSub').textContent=done+' of '+meItems.length+' done';
+
+  // Lock/unlock the filter badges and progress card visually
+  const filterBadges=document.querySelectorAll('#sec-monthend .badge[onclick*="filterCL"]');
+  filterBadges.forEach(b=>{b.style.opacity=isClosed?'.45':'1';b.style.pointerEvents=isClosed?'none':'auto';});
+
+  const areas={};meItems.forEach(i=>{if(!areas[i.area])areas[i.area]={t:0,d:0};areas[i.area].t++;if(i.done)areas[i.area].d++;});
+  document.getElementById('areab').innerHTML=Object.entries(areas).map(([a,v])=>{
+    const p=Math.round(v.d/v.t*100),c=p===100?'var(--green)':p>50?'var(--blue)':'var(--amber)';
+    return`<div style="margin-bottom:9px;${isClosed?'':'cursor:pointer'}" ${isClosed?'':'onclick="filterArea(\''+a+'\')"'}>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+        <span style="font-weight:600;color:var(--txt)">${a}</span>
+        <span style="color:var(--txt2)">${v.d}/${v.t} (${p}%)</span>
+      </div>
+      <div class="pb"><div class="pf" style="width:${p}%;background:${c}"></div></div>
+    </div>`;
+  }).join('');
+
+  let items=meItems;
+  if(clFlt==='done')items=meItems.filter(i=>i.done);
+  else if(clFlt==='pend')items=meItems.filter(i=>!i.done&&i.pri!=='high');
+  else if(clFlt==='block')items=meItems.filter(i=>!i.done&&i.pri==='high');
+
+  // Banner: locked (grey) or temporarily unlocked (amber) or nothing (open period)
+  const lockedBanner = isClosed
+    ? `<div style="background:#F3F4F6;border:1px solid var(--bdr2);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--txt2);display:flex;align-items:center;gap:8px;margin-bottom:12px"><i class="ti ti-lock" style="font-size:15px;color:var(--txt3);flex-shrink:0"></i><div><strong style="color:var(--txt)">May 2026 – Read-Only</strong><br>This period is closed. Use Unlock Period to make changes.</div></div>`
+    : (aPer==='closed' && closedPeriodUnlocked)
+      ? `<div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:8px;padding:10px 13px;font-size:12px;color:#92400E;display:flex;align-items:center;gap:8px;margin-bottom:12px"><i class="ti ti-lock-open" style="font-size:15px;flex-shrink:0"></i><div><strong>May 2026 – Temporarily Unlocked</strong><br>Checklist changes are allowed. Re-lock when done.</div></div>`
+      : '';
+
+  document.getElementById('melist').innerHTML=lockedBanner+items.map(i=>{
+    const pl=i.done?'Done':i.pri==='high'?'High':i.pri==='med'?'Medium':'Low';
+    const bc=i.done?'b-g':i.pri==='high'?'b-r':i.pri==='med'?'b-a':'b-gray';
+    // Checkbox: non-interactive and visually muted when closed
+    const chkCls=`cbox ${i.done?'ck':''}${isClosed?' locked-chk':''}`;
+    const chkClick=isClosed?`onclick="event.stopPropagation();showToast('warning','ti-lock','May 2026 is closed. Checklist is read-only.')"`:`onclick="event.stopPropagation();toggleCK(${i.id})"`;
+    return`<div class="ci" onclick="openMEMod(${i.id})" style="${isClosed?'cursor:default':''}">
+      <div class="${chkCls}" ${chkClick} style="${isClosed?'opacity:.5;cursor:not-allowed':'cursor:pointer'}">${i.done?'<i class="ti ti-check"></i>':''}</div>
+      <div class="pd ${i.pri==='high'?'ph':i.pri==='med'?'pm2':'pl2'}"></div>
+      <div style="flex:1;min-width:0">
+        <div class="ctit ${i.done?'dn':''}">${i.title}</div>
+        <div class="csub">${i.area} · Due ${i.due} · ${i.owner}</div>
+      </div>
+      <span class="badge ${bc}">${pl}</span>
+      ${!isClosed?'<i class="ti ti-chevron-right" style="font-size:13px;color:var(--bdr2);flex-shrink:0"></i>':'<i class="ti ti-lock" style="font-size:12px;color:var(--bdr2);flex-shrink:0"></i>'}
+    </div>`;
+  }).join('');
+}
+
+function filterArea(a){
+  if(aPer==='closed' && !closedPeriodUnlocked)return;
+  clFlt='all';renderME();
+  document.getElementById('melist').innerHTML=meItems.filter(i=>i.area===a).map(i=>{
+    const bc=i.done?'b-g':i.pri==='high'?'b-r':i.pri==='med'?'b-a':'b-gray';
+    return`<div class="ci" onclick="openMEMod(${i.id})">
+      <div class="cbox ${i.done?'ck':''}" onclick="event.stopPropagation();toggleCK(${i.id})">${i.done?'<i class="ti ti-check"></i>':''}</div>
+      <div class="pd ${i.pri==='high'?'ph':i.pri==='med'?'pm2':'pl2'}"></div>
+      <div style="flex:1;min-width:0">
+        <div class="ctit ${i.done?'dn':''}">${i.title}</div>
+        <div class="csub">${i.area} · Due ${i.due} · ${i.owner}</div>
+      </div>
+      <span class="badge ${bc}">${i.done?'Done':i.pri==='high'?'High':i.pri==='med'?'Medium':'Low'}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleCK(id){
+  if(aPer==='closed' && !closedPeriodUnlocked){
+    showToast('warning','ti-lock','May 2026 is closed. Use Unlock Period to make changes.');
+    return;
+  }
+  const it=meItems.find(i=>i.id===id);
+  if(it){it.done=!it.done;renderME();}
+}
+function openMEMod(id){
+  const it=meItems.find(i=>i.id===id);if(!it)return;
+  const isClosed=aPer==='closed' && !closedPeriodUnlocked;
+  const pr=it.pri==='high'?{i:'ti-alert-circle',bg:'var(--rlt)',c:'var(--red)'}:it.pri==='med'?{i:'ti-clock',bg:'var(--alt)',c:'var(--amber)'}:{i:'ti-check',bg:'var(--glt)',c:'var(--green)'};
+  // Use lock icon in header when closed
+  const modalIcon=isClosed?{i:'ti-lock',bg:'#F3F4F6',c:'var(--txt3)'}:pr;
+  setModal(modalIcon.bg,modalIcon.c,modalIcon.i,it.title,it.area+' · Due '+it.due);
+  document.getElementById('mbdy').innerHTML=`
+    ${isClosed ? `<div style="background:#F3F4F6;border:1px solid var(--bdr2);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--txt2);display:flex;align-items:center;gap:8px;margin-bottom:12px"><i class="ti ti-lock" style="font-size:15px;flex-shrink:0"></i><div><strong style="color:var(--txt)">Read-Only · May 2026 Closed</strong><br>Switch to Jun 2026 (open period) to make changes.</div></div>` : (aPer==='closed'&&closedPeriodUnlocked) ? `<div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:8px;padding:10px 13px;font-size:12px;color:#92400E;display:flex;align-items:center;gap:8px;margin-bottom:12px"><i class="ti ti-lock-open" style="font-size:15px;flex-shrink:0"></i><div><strong>May 2026 – Temporarily Unlocked</strong><br>Changes are allowed while the period remains unlocked.</div></div>` : ''}
+    <p style="font-size:12px;color:var(--txt2);background:var(--surf2);padding:10px;border-radius:7px;line-height:1.6;border-left:3px solid var(--bdr2)">${it.notes}</p>
+    <div class="mst">Details</div>
+    <div class="mr"><span class="ll">Area</span><span class="vv">${it.area}</span></div>
+    <div class="mr"><span class="ll">Priority</span><span class="vv"><span class="badge ${it.pri==='high'?'b-r':it.pri==='med'?'b-a':'b-gray'}">${it.pri==='high'?'High':it.pri==='med'?'Medium':'Low'}</span></span></div>
+    <div class="mr"><span class="ll">Due</span><span class="vv">${it.due}</span></div>
+    <div class="mr"><span class="ll">Owner</span><span class="vv">${it.owner}</span></div>
+    <div class="mr"><span class="ll">Status</span><span class="vv">${it.done?'<span class="badge b-g"><i class="ti ti-check"></i>Done</span>':'<span class="badge b-a"><i class="ti ti-clock"></i>Pending</span>'}</span></div>`;
+  // Footer: hide action button when closed
+  document.getElementById('mft').innerHTML=isClosed
+    ?`<button class="btn3" onclick="closeMod()">Close</button><button class="btn3" disabled style="opacity:.45;cursor:not-allowed"><i class="ti ti-lock"></i> Period Closed</button>`
+    :`<button class="btn3" onclick="closeMod()">Close</button><button class="btn1" onclick="toggleCK(${it.id});closeMod()"><i class="ti ${it.done?'ti-x':'ti-check'}"></i>${it.done?'Mark Incomplete':'Mark Complete'}</button>`;
+  openMod();
+}
+
+// ── TIMELINE ──
+function renderTL(){
+  document.getElementById('tlb').innerHTML=tlItems.map((t,i)=>`
+    <div class="tli" onclick="openTLMod(${i})">
+      <div class="tldot ${t.state==='done'?'tl-dn':t.state==='active'?'tl-ac':'tl-pe'}"></div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div>
+          <div class="tlt">${t.title}</div>
+          <div class="tls"><strong style="color:var(--txt)">${t.date}</strong> · ${t.desc}</div>
+        </div>
+        <i class="ti ti-chevron-right" style="font-size:13px;color:var(--bdr2);flex-shrink:0;margin-top:2px"></i>
+      </div>
+    </div>`).join('');
+}
+function openTLMod(i){
+  const t=tlItems[i];
+  const ic=t.state==='done'?{bg:'var(--blt)',c:'var(--blue)',i:'ti-circle-check'}:t.state==='active'?{bg:'var(--alt)',c:'var(--amber)',i:'ti-loader'}:{bg:'#F3F4F6',c:'var(--txt2)',i:'ti-clock'};
+  setModal(ic.bg,ic.c,ic.i,t.title,t.date);
+  document.getElementById('mbdy').innerHTML=`<p style="font-size:12px;color:var(--txt2);line-height:1.7;margin-bottom:11px">${t.detail}</p>
+    <div class="mst">Event Info</div>
+    <div class="mr"><span class="ll">Date</span><span class="vv mono">${t.date}</span></div>
+    <div class="mr"><span class="ll">State</span><span class="vv">${t.state==='done'?'<span class="badge b-g"><i class="ti ti-check"></i>Completed</span>':t.state==='active'?'<span class="badge b-a"><i class="ti ti-loader"></i>In Progress</span>':'<span class="badge b-gray"><i class="ti ti-clock"></i>Pending</span>'}</span></div>`;
+  document.getElementById('mft').innerHTML=`<button class="btn3" onclick="closeMod()">Close</button>`;
+  openMod();
+}
+
+// ── TILES / TABS ──
+function tileClick(f){
+  document.querySelectorAll('.mc').forEach(c=>c.classList.remove('act'));
+  if(f==='monthend'){document.getElementById('tile-monthend').classList.add('act');showTab('monthend');return;}
+  const el=document.getElementById('tile-'+(f==='all'?'all':f));if(el)el.classList.add('act');
+  showTab('processes');tFlt=f==='all'?'':f;
+  document.getElementById('pst').value=tFlt;
+  const strip=document.getElementById('afs');
+  if(tFlt){strip.style.display='flex';const L={Success:'Showing completed processes',Running:'Showing currently running processes',Pending:'Showing pending processes',Error:'Showing failed processes – action required'};document.getElementById('afst').textContent=L[tFlt]||'Filtered';}
+  else strip.style.display='none';
+  renderP();
+}
+function clearTF(){tFlt='';document.getElementById('pst').value='';document.getElementById('afs').style.display='none';document.querySelectorAll('.mc').forEach(c=>c.classList.remove('act'));renderP();}
+function showTab(n){
+  ['processes','monitor','issues','queries','monthend','timeline'].forEach(x=>{
+    document.getElementById('tab-'+x)?.classList.toggle('active',x===n);
+    document.getElementById('sec-'+x)?.classList.toggle('active',x===n);
+  });
+  if(n==='monitor')renderMon();
+  if(n==='issues')renderIss();
+}
+function updateTiles(){
+  const su=procs.filter(p=>p.status==='Success').length,ru=procs.filter(p=>p.status==='Running').length,pe=procs.filter(p=>p.status==='Pending').length,er=procs.filter(p=>p.status==='Error').length;
+  document.getElementById('mt-total').textContent=procs.length;
+  document.getElementById('mt-succ').textContent=su;document.getElementById('mt-ss').textContent=Math.round(su/procs.length*100)+'% success';
+  document.getElementById('mt-run').textContent=ru;document.getElementById('mt-pend').textContent=pe;document.getElementById('mt-err').textContent=er;
+}
+// ── MODAL HELPERS ──
+function setModal(bg,color,icon,title,sub){
+  const el=document.getElementById('micEl');
+  el.innerHTML=`<i class="ti ${icon}" style="font-size:18px;color:${color}"></i>`;
+  el.style.background=bg;
+  document.getElementById('mttl').textContent=title;
+  document.getElementById('msubb').textContent=sub;
+}
+function openMod(){document.getElementById('mover').classList.add('open');}
+function closeMod(){document.getElementById('mover').classList.remove('open');}
+function closeModal(e){if(e.target===document.getElementById('mover'))closeMod();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMod();});
+
+// ── TOAST ──
+let toastT;
+function showToast(type,icon,msg){
+  const t=document.getElementById('toast'),ic=document.getElementById('tic'),m=document.getElementById('tmsg');
+  ic.className='ti '+icon;m.textContent=msg;
+  const clrs={success:'#064E3B',error:'#7F1D1D',warning:'#78350F',info:'#1E3A5F',running:'#0D1B2A'};
+  t.style.background=clrs[type]||'#0D1B2A';
+  t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ── CLOCK ──
+function updateClock(){document.getElementById('clkEl').textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+
+// ── CSV EXPORTS ──
+function dlCSV(content,filename){
+  const b=new Blob([content],{type:'text/csv;charset=utf-8;'});
+  const u=URL.createObjectURL(b);const a=document.createElement('a');
+  a.href=u;a.download=filename;document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(u);
+}
+
+function exportCSV(){
+  const period=aPer==='open'?'Jun_2026':'May_2026';
+  const rows=[['Process ID','Process Name','Category','Last Run','Duration','Status','Owner','Book','Business Unit','Next Run']];
+  procs.forEach(p=>rows.push([p.pid,`"${p.name}"`,p.cat,p.last,p.dur,p.status,p.owner,p.book,p.bu,p.next]));
+  dlCSV(rows.map(r=>r.join(',')).join('\n'),`AM_Processes_${period}.csv`);
+  showToast('success','ti-download','AM Processes exported as CSV');
+}
+
+function exportMonCSV(){
+  if(!monLog.length){showToast('warning','ti-alert-circle','No monitor data to export');return;}
+  const rows=[['Instance#','Process ID','Process Name','Submitted By','Start Time','End Time','Duration (s)','Status']];
+  monLog.forEach(e=>rows.push([e.instanceId,e.pid,`"${e.name}"`,e.submittedBy,ft(e.startTime),e.endTime?ft(e.endTime):'',e.durationSec,e.status]));
+  dlCSV(rows.map(r=>r.join(',')).join('\n'),'AM_ProcessMonitor_Session.csv');
+  showToast('success','ti-download','Process Monitor exported');
+}
+
+function exportIssCSV(){
+  const tp=document.getElementById('ityp').value,sv=document.getElementById('isev').value;
+  const fi=issues.filter(i=>(!tp||i.type===tp)&&(!sv||i.sev===sv));
+  const rows=[['Issue ID','Type','Title','Severity','Period','Status','Asset','Project','Department','Description','Resolution']];
+  fi.forEach(i=>rows.push([i.id,i.type,`"${i.title}"`,i.sev,i.period,i.status,i.asset,i.proj,i.dept,`"${i.desc.replace(/"/g,"'")}"`,`"${i.res.replace(/"/g,"'")}"`]));
+  dlCSV(rows.map(r=>r.join(',')).join('\n'),'AM_Issue_Register.csv');
+  showToast('success','ti-download','Issues exported as CSV');
+}
+
+function exportSingle(id){
+  const iss=issues.find(x=>x.id===id);if(!iss)return;
+  const rows=[['Field','Value'],['Issue ID',iss.id],['Type',iss.type],['Title',`"${iss.title}"`],['Severity',iss.sev],['Period',iss.period],['Status',iss.status],['Asset',iss.asset],['Project',iss.proj],['Department',iss.dept],['Description',`"${iss.desc.replace(/"/g,"'")}"`],['Parameters',`"${iss.params.join(' | ')}"`],['Resolution',`"${iss.res.replace(/"/g,"'")}"`]];
+  dlCSV(rows.map(r=>r.join(',')).join('\n'),`${iss.id}_Detail.csv`);
+  showToast('success','ti-download',iss.id+' exported');
+}
+
+function exportQCSV(){
+  const rows=[['Query Name','Description','Frequency','Next Run','Last Output','Owner','Status','Last Modified','Purpose']];
+  queries.forEach(q=>rows.push([q.name,`"${q.desc}"`,q.freq,q.next,q.output,q.owner,q.status,q.lastMod,`"${q.purpose}"`]));
+  dlCSV(rows.map(r=>r.join(',')).join('\n'),'AM_Scheduled_Queries.csv');
+  showToast('success','ti-download','Queries exported as CSV');
+}
+
+// ── LOGIN ──
+const CREDS={admin:'Admin'};
+function doLogin(){
+  const u=document.getElementById('l-user').value.trim();
+  const p=document.getElementById('l-pass').value;
+  const btn=document.getElementById('login-btn');
+  const errEl=document.getElementById('lerr');
+  const errMsg=document.getElementById('lerr-msg');
+  const ui=document.getElementById('l-user');
+  const pi=document.getElementById('l-pass');
+  // Clear previous error state
+  errEl.classList.remove('show');
+  ui.classList.remove('err');pi.classList.remove('err');
+  if(!u||!p){
+    errMsg.textContent='Please enter both username and password.';
+    errEl.classList.add('show');
+    if(!u)ui.classList.add('err');
+    if(!p)pi.classList.add('err');
+    document.querySelector('.login-card').classList.add('shake');
+    setTimeout(()=>document.querySelector('.login-card').classList.remove('shake'),400);
+    return;
+  }
+  btn.disabled=true;
+  btn.innerHTML='<i class="ti ti-loader spinning"></i> Signing in…';
+  setTimeout(()=>{
+    if(CREDS[u]&&CREDS[u]===p){
+      // Success – set logged in user
+      loggedInUser=u;
+      document.getElementById('user-display-name').textContent=u;
+      document.getElementById('udrop-name').textContent=u;
+      document.getElementById('user-avatar-initials').textContent=u.charAt(0).toUpperCase();
+      // Transition to app
+      const scr=document.getElementById('login-screen');
+      scr.style.transition='opacity .4s ease';
+      scr.style.opacity='0';
+      setTimeout(()=>{
+        scr.classList.add('hidden');
+        const app=document.getElementById('app-shell');
+        app.style.display='flex';
+        showToast('success','ti-circle-check','Welcome back, '+u+'!');
+      },400);
+    } else {
+      btn.disabled=false;
+      btn.innerHTML='<i class="ti ti-login"></i> Sign In';
+      errMsg.textContent=CREDS[u]===undefined?'Username not found. Please check and try again.':'Incorrect password. Please try again.';
+      errEl.classList.add('show');
+      ui.classList.add('err');pi.classList.add('err');
+      document.querySelector('.login-card').classList.add('shake');
+      setTimeout(()=>document.querySelector('.login-card').classList.remove('shake'),400);
+      pi.value='';pi.focus();
+    }
+  },800);
+}
+function togglePwd(){
+  const inp=document.getElementById('l-pass');
+  const ico=document.getElementById('eye-icon');
+  if(inp.type==='password'){inp.type='text';ico.className='ti ti-eye-off';}
+  else{inp.type='password';ico.className='ti ti-eye';}
+}
+
+// ── USER MENU ──
+let loggedInUser='admin';
+function toggleUserMenu(){
+  const d=document.getElementById('user-dropdown');
+  const ch=document.getElementById('user-chevron');
+  d.classList.toggle('open');
+  ch.style.transform=d.classList.contains('open')?'rotate(180deg)':'rotate(0deg)';
+}
+function closeUserMenu(){
+  document.getElementById('user-dropdown').classList.remove('open');
+  document.getElementById('user-chevron').style.transform='rotate(0deg)';
+}
+// Close on outside click
+document.addEventListener('click',function(e){
+  const btn=document.getElementById('user-menu-btn');
+  const drop=document.getElementById('user-dropdown');
+  if(btn&&drop&&!btn.contains(e.target)&&!drop.contains(e.target)){closeUserMenu();}
+});
+
+function doLogout(){
+  closeUserMenu();
+  // Reset and show login screen
+  const app=document.getElementById('app-shell');
+  const scr=document.getElementById('login-screen');
+  app.style.display='none';
+  document.getElementById('l-user').value='';
+  document.getElementById('l-pass').value='';
+  document.getElementById('lerr').classList.remove('show');
+  document.getElementById('l-user').classList.remove('err');
+  document.getElementById('l-pass').classList.remove('err');
+  document.getElementById('login-btn').disabled=false;
+  document.getElementById('login-btn').innerHTML='<i class="ti ti-login"></i> Sign In';
+  scr.style.opacity='0';scr.classList.remove('hidden');
+  requestAnimationFrame(()=>{scr.style.transition='opacity .4s ease';scr.style.opacity='1';});
+}
+
+// ── CHANGE PASSWORD ──
+function openChangePwd(){
+  closeUserMenu();
+  // Reset all fields and states
+  ['cp-cur','cp-new','cp-conf'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.value='';el.className='';el.type='password';}
+  });
+  ['eye-cur','eye-new','eye-conf'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.className='ti ti-eye';
+  });
+  document.getElementById('cp-err').classList.remove('show');
+  document.getElementById('conf-msg').textContent='';
+  document.getElementById('conf-msg').style.color='';
+  resetStrengthMeter();
+  resetRules();
+  document.getElementById('cp-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('cp-cur').focus(),100);
+}
+function closeChangePwd(){document.getElementById('cp-modal').classList.remove('open');}
+function cpOverlayClick(e){if(e.target===document.getElementById('cp-modal'))closeChangePwd();}
+function clearCpErr(){document.getElementById('cp-err').classList.remove('show');}
+
+function cpToggleEye(inputId,iconId){
+  const inp=document.getElementById(inputId);
+  const ico=document.getElementById(iconId);
+  if(inp.type==='password'){inp.type='text';ico.className='ti ti-eye-off';}
+  else{inp.type='password';ico.className='ti ti-eye';}
+}
+
+function getPwdStrength(pwd){
+  let score=0;
+  const rules={
+    len:pwd.length>=8,
+    upper:/[A-Z]/.test(pwd),
+    lower:/[a-z]/.test(pwd),
+    num:/[0-9]/.test(pwd),
+    special:/[^A-Za-z0-9]/.test(pwd)
+  };
+  Object.values(rules).forEach(r=>{if(r)score++;});
+  return{score,rules};
+}
+
+function resetStrengthMeter(){
+  ['str-s1','str-s2','str-s3','str-s4'].forEach(id=>document.getElementById(id).style.background='#E3E6EC');
+  document.getElementById('str-label').textContent='Enter a password';
+  document.getElementById('str-label').style.color='var(--txt3)';
+}
+function resetRules(){
+  ['rule-len','rule-upper','rule-lower','rule-num','rule-special','rule-nomatch'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.classList.remove('pass');
+    el.querySelector('i').className='ti ti-circle';
+  });
+}
+
+function setRule(id,pass){
+  const el=document.getElementById(id);
+  el.classList.toggle('pass',pass);
+  el.querySelector('i').className=pass?'ti ti-circle-check':'ti ti-circle';
+}
+
+function onNewPwdInput(){
+  clearCpErr();
+  const pwd=document.getElementById('cp-new').value;
+  const cur=document.getElementById('cp-cur').value;
+  if(!pwd){resetStrengthMeter();resetRules();return;}
+  const {score,rules}=getPwdStrength(pwd);
+  // Strength bar
+  const segs=['str-s1','str-s2','str-s3','str-s4'];
+  const colors=['#EF4444','#F97316','#EAB308','#22C55E'];
+  const labels=['Too Weak','Weak','Good','Strong'];
+  segs.forEach((id,i)=>{
+    document.getElementById(id).style.background=i<score-1?(score<=2?'#EF4444':score===3?'#EAB308':'#22C55E'):'#E3E6EC';
+  });
+  // Always fill up to score
+  for(let i=0;i<segs.length;i++){
+    const fill=i<score;
+    let col='#E3E6EC';
+    if(fill){col=score<=2?'#EF4444':score===3?'#EAB308':'#22C55E';}
+    document.getElementById(segs[i]).style.background=col;
+  }
+  const labelEl=document.getElementById('str-label');
+  if(score===0){labelEl.textContent='Too Weak';labelEl.style.color='#EF4444';}
+  else if(score<=2){labelEl.textContent='Weak';labelEl.style.color='#EF4444';}
+  else if(score===3){labelEl.textContent='Good';labelEl.style.color='#EAB308';}
+  else if(score===4){labelEl.textContent='Strong';labelEl.style.color='#22C55E';}
+  else{labelEl.textContent='Very Strong';labelEl.style.color='#15803D';}
+  // Rules
+  setRule('rule-len',rules.len);
+  setRule('rule-upper',rules.upper);
+  setRule('rule-lower',rules.lower);
+  setRule('rule-num',rules.num);
+  setRule('rule-special',rules.special);
+  setRule('rule-nomatch',pwd!==cur&&cur.length>0);
+  // Also re-check confirm
+  onConfInput();
+}
+
+function onConfInput(){
+  const newPwd=document.getElementById('cp-new').value;
+  const conf=document.getElementById('cp-conf').value;
+  const msg=document.getElementById('conf-msg');
+  const inp=document.getElementById('cp-conf');
+  if(!conf){msg.textContent='';inp.className='';return;}
+  if(conf===newPwd){
+    msg.textContent='✓ Passwords match';msg.style.color='var(--green)';
+    inp.classList.add('ok');inp.classList.remove('err');
+  } else {
+    msg.textContent='✗ Passwords do not match';msg.style.color='var(--red)';
+    inp.classList.add('err');inp.classList.remove('ok');
+  }
+}
+
+function doChangePwd(){
+  const cur=document.getElementById('cp-cur').value;
+  const newPwd=document.getElementById('cp-new').value;
+  const conf=document.getElementById('cp-conf').value;
+  const errEl=document.getElementById('cp-err');
+  const errMsg=document.getElementById('cp-err-msg');
+  errEl.classList.remove('show');
+  ['cp-cur','cp-new','cp-conf'].forEach(id=>document.getElementById(id).classList.remove('err'));
+
+  // Validate current
+  if(!cur){errMsg.textContent='Please enter your current password.';errEl.classList.add('show');document.getElementById('cp-cur').classList.add('err');document.getElementById('cp-cur').focus();return;}
+  if(CREDS[loggedInUser]!==cur){errMsg.textContent='Current password is incorrect.';errEl.classList.add('show');document.getElementById('cp-cur').classList.add('err');document.getElementById('cp-cur').focus();return;}
+
+  // Validate new
+  if(!newPwd){errMsg.textContent='Please enter a new password.';errEl.classList.add('show');document.getElementById('cp-new').classList.add('err');return;}
+  if(newPwd===cur){errMsg.textContent='New password must be different from your current password.';errEl.classList.add('show');document.getElementById('cp-new').classList.add('err');return;}
+
+  const {score,rules}=getPwdStrength(newPwd);
+  if(!rules.len){errMsg.textContent='New password must be at least 8 characters.';errEl.classList.add('show');document.getElementById('cp-new').classList.add('err');return;}
+  if(score<3){errMsg.textContent='Password is too weak. Please include uppercase, lowercase, numbers, and special characters.';errEl.classList.add('show');document.getElementById('cp-new').classList.add('err');return;}
+
+  // Validate confirm
+  if(!conf){errMsg.textContent='Please confirm your new password.';errEl.classList.add('show');document.getElementById('cp-conf').classList.add('err');return;}
+  if(newPwd!==conf){errMsg.textContent='Passwords do not match. Please re-enter.';errEl.classList.add('show');document.getElementById('cp-conf').classList.add('err');return;}
+
+  // Save button loading
+  const btn=document.getElementById('cp-save-btn');
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader spinning"></i> Updating…';
+
+  setTimeout(()=>{
+    // Apply password change
+    CREDS[loggedInUser]=newPwd;
+    btn.disabled=false;btn.innerHTML='<i class="ti ti-check"></i>Update Password';
+    closeChangePwd();
+    showToast('success','ti-lock-check','Password updated successfully! Use your new password at next login.');
+  },700);
+}
+
+
+renderP();renderQ();renderME();renderTL();renderIss();updateTiles();updateIssTile();updateClock();
+initUnlockState();updateUnlockBtn();
+setInterval(updateClock,1000);
+</script>
+<!-- ══════════ CHANGE PASSWORD MODAL ══════════ -->
+<div id="cp-modal" onclick="cpOverlayClick(event)">
+  <div class="cp-card" id="cp-card">
+    <div class="cp-header">
+      <div class="cp-header-left">
+        <div class="cp-icon"><i class="ti ti-lock-password"></i></div>
+        <div>
+          <div class="cp-title">Change Password</div>
+          <div class="cp-sub">Update your login credentials</div>
+        </div>
+      </div>
+      <button class="mcl" onclick="closeChangePwd()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="cp-body">
+      <div class="cp-err" id="cp-err"><i class="ti ti-alert-circle" style="font-size:14px;flex-shrink:0"></i><span id="cp-err-msg"></span></div>
+
+      <!-- Current Password -->
+      <div class="cpf">
+        <label>Current Password</label>
+        <div class="cpf-wrap">
+          <i class="ti ti-lock fic"></i>
+          <input type="password" id="cp-cur" placeholder="Enter current password" oninput="clearCpErr()" onkeydown="if(event.key==='Enter')document.getElementById('cp-new').focus()">
+          <button class="feye" onclick="cpToggleEye('cp-cur','eye-cur')" type="button"><i class="ti ti-eye" id="eye-cur"></i></button>
+        </div>
+      </div>
+
+      <!-- New Password -->
+      <div class="cpf">
+        <label>New Password</label>
+        <div class="cpf-wrap">
+          <i class="ti ti-key fic"></i>
+          <input type="password" id="cp-new" placeholder="Enter new password" oninput="onNewPwdInput()" onkeydown="if(event.key==='Enter')document.getElementById('cp-conf').focus()">
+          <button class="feye" onclick="cpToggleEye('cp-new','eye-new')" type="button"><i class="ti ti-eye" id="eye-new"></i></button>
+        </div>
+        <!-- Strength meter -->
+        <div class="str-meter">
+          <div class="str-seg" id="str-s1"></div>
+          <div class="str-seg" id="str-s2"></div>
+          <div class="str-seg" id="str-s3"></div>
+          <div class="str-seg" id="str-s4"></div>
+        </div>
+        <div class="str-label" id="str-label" style="color:var(--txt3)">Enter a password</div>
+        <!-- Rules -->
+        <div class="pwd-rules">
+          <div class="pwd-rule" id="rule-len"><i class="ti ti-circle"></i>Min 8 characters</div>
+          <div class="pwd-rule" id="rule-upper"><i class="ti ti-circle"></i>Uppercase letter</div>
+          <div class="pwd-rule" id="rule-lower"><i class="ti ti-circle"></i>Lowercase letter</div>
+          <div class="pwd-rule" id="rule-num"><i class="ti ti-circle"></i>Number</div>
+          <div class="pwd-rule" id="rule-special"><i class="ti ti-circle"></i>Special character</div>
+          <div class="pwd-rule" id="rule-nomatch"><i class="ti ti-circle"></i>Not same as current</div>
+        </div>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="cpf">
+        <label>Confirm New Password</label>
+        <div class="cpf-wrap">
+          <i class="ti ti-lock-check fic"></i>
+          <input type="password" id="cp-conf" placeholder="Re-enter new password" oninput="onConfInput()" onkeydown="if(event.key==='Enter')doChangePwd()">
+          <button class="feye" onclick="cpToggleEye('cp-conf','eye-conf')" type="button"><i class="ti ti-eye" id="eye-conf"></i></button>
+        </div>
+        <div id="conf-msg" style="font-size:10px;margin-top:4px;font-weight:600"></div>
+      </div>
+    </div>
+    <div class="cp-footer">
+      <button class="btn3" onclick="closeChangePwd()">Cancel</button>
+      <button class="btn1" id="cp-save-btn" onclick="doChangePwd()"><i class="ti ti-check"></i>Update Password</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
