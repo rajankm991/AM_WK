@@ -2,2123 +2,250 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pivot</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@500;700&family=JetBrains+Mono&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>AM Workspace</title>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --cog-navy: #000048;
+    --cog-navy: rgba(9, 9, 95, 0.99); /*#000048;*/
     --cog-blue: #0000ff;
     --border: #d0d7de;
-    --border-dark: #bbc5d0;
-    --editor-bg: #0b0f19;
-    --editor-text: #e6edf3;
-    --added-bg: rgba(46, 160, 67, 0.22);
-    --added-text: #7ee787;
-    --removed-bg: rgba(248, 81, 73, 0.22);
-    --removed-text: #ff7b72;
-    --whitespace-bg: rgba(210, 153, 34, 0.22);
-    --whitespace-text: #e3b341;
-    --empty-bg: rgba(255, 255, 255, 0.03);
-    --paper:#EDEFEA;
-    --panel:#FFFFFF;
-    --ink:#1B2430;
-    --muted:#6B7482;
-    --line:#D8DCE3;
-    --grid:#CBD1DB;
-    --accent:#3457D5;
-    --accent-dim:#EBEFFC;
-    --amber:#E2A63B;
-    --amber-dim:#FCF1DD;
-    --danger:#C24444;
-    --radius:6px;
+    --nav-text: #ffffff;
+    --nav-hover: rgba(255, 255, 255, 0.25);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: #f4f6f9;
-    color: var(--cog-navy);
-    font-family: 'Golos Text', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-  .container {
-    max-width: 98vw;
-    margin: 0 auto;
+  
+  /* Flexbox viewport layout */
+  html, body { 
     width: 100%;
-    padding:0.5rem 0.6rem;
+    height: 100vh;
+    font-family: 'Golos Text', 'Inter', sans-serif; 
+    overflow: hidden;
+    background: #f4f6f8;
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
   }
-  .app { width: 100%; display: flex; flex-direction: column; gap: 0.6rem; }
-  .file-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .top-bar{display:flex;align-items:center;justify-content:flex-end;margin-bottom:-10px;}
-  .btn.refresh{background:#ffffff;color:var(--cog-navy);border:1px solid var(--border-dark);display:flex;align-items:center;gap:6px;}
-  .btn.refresh.compact-refresh{padding:4px 9px;font-size:11px;gap:4px;}
-  .btn.refresh:hover{background:var(--danger);color:#fff;border-color:var(--danger);}
-  .btn{
-    font-family:'Golos Text',sans-serif;font-weight:600;font-size:13px;
-    padding:9px 15px;border-radius:4px;border:none;
-    background:var(--cog-blue);color:#fff;cursor:pointer;transition:background-color .2s, transform .08s ease;
+  
+  /* Compact Sticky Navbar */
+  header.navbar {
+    height: 45px;
+    background: var(--cog-navy);
+    padding: 0 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 5px rgba(0, 0, 72, 0.15);
+    z-index: 1000;
+    flex-shrink: 0;
+    gap: 0.75rem;
   }
-  .btn:hover{background:#0000cc;}
-  .btn:active{transform:translateY(1px);}
-  .btn.secondary{background:#ffffff;color:var(--cog-navy);border:1px solid var(--border-dark);}
-  .btn.secondary:hover{background:var(--cog-blue);color:#ffffff;border-color:var(--cog-blue);}
-  .btn:disabled{opacity:.4;cursor:not-allowed;}
-  input[type=file]{display:none;}
-  select.sheet-select{
-    font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 7px;
-    border-radius:4px;border:1px solid var(--border-dark);background:#fff;color:var(--cog-navy);
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
   }
-  .modal-backdrop{
-    display:none;position:fixed;inset:0;background:rgba(0,0,72,0.45);
-    align-items:center;justify-content:center;z-index:50;padding:20px;
+  .brand-logo-wrapper {
+    background: #ffffff;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .modal-backdrop.open{display:flex;}
-  /* Overlay shown while a file/paste is being turned into the workspace. */
-  .loading-overlay{
-    display:none;position:fixed;inset:0;background:rgba(0,0,72,0.45);
-    align-items:center;justify-content:center;z-index:80;padding:20px;
+  .brand-logo-img {
+    height: 16px;
+    width: auto;
+    display: block;
   }
-  .loading-overlay.open{display:flex;}
-  .loading-box{
-    background:#fff;border-radius:8px;padding:28px 34px;
-    box-shadow:0 12px 40px rgba(0,0,72,0.25);border:1px solid var(--border);
-    display:flex;flex-direction:column;align-items:center;gap:14px;
+  .brand-tag {
+    font-size: 0.65rem;
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    padding: 0.15rem 0.45rem;
+    border-radius: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
-  .loading-spinner{
-    width:34px;height:34px;border-radius:50%;
-    border:3px solid var(--accent-dim);border-top-color:var(--cog-blue);
-    animation:loading-spin .8s linear infinite;
+
+  /* Scrollable Navigation Container with lighter background */
+  .nav-tabs {
+    display: flex;
+    gap: 6px;
+    height: 40px;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.12); /* Adjusted to a lighter highlight color */
+    padding: 0 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.5) transparent;
   }
-  @keyframes loading-spin{ to{ transform:rotate(360deg); } }
-  .loading-text{
-    font-family:'Golos Text',sans-serif;font-size:13.5px;color:var(--cog-navy);font-weight:600;
+
+  /* Custom Scrollbar Styling */
+  .nav-tabs::-webkit-scrollbar {
+    height: 3px;
   }
-  .modal-box{
-    background:#fff;border-radius:8px;padding:20px 22px;width:100%;max-width:640px;
-    box-shadow:0 12px 40px rgba(0,0,72,0.25);
-    border:1px solid var(--border);
+  .nav-tabs::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 3px;
   }
-  .modal-hint{font-size:12.5px;color:var(--muted);line-height:1.5;margin:0 0 10px;}
-  #pasteArea{
-    width:100%;min-height:220px;resize:vertical;border:1px solid var(--border-dark);border-radius:6px;
-    padding:10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--editor-text);
-    background:var(--editor-bg);white-space:pre;overflow:auto;
+  .nav-tabs::-webkit-scrollbar-track {
+    background: transparent;
   }
-  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;}
-  .empty-state{
-    background:#ffffff;border:1px dashed var(--border-dark);border-radius:8px;
-    padding:70px 30px;text-align:center;color:var(--muted);
+
+  .tab-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    padding: 0.15rem 0.6rem;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
-  .empty-state .glyph{
-    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cog-blue);
-    letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;
+  .tab-btn:hover {
+    background: var(--nav-hover);
   }
-  .empty-state h2{font-family:'Golos Text',sans-serif;color:var(--cog-navy);font-size:20px;margin:6px 0 8px;}
-  .empty-state p{max-width:440px;margin:0 auto 20px;font-size:13.5px;line-height:1.55;}
-  .workspace{display:none;grid-template-columns:1fr 220px;gap:10px;align-items:start;}
-  .workspace.active{display:grid;}
-  .workspace.panel-collapsed{grid-template-columns:1fr;}
-  .workspace.panel-collapsed .zones-panel,
-  .workspace.panel-collapsed .fields-bar-panel{display:none;}
-  .panel{
-    background:#ffffff;border:1px solid var(--border);border-radius:8px;
-    box-shadow:0 2px 6px rgba(0,0,72,0.05);
+  .tab-btn.active {
+    background: var(--cog-blue);
+    border-color: var(--cog-blue);
   }
-  .right-col{display:flex;flex-direction:column;gap:10px;min-width:0;}
-  .zones-panel{padding:10px;position:sticky;top:20px;}
-  .panel-label{
-    font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
-    color:var(--muted);margin:0 0 5px;display:flex;align-items:center;justify-content:space-between;
+
+  /* Full Fill Seamless Iframe */
+  .frame-stack {
+    width: 100%;
+    flex: 1;
+    position: relative;
+    min-height: 0;
   }
-  .zone{
-    min-height:32px;border:1.5px dashed var(--border-dark);border-radius:6px;
-    padding:4px;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start;
-    transition:border-color .12s, background .12s;margin-bottom:8px;
+  .content-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
   }
-  .zone.dragover{border-color:var(--cog-blue);background:rgba(0,0,255,0.05);}
-  .zone.empty::after{
-    content:attr(data-placeholder);font-family:'JetBrains Mono',monospace;font-size:10px;
-    color:var(--muted);padding:3px 2px;
+  .content-frame.active {
+    display: block;
   }
-  .zchip{
-    display:flex;align-items:center;gap:4px;background:var(--cog-navy);color:#fff;
-    border-radius:5px;padding:3px 4px 3px 7px;font-size:10.5px;font-family:'JetBrains Mono',monospace;
-    cursor:grab;
-  }
-  .zchip.values{background:var(--amber);color:#3a2a06;}
-  .zchip select{
-    background:rgba(255,255,255,.18);color:inherit;border:none;border-radius:3px;
-    font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 2px;cursor:pointer;
-  }
-  .zchip.values select{background:rgba(0,0,0,.12);}
-  .zchip .rm{cursor:pointer;opacity:.7;font-size:12px;line-height:1;padding:0 1px;}
-  .zchip .rm:hover{opacity:1;}
-  .zchip .move{cursor:pointer;opacity:.65;font-size:9px;line-height:1;padding:0 1px;}
-  .zchip .move:hover{opacity:1;}
-  .zchip .move.disabled{opacity:.2;cursor:default;pointer-events:none;}
-  .filter-field{margin-bottom:8px;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
-  .filter-head{
-    display:flex;justify-content:space-between;align-items:center;padding:6px 8px;
-    background:#eef2f7;font-family:'JetBrains Mono',monospace;font-size:10.5px;cursor:pointer;
-  }
-  .filter-head .rm{color:var(--muted);cursor:pointer;}
-  .filter-body{padding:7px 8px;display:none;border-top:1px solid var(--border);}
-  .filter-body.open{display:flex;flex-direction:column;}
-  .filter-value-search{
-    width:100%;padding:5px 7px;margin:4px 0 7px;border-radius:5px;border:1px solid var(--border-dark);
-    font-size:10.5px;font-family:'JetBrains Mono',monospace;
-  }
-  .filter-value-list{max-height:130px;overflow-y:auto;}
-  .filter-body label{display:flex;gap:6px;align-items:center;font-size:10.5px;padding:2px 0;font-family:'JetBrains Mono',monospace;}
-  .filter-mini{font-size:10px;color:var(--cog-blue);cursor:pointer;font-family:'JetBrains Mono',monospace;}
-  .filter-mini.active-filter{color:var(--danger);font-weight:600;}
-  .fields-bar-panel{padding:8px 10px;}
-  .fields-bar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
-  .sheet-select-wrap{display:flex;align-items:center;gap:6px;}
-  .sheet-select-wrap .sheet-label{
-    font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);white-space:nowrap;
-  }
-  .field-search{
-    padding:5px 8px;border-radius:5px;border:1px solid var(--border-dark);
-    font-size:11.5px;font-family:'Golos Text',sans-serif;width:200px;max-width:60vw;
-  }
-  .field-list-horizontal{
-    display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;
-    scrollbar-width:thin;
-  }
-  .chip{
-    display:flex;align-items:center;gap:6px;flex:none;
-    font-family:'JetBrains Mono',monospace;font-size:11px;
-    padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:#FAFBFC;
-    cursor:grab;user-select:none;transition:border-color .12s, background .12s;white-space:nowrap;
-  }
-  .chip:hover{border-color:var(--cog-blue);background:rgba(0,0,255,0.05);}
-  .chip.dragging{opacity:.4;}
-  .chip .ico{width:6px;height:6px;border-radius:1px;background:var(--muted);flex:none;}
-  .chip.type-num .ico{background:var(--amber);}
-  .chip .label{overflow:hidden;text-overflow:ellipsis;}
-  .results-panel{padding:10px 12px 14px;min-width:0;}
-  .results-head{
-    display:flex;align-items:center;justify-content:flex-start;
-    margin-bottom:10px;flex-wrap:nowrap;gap:12px;
-    overflow-x:auto;white-space:nowrap;padding-bottom:2px;
-  }
-  .results-head::-webkit-scrollbar{height:6px;}
-  .results-head h2{font-family:'Golos Text',sans-serif;font-size:14px;margin:0;color:var(--cog-navy);flex:none;}
-  .results-controls{display:flex;align-items:center;gap:12px;flex:none;}
-  .results-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);flex:none;margin-left:auto;padding-left:12px;}
-  .compact-check{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cog-navy);cursor:pointer;white-space:nowrap;}
-  .compact-search{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cog-navy);white-space:nowrap;}
-  .compact-search input{
-    width:88px;padding:3px 6px;border-radius:4px;border:1px solid var(--border-dark);
-    font-family:'JetBrains Mono',monospace;font-size:11px;
-  }
-  .table-scroll { overflow: auto; border: 1px solid var(--border); border-radius: 6px; max-height: 87vh;}
-  table.pivot{border-collapse:collapse;width:100%;font-family:'JetBrains Mono',monospace;font-size:12px;}
-  table.pivot th, table.pivot td{
-    border:1px solid var(--border);padding:6px 10px;white-space:nowrap;text-align:right;
-  }
-  table.pivot thead th{
-    background:var(--cog-navy);color:#fff;position:sticky;top:0;z-index:2;font-weight:500;text-align:right;
-  }
-  table.pivot thead th.rowhead{text-align:left;background:var(--cog-navy);position:sticky;left:0;z-index:3;}
-  table.pivot tbody th{
-    text-align:left;background:#FAFBFC;position:sticky;left:0;font-weight:500;color:var(--cog-navy);z-index:1;
-  }
-  table.pivot tbody tr:hover td, table.pivot tbody tr:hover th{background:rgba(0,0,255,0.05);}
-  table.pivot tbody tr.row-error td, table.pivot tbody tr.row-error th{background:#FBEAEA;}
-  table.pivot tbody tr.row-error:hover td, table.pivot tbody tr.row-error:hover th{background:#F6D5D5;}
-  table.pivot.tree tbody tr.subtotal-row th, table.pivot.tree tbody tr.subtotal-row td{font-weight:700;}
-  table.pivot.tree tbody th.tree-label{white-space:nowrap;}
-  .pivot-legend{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;flex:none;}
-  .pivot-legend .swatch{width:10px;height:10px;border-radius:2px;background:#FBEAEA;border:1px solid #EFC0C0;display:inline-block;flex:none;}
-  table.pivot tfoot th, table.pivot tfoot td{
-    background:var(--amber-dim);font-weight:600;position:sticky;bottom:0;
-  }
-  table.pivot tfoot th{position:sticky;left:0;bottom:0;z-index:3;}
-  .placeholder-msg{
-    padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;
-  }
-  .placeholder-msg b{color:var(--cog-navy);}
-  .sync-panel{padding:10px 12px;margin-bottom:10px;}
-  .sync-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-  .sync-scope{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;}
-  .sync-tiles{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:2px;}
-  .error-assets-banner{
-    border:1px solid #EFC0C0;background:#FBEAEA;border-radius:8px;
-    padding:8px 10px;margin-bottom:8px;
-  }
-  .error-assets-banner.clean{border-color:#BFE0B8;background:#EEF6EC;}
-  .error-assets-head{
-    display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-family:'JetBrains Mono',monospace;
-    font-size:12px;color:var(--cog-navy);margin-bottom:5px;flex-wrap:wrap;
-  }
-  .error-assets-head b{font-family:'Golos Text',sans-serif;font-size:14px;color:var(--danger);}
-  .error-assets-banner.clean .error-assets-head b{color:#3F7A36;}
-  .error-assets-export-btn{
-    font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11px;
-    background:#ffffff;color:var(--cog-navy);border:1px solid var(--border-dark);
-    border-radius:4px;padding:4px 9px;cursor:pointer;white-space:nowrap;
-    display:inline-flex;align-items:center;gap:5px;transition:background-color .15s,color .15s;
-  }
-  .error-assets-export-btn:hover{background:var(--cog-blue);color:#fff;border-color:var(--cog-blue);}
-  table.error-assets-table td:nth-child(3), table.error-assets-table th:nth-child(3),
-  table.error-assets-table td:nth-child(4), table.error-assets-table th:nth-child(4),
-  table.error-assets-table td:nth-child(5), table.error-assets-table th:nth-child(5),
-  table.error-assets-table td:nth-child(6), table.error-assets-table th:nth-child(6){text-align:left;}
-  .sync-tile{
-    flex:1;min-width:180px;border-radius:8px;padding:8px 10px;border:1px solid var(--border);
-    display:flex;flex-direction:column;gap:2px;
-  }
-  .sync-tile.ok{background:#EEF6EC;border-color:#BFE0B8;}
-  .sync-tile.bad{background:#FBEAEA;border-color:#EFC0C0;}
-  .sync-tile .n{font-family:'Golos Text',sans-serif;font-size:20px;font-weight:700;}
-  .sync-tile.ok .n{color:#3F7A36;}
-  .sync-tile.bad .n{color:var(--danger);}
-  .sync-tile .t{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--cog-navy);}
-  .sync-tile .d{font-size:10.5px;color:var(--muted);}
-  .sync-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
-  .sync-chip{
-    font-family:'JetBrains Mono',monospace;font-size:10.5px;background:#fff;border:1px solid var(--border);
-    border-radius:5px;padding:3px 7px;color:var(--cog-navy);
-  }
-  .sync-chip b{color:var(--danger);}
-  .sync-detail-block{margin-top:10px;}
-  .sync-detail-block h4{
-    font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
-    color:var(--muted);margin:0 0 6px;
-  }
-  table.sync{border-collapse:collapse;width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;margin-bottom:5px;}
-  table.sync th, table.sync td{border:1px solid var(--border);padding:4px 7px;text-align:right;white-space:nowrap;}
-  table.sync th{background:var(--cog-navy);color:#fff;text-align:right;}
-  table.sync th:nth-child(1), table.sync th:nth-child(2),
-  table.sync td:nth-child(1), table.sync td:nth-child(2){text-align:left;}
-  table.sync tr.mismatch td{background:#FBEAEA;}
-  table.sync td.status-bad{color:var(--danger);font-weight:600;}
-  table.sync td.status-ok{color:#3F7A36;}
-  .sync-empty-note{font-size:12px;color:var(--muted);font-family:'Golos Text',sans-serif;}
-  ::-webkit-scrollbar{height:10px;width:10px;}
-  ::-webkit-scrollbar-thumb{background:var(--border-dark);border-radius:5px;}
-  ::-webkit-scrollbar-track{background:transparent;}
-  @media (max-width: 820px){
-    .workspace.active{grid-template-columns:1fr;}
-    .zones-panel{position:static;}
-  }
-  @media (max-width: 480px){
-    .field-search{width:100%;max-width:none;}
-    .fields-bar-head{flex-direction:column;align-items:stretch;}
+
+  /* Micro Footer */
+  footer {
+    background: var(--cog-navy);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 1px 1rem;
+    font-size: 0.6rem;
+    line-height: 12px;
+    text-align: center;
+    width: 100%;
+    height: 14px;
+    flex-shrink: 0;
   }
 </style>
 </head>
 <body>
 
-  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
-
-  <div class="container">
-    <div class="app">
-      <div class="top-bar" id="topBar" style="display:none;">
-        <button class="btn refresh" id="refreshBtnFallback" title="Clear all loaded data and start over">&#8635; Refresh</button>
-      </div>
-      <div class="empty-state" id="emptyState">
-        <div class="glyph">// no data loaded</div>
-        <h2>Load a spreadsheet to start pivoting</h2>
-        <p>Upload an .xlsx, .xls, or .csv file, or paste rows straight from a spreadsheet. Every
-        column becomes a draggable field — drop fields into Rows, Columns, or Values to build a
-        live pivot table, the same way you would in a spreadsheet's PivotTable pane.</p>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-          <button class="btn" id="uploadBtn2">Upload spreadsheet</button>
-          <button class="btn secondary" id="pasteBtn2">Paste data</button>
-        </div>
-      </div>
-
-      <div class="modal-backdrop" id="pasteModal">
-        <div class="modal-box">
-          <p class="panel-label" style="margin-bottom:8px;">Paste data</p>
-          <p class="modal-hint">Copy cells from Excel/Sheets (including the header row) and paste below — tab- or comma-separated both work.</p>
-          <textarea id="pasteArea" placeholder="BUSINESS_UNIT&#9;ASSET_ID&#9;BOOK&#9;AMOUNT…&#10;IN222&#9;4729&#9;ACT-USD&#9;-67.58…"></textarea>
-          <div class="modal-actions">
-            <span class="btn secondary" id="pasteCancel">Cancel</span>
-            <span class="btn" id="pasteLoad">Load data</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Loading overlay, shown between "load started" and "workspace ready". -->
-      <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-box">
-          <div class="loading-spinner"></div>
-          <div class="loading-text" id="loadingText">Loading…</div>
-        </div>
-      </div>
-
-      <div class="panel sync-panel" id="syncPanel" style="display:none;">
-        <div class="sync-head">
-          <p class="panel-label" style="margin:0;">Book sync check <span id="syncScope" class="sync-scope"></span></p>
-          <div style="display:flex;align-items:center;gap:14px;">
-            <span class="filter-mini active-filter" id="showErrorToggle">Show all</span>
-            <span class="filter-mini" id="generateSqlBtn">Generate Script ⌁</span>
-            <span class="filter-mini" id="syncToggle">Hide detail ▾</span>
-            <button class="btn refresh compact-refresh" id="refreshBtn" title="Clear all loaded data and start over">&#8635; Refresh</button>
-          </div>
-        </div>
-        <div id="syncErrorAssets"></div>
-        <div class="sync-tiles" id="syncTiles"></div>
-        <div id="syncDetail"></div>
-      </div>
-
-      <div class="modal-backdrop" id="sqlModal">
-        <div class="modal-box" style="max-width:420px;text-align:center;">
-          <p class="panel-label" style="margin-bottom:8px;">Generate Script</p>
-          <p style="font-family:'Golos Text',sans-serif;font-size:22px;font-weight:700;margin:18px 0;color:var(--muted);">Coming Soon…</p>
-          <p class="modal-hint">Under Construction</p>
-          <div class="modal-actions" style="justify-content:center;">
-            <span class="btn" id="sqlClose">Close</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="workspace" id="workspace">
-        <div class="right-col">
-          <div class="panel fields-bar-panel">
-            <div class="fields-bar-head">
-              <p class="panel-label" style="margin:0;">Fields <span id="fieldCount"></span></p>
-              <span class="sheet-select-wrap" id="sheetSelectWrap" style="display:none;">
-                <span class="sheet-label">Sheet:</span>
-                <select class="sheet-select" id="sheetSelect"></select>
-              </span>
-              <input class="field-search" id="fieldSearch" placeholder="Filter field list…">
-            </div>
-            <div class="field-list-horizontal" id="fieldList"></div>
-          </div>
-
-          <div class="panel results-panel">
-            <div class="results-head">
-              <h2 id="resultsTitle">Pivot result</h2>
-              <div class="results-controls">
-                <label class="compact-check" title="Show only rows with a sync issue">
-                  <input type="checkbox" id="onlyIssuesToggle" style="cursor:pointer;">
-                  Only issues
-                </label>
-                <label class="compact-search">
-                  Asset ID
-                  <input type="text" id="assetSearchInput" placeholder="e.g. 3805">
-                </label>
-                <span class="pivot-legend" title="Row has a sync issue"><span class="swatch"></span> = issue</span>
-                <span class="filter-mini" id="panelToggle">Hide fields panel ◂</span>
-              </div>
-              <div class="results-meta" id="resultsMeta"></div>
-            </div>
-            <div class="table-scroll" id="tableScroll">
-              <div class="placeholder-msg">Drop at least one field into <b>Rows</b> or <b>Columns</b>, and one into <b>Values</b>, to see a pivot table.</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel zones-panel">
-          <p class="panel-label">Filters</p>
-          <div class="zone" id="zoneFilters" data-zone="filters" data-placeholder="Drop fields here"></div>
-
-          <p class="panel-label">Rows</p>
-          <div class="zone" id="zoneRows" data-zone="rows" data-placeholder="Drop fields here"></div>
-
-          <p class="panel-label">Columns</p>
-          <div class="zone" id="zoneColumns" data-zone="columns" data-placeholder="Drop fields here"></div>
-
-          <p class="panel-label">Values</p>
-          <div class="zone" id="zoneValues" data-zone="values" data-placeholder="Drop fields here"></div>
-        </div>
-      </div>
+<header class="navbar">
+  <div class="brand">
+    <div class="brand-logo-wrapper">
+      <img src="https://careers.cognizant.com/images/logo.svg" alt="Cognizant Logo" class="brand-logo-img">
     </div>
+    <div class="brand-tag">AM Workspace</div>
   </div>
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-key="pivot" data-url="pivot.html" data-exists="true" onclick="switchTab(this)">Pivot Table Tool</button>
+    <button class="tab-btn" data-key="text_compare" data-url="text_compare.html" data-exists="true" onclick="switchTab(this)">Text Compare Tool</button>
+    <button class="tab-btn" data-key="dp_close" data-url="dp_close.html" data-exists="true" onclick="switchTab(this)">DP Close Tool</button>
+<button class="tab-btn" data-key="am_activity_tracker" data-url="am_activity_tracker.html" data-exists="true" onclick="switchTab(this)">Tracker Tool</button>
+
+
+
+  </nav>
+</header>
+
+<div class="frame-stack" id="frameStack">
+  <iframe id="frame-pivot" class="content-frame active" data-key="pivot" src="pivot.html"></iframe>
+  <iframe id="frame-text_compare" class="content-frame" data-key="text_compare" src="text_compare.html"></iframe>
+  <iframe id="frame-dp_close" class="content-frame" data-key="dp_close" src="dp_close.html"></iframe>
+  <iframe id="frame-am_activity_tracker" class="content-frame" data-key="am_activity_tracker" src="am_activity_tracker.html"></iframe>
+  
+  
+</div>
+
+<footer>&copy; Cognizant 2026, all rights reserved.(RKM)</footer>
 
 <script>
-/* =====================================================================
-   HOW THIS FILE WORKS
-   =====================================================================
-   1. User uploads a file or pastes rows -> parsed into rawRows (array
-      of plain row objects) and headers (column names).
-   2. Every column becomes a draggable chip. User drags chips into 4
-      zones: Filters / Rows / Columns / Values. This is stored in `state`.
-   3. Any change to `state` triggers computeAndRenderPivot(), which
-      rebuilds the pivot table from scratch (rawRows + state).
-   4. If the sheet looks like an accounting journal (has BUSINESS_UNIT,
-      ASSET_ID, BOOK, AMOUNT columns), we also run a "Book sync check"
-      (SECTION 5) that flags rows where different books don't reconcile.
-
-   SECTIONS (search these banner comments to jump around):
-     SECTION 1: STATE & CONFIG
-     SECTION 2: LOADING DATA
-     SECTION 3: FIELD LIST & DRAG-DROP
-     SECTION 4: PIVOT TABLE
-     SECTION 5: BOOK SYNC CHECK
-     SECTION 6: SMALL HELPERS
-
-   `state` SHAPE:
-   state.filters = [{field, selected:Set, allValues:[...], open:bool}, ...]
-   state.rows    = ['COL_A', 'COL_B', ...]
-   state.columns = ['COL_C', ...]
-   state.values  = [{field:'AMOUNT', agg:'sum'}, ...]
-   ===================================================================== */
-(function(){
-  "use strict";
-
-  // ===================== SECTION 1: STATE & CONFIG =====================
-  let rawRows = [];               // every loaded data row, unmodified
-  let headers = [];                // all column names seen
-  let colTypes = {};               // header -> 'num' or 'str'
-  let workbook = null;             // parsed xlsx workbook (null if pasted text)
-  let erroringRawRows = new Set(); // rows flagged by the sync check (SECTION 5)
-  let lastSyncContext = null;      // debug bookkeeping, not read elsewhere
-
-  // The single object describing "what pivot the user has built".
-  const state = {
-    filters: [],
-    rows: [],
-    columns: [],
-    values: []
-  };
-
-  // Aggregation functions available in the Values zone dropdown.
-  const AGGS = {
-    sum:   {label:'Sum',   fn: vals => vals.reduce((a,b)=>a+b,0)},
-    count: {label:'Count', fn: vals => vals.length},
-    avg:   {label:'Average', fn: vals => vals.length? vals.reduce((a,b)=>a+b,0)/vals.length : 0},
-    min:   {label:'Min',   fn: vals => vals.length? Math.min(...vals): 0},
-    max:   {label:'Max',   fn: vals => vals.length? Math.max(...vals): 0},
-  };
-
-  const el = id => document.getElementById(id);
-  const fileInput = el('fileInput');
-  const emptyState = el('emptyState');
-  const workspace = el('workspace');
-
-  // ===================== SECTION 2: LOADING DATA =====================
-  // Gets data INTO rawRows/headers/colTypes, from a file, a paste, or a
-  // sheet switch.
-
-  // Shows the loading spinner overlay.
-  function showLoading(message){
-    el('loadingText').textContent = message || 'Loading…';
-    el('loadingOverlay').classList.add('open');
-  }
-  // Hides the loading overlay (called once ingestRows() finishes).
-  function hideLoading(){
-    el('loadingOverlay').classList.remove('open');
-  }
-  // Delays `work` one tick so the loading overlay actually paints first.
-  function runAfterPaint(work){
-    setTimeout(work, 30);
-  }
-
-  // "Refresh" = just reload the page (simplest possible reset).
-  function confirmRefresh(){
-    if(confirm('This will clear the currently loaded data on this tab and let you upload/paste fresh data. Continue?')){
-      window.location.reload();
-    }
-  }
-  el('refreshBtn').addEventListener('click', confirmRefresh);
-  el('refreshBtnFallback').addEventListener('click', confirmRefresh);
-
-  el('uploadBtn2').addEventListener('click', ()=>fileInput.click());
-  fileInput.addEventListener('change', handleFile);
-  el('sheetSelect').addEventListener('change', e=>loadSheet(e.target.value));
-  el('fieldSearch').addEventListener('input', renderFieldList);
-
-  el('panelToggle').addEventListener('click', ()=>{
-    const collapsed = workspace.classList.toggle('panel-collapsed');
-    el('panelToggle').textContent = collapsed ? 'Show fields panel ▸' : 'Hide fields panel ◂';
-  });
-
-  // "Only issues" checkbox: hides non-flagged rows from the table view
-  // only — never changes what feeds the aggregates/Grand Total.
-  let showOnlyIssuesInPivot = false;
-  el('onlyIssuesToggle').addEventListener('change', e=>{
-    showOnlyIssuesInPivot = e.target.checked;
-    computeAndRenderPivot();
-  });
-
-  // Asset ID search box: narrows the pivot data to one asset (matches
-  // padded or unpadded form, e.g. "3805" == "000000003805").
-  let assetSearchQuery = '';
-  el('assetSearchInput').addEventListener('input', e=>{
-    assetSearchQuery = e.target.value;
-    computeAndRenderPivot();
-  });
-
-  // Strips leading zeros for Asset ID comparisons ("0000" -> "0", not "").
-  function stripLeadingZeros(s){
-    const stripped = String(s).replace(/^0+/, '');
-    return stripped === '' ? '0' : stripped;
-  }
-
-  const pasteModal = el('pasteModal');
-  const openPasteModal = ()=>{ pasteModal.classList.add('open'); el('pasteArea').focus(); };
-  const closePasteModal = ()=> pasteModal.classList.remove('open');
-  el('pasteBtn2').addEventListener('click', openPasteModal);
-  el('pasteCancel').addEventListener('click', closePasteModal);
-  pasteModal.addEventListener('click', e=>{ if(e.target === pasteModal) closePasteModal(); });
-  el('pasteLoad').addEventListener('click', ()=>{
-    const text = el('pasteArea').value;
-    if(!text.trim()){ alert('Paste some rows first — include a header row on top.'); return; }
-    const json = parsePastedText(text);
-    if(!json || json.length===0){
-      alert('Could not find any data rows. Make sure the first line is a header row.');
-      return;
-    }
-    workbook = null;
-    el('sheetSelectWrap').style.display = 'none';
-    el('sheetSelect').innerHTML = '';
-    closePasteModal();
-    el('pasteArea').value = '';
-    showLoading('Reading pasted data…');
-    runAfterPaint(()=> ingestRows(json, 'Pasted data'));
-  });
-
-  const sqlModal = el('sqlModal');
-  el('generateSqlBtn').addEventListener('click', ()=>{
-    sqlModal.classList.add('open');
-  });
-  el('sqlClose').addEventListener('click', ()=> sqlModal.classList.remove('open'));
-  sqlModal.addEventListener('click', e=>{ if(e.target === sqlModal) sqlModal.classList.remove('open'); });
-
-  // Reads the uploaded file, parses it with xlsx.js, fills the "Sheet:"
-  // dropdown, then loads the first sheet.
-  function handleFile(e){
-    const file = e.target.files[0];
-    if(!file) return;
-    showLoading('Reading file…');
-    const reader = new FileReader();
-    reader.onload = function(ev){
-      // Yield a tick so the overlay paints before the heavy parsing runs.
-      runAfterPaint(()=>{
-        try{
-          const data = new Uint8Array(ev.target.result);
-          workbook = XLSX.read(data, {type:'array', cellDates:true});
-          const sel = el('sheetSelect');
-          sel.innerHTML = '';
-          workbook.SheetNames.forEach(name=>{
-            const opt = document.createElement('option');
-            opt.value = name; opt.textContent = name;
-            sel.appendChild(opt);
-          });
-          el('sheetSelectWrap').style.display = 'inline-flex';
-          loadSheet(workbook.SheetNames[0]);
-        } catch(err){
-          hideLoading();
-          alert('Could not read this file: ' + err.message);
+  const underConstructionHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: 'Golos Text', 'Inter', sans-serif;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 70vh;
+          margin: 0;
+          color: #000048;
+          text-align: center;
         }
-      });
-    };
-    reader.onerror = function(){
-      hideLoading();
-      alert('Could not read the file.');
-    };
-    reader.readAsArrayBuffer(file);
-  }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        p { color: #666; font-size: 0.85rem; }
+        .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+      </style>
+    </head>
+    <body>
+      <div class="icon">🚧</div>
+      <h1>Coming Soon...</h1>
+      <p>This page is currently under construction.</p>
+    </body>
+    </html>
+  `;
 
-  // Converts pasted text (tab- or comma-separated) into the same
-  // row-object shape xlsx.js gives us, so the rest of the app doesn't
-  // care whether data came from a file or a paste.
-  function parsePastedText(text){
-    const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n')
-      .filter(l => l.trim() !== '');
-    if(lines.length < 2) return null;
+  // Switching tabs now ONLY toggles which iframe is visible.
+  // Every tool's iframe stays loaded in the background, so whatever the
+  // user uploaded/typed/pivoted stays exactly as it was until they hit
+  // that tool's own "Refresh" button (or reload the whole workspace page).
+  function switchTab(btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
 
-    const delim = lines[0].includes('\t') ? '\t' : ',';
-    const splitLine = line => line.split(delim).map(c => c.trim());
+    const key = btn.getAttribute('data-key');
+    const exists = btn.getAttribute('data-exists') === 'true';
 
-    const rawHeaders = splitLine(lines[0]).map(h => h || 'Column');
-    const seen = {};
-    const cols = rawHeaders.map(h=>{
-      if(!seen[h]) { seen[h]=1; return h; }
-      seen[h]++; return h+'_'+seen[h];
-    });
+    document.querySelectorAll('.content-frame').forEach(f => f.classList.remove('active'));
 
-    const rows = [];
-    for(let i=1;i<lines.length;i++){
-      const cells = splitLine(lines[i]);
-      if(cells.every(c=>c==='')) continue;
-      const row = {};
-      cols.forEach((c, idx)=>{
-        let v = cells[idx];
-        if(v === undefined || v === '') { row[c] = null; return; }
-        const num = Number(v);
-        row[c] = (v !== '' && !isNaN(num) && /^-?[\d,.]+%?$/.test(v)) ? num : v;
-      });
-      rows.push(row);
-    }
-    return rows;
-  }
-
-  // Reads one sheet from `workbook` into row-objects, drops blank rows,
-  // then hands off to ingestRows(). Called on upload and on sheet switch.
-  function loadSheet(sheetName){
-    showLoading('Loading sheet "'+sheetName+'"…');
-    runAfterPaint(()=>{
-      const ws = workbook.Sheets[sheetName];
-      let json = XLSX.utils.sheet_to_json(ws, {defval:null});
-      json = json.filter(r => Object.values(r).some(v => v !== null && v !== ''));
-      if(json.length === 0){
-        hideLoading();
-        alert('No tabular data with headers found on sheet "'+sheetName+'". Try a different sheet.');
-        return;
-      }
-      ingestRows(json, sheetName);
-    });
-  }
-
-  // The common entry point once we have data (from file or paste):
-  // stores rawRows/headers, guesses colTypes, resets `state`, shows the
-  // workspace, builds the field list + starter pivot + sync check.
-  function ingestRows(json, sourceLabel){
-    rawRows = json;
-    headers = Object.keys(json[0]);
-    json.forEach(r=>{ Object.keys(r).forEach(k=>{ if(!headers.includes(k)) headers.push(k); }); });
-
-    colTypes = {};
-    headers.forEach(h=>{
-      let numCount=0, total=0;
-      for(let i=0;i<Math.min(rawRows.length, 200);i++){
-        const v = rawRows[i][h];
-        if(v===null || v==='') continue;
-        total++;
-        if(typeof v === 'number') numCount++;
-      }
-      colTypes[h] = (total>0 && numCount/total > 0.8) ? 'num' : 'str';
-    });
-
-    state.filters = [];
-    state.rows = [];
-    state.columns = [];
-    state.values = [];
-
-    emptyState.style.display = 'none';
-    workspace.classList.add('active');
-    el('fieldCount').textContent = '('+headers.length+')';
-    renderFieldList();
-    autoPopulatePivot();
-    renderZones();
-    runSyncCheck(sourceLabel);
-    computeAndRenderPivot();
-    // Success path always ends here, whether data came from a file,
-    // a sheet switch, or a paste.
-    hideLoading();
-  }
-
-  // If the sheet has the accounting-journal columns (BUSINESS_UNIT,
-  // ASSET_ID, BOOK, AMOUNT), pre-fill a sensible starter pivot:
-  // Rows = Business Unit, Asset ID (+ Trans Type/Timestamp/Dist Type if
-  // present), Columns = Book, Values = Sum of Amount. Otherwise does
-  // nothing and the user builds the pivot manually.
-  function autoPopulatePivot(){
-    const buCol = findCol('BUSINESS_UNIT');
-    const assetCol = findCol('ASSET_ID');
-    const bookCol = findCol('BOOK');
-    const amountCol = findCol('AMOUNT');
-    const dttmCol = findCol('DTTM_STAMP');
-    const transTypeCol = findCol('TRANS_TYPE');
-    const distTypeCol = findCol('DISTRIBUTION_TYPE');
-
-    if(!buCol || !assetCol || !bookCol || !amountCol){
-      return;
-    }
-
-    const rowFields = [buCol, assetCol];
-    if(transTypeCol) rowFields.push(transTypeCol);
-    if(dttmCol) rowFields.push(dttmCol);
-    if(distTypeCol) rowFields.push(distTypeCol);
-
-    state.rows = rowFields;
-    state.columns = [bookCol];
-    state.values = [{field: amountCol, agg: 'sum'}];
-    state.filters = [];
-  }
-
-  // ============== SECTION 3: FIELD LIST & DRAG-DROP ==============
-  // Draws the field chips and handles dragging them into the 4 zones.
-  // Just edits `state`, then redraws — no pivot math here (that's SECTION 4).
-
-  // Redraws the horizontal chip list, filtered by the search box.
-  // Each chip is draggable; dragstart stores {field, from:'fieldlist'}.
-  function renderFieldList(){
-    const q = el('fieldSearch').value.trim().toLowerCase();
-    const list = el('fieldList');
-    list.innerHTML = '';
-    headers.filter(h=>h.toLowerCase().includes(q)).forEach(h=>{
-      const chip = document.createElement('div');
-      chip.className = 'chip type-'+colTypes[h];
-      chip.draggable = true;
-      chip.dataset.field = h;
-      chip.innerHTML = '<span class="ico"></span><span class="label">'+escapeHtml(h)+'</span>';
-      chip.addEventListener('dragstart', e=>{
-        e.dataTransfer.setData('text/plain', JSON.stringify({field:h, from:'fieldlist'}));
-        chip.classList.add('dragging');
-      });
-      chip.addEventListener('dragend', ()=>chip.classList.remove('dragging'));
-      list.appendChild(chip);
-    });
-  }
-
-  // Wires up drag-and-drop for all 4 zones. On drop: figure out which
-  // zone, whether we dropped on top of an existing chip (insert before
-  // or after based on cursor position), then either reorder within the
-  // same zone or move the field in from elsewhere.
-  ['zoneFilters','zoneRows','zoneColumns','zoneValues'].forEach(id=>{
-    const zone = el(id);
-    zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('dragover'); });
-    zone.addEventListener('dragleave', ()=>zone.classList.remove('dragover'));
-    zone.addEventListener('drop', e=>{
-      e.preventDefault();
-      zone.classList.remove('dragover');
-      let data;
-      try{ data = JSON.parse(e.dataTransfer.getData('text/plain')); }catch(err){ return; }
-      const targetKey = zone.dataset.zone;
-
-      let insertIndex = null;
-      const chipEl = e.target.closest('.zchip');
-      if(chipEl && zone.contains(chipEl) && chipEl.dataset.field !== data.field){
-        const rect = chipEl.getBoundingClientRect();
-        const isBefore = (e.clientX - rect.left) < rect.width/2;
-        const arr = targetKey==='values' ? state.values.map(v=>v.field)
-                  : targetKey==='filters' ? state.filters.map(f=>f.field)
-                  : state[targetKey];
-        const idx = arr.indexOf(chipEl.dataset.field);
-        if(idx>-1) insertIndex = isBefore ? idx : idx+1;
-      }
-
-      if(data.from === targetKey){
-        reorderWithinZone(targetKey, data.field, insertIndex);
-      } else {
-        addFieldToZone(data.field, targetKey, data.from, insertIndex);
-      }
-    });
-  });
-
-  // Redraws zones + sync check + pivot table. Call after any state change.
-  function refreshAll(){
-    renderZones();
-    runSyncCheck();
-    computeAndRenderPivot();
-  }
-
-  // Moves `field` into zone `targetKey`, removing it from any other zone
-  // first (a field lives in only one zone at a time).
-  //   - values: stored as {field, agg} (default agg: sum for numbers, count for text)
-  //   - filters: stored as {field, selected, allValues, open} — starts with everything selected
-  //   - rows/columns: stored as plain field name
-  function addFieldToZone(field, targetKey, from, insertIndex){
-    removeFieldEverywhere(field);
-    if(targetKey === 'values'){
-      const defaultAgg = colTypes[field] === 'num' ? 'sum' : 'count';
-      const entry = {field, agg: defaultAgg};
-      if(insertIndex==null || insertIndex>state.values.length) state.values.push(entry);
-      else state.values.splice(insertIndex, 0, entry);
-    } else if(targetKey === 'filters'){
-      const uniques = Array.from(new Set(rawRows.map(r=>fmtKey(r[field])))).sort();
-      const entry = {field, selected: new Set(uniques), allValues: uniques, open:true};
-      if(insertIndex==null || insertIndex>state.filters.length) state.filters.push(entry);
-      else state.filters.splice(insertIndex, 0, entry);
+    if (exists) {
+      const target = document.getElementById('frame-' + key);
+      if (target) target.classList.add('active');
     } else {
-      if(insertIndex==null || insertIndex>state[targetKey].length) state[targetKey].push(field);
-      else state[targetKey].splice(insertIndex, 0, field);
-    }
-    refreshAll();
-  }
-
-  // Moves a field to a new position within the same zone (e.g. reordering
-  // which Rows field is outer vs inner grouping).
-  function reorderWithinZone(key, field, insertIndex){
-    if(key === 'values'){
-      const idx = state.values.findIndex(v=>v.field===field);
-      if(idx===-1) return;
-      const [entry] = state.values.splice(idx,1);
-      let target = insertIndex==null ? state.values.length : insertIndex;
-      if(idx < target) target -= 1;
-      state.values.splice(Math.max(0, Math.min(target, state.values.length)), 0, entry);
-    } else if(key === 'filters'){
-      const idx = state.filters.findIndex(f=>f.field===field);
-      if(idx===-1) return;
-      const [entry] = state.filters.splice(idx,1);
-      let target = insertIndex==null ? state.filters.length : insertIndex;
-      if(idx < target) target -= 1;
-      state.filters.splice(Math.max(0, Math.min(target, state.filters.length)), 0, entry);
-    } else {
-      const arr = state[key];
-      const idx = arr.indexOf(field);
-      if(idx===-1) return;
-      arr.splice(idx,1);
-      let target = insertIndex==null ? arr.length : insertIndex;
-      if(idx < target) target -= 1;
-      arr.splice(Math.max(0, Math.min(target, arr.length)), 0, field);
-    }
-    refreshAll();
-  }
-
-  // Removes a field from all 4 zones at once (used before moving it to a
-  // new zone, and by each chip's "×" remove button).
-  function removeFieldEverywhere(field){
-    state.rows = state.rows.filter(f=>f!==field);
-    state.columns = state.columns.filter(f=>f!==field);
-    state.values = state.values.filter(v=>v.field!==field);
-    state.filters = state.filters.filter(f=>f.field!==field);
-  }
-
-  // Redraws all 4 drop zones from current `state`.
-  function renderZones(){
-    renderSimpleZone('zoneRows','rows', state.rows);
-    renderSimpleZone('zoneColumns','columns', state.columns);
-    renderValuesZone();
-    renderFiltersZone();
-  }
-
-  // Draws the Rows or Columns zone (same shape: ordered list of field
-  // names). Each chip has an up/down reorder button and a remove button.
-  function renderSimpleZone(elId, key, arr){
-    const zone = el(elId);
-    zone.innerHTML = '';
-    zone.classList.toggle('empty', arr.length===0);
-    if(arr.length===0) return;
-    arr.forEach((field, idx)=>{
-      const chip = document.createElement('div');
-      chip.className = 'zchip';
-      chip.draggable = true;
-      chip.dataset.field = field;
-
-      const label = document.createElement('span');
-      label.textContent = field;
-      chip.appendChild(label);
-
-      // Up/down = drag-and-drop alternative for reordering grouping order.
-      const upBtn = document.createElement('span');
-      upBtn.className = 'move' + (idx===0 ? ' disabled' : '');
-      upBtn.title = 'Move up';
-      upBtn.textContent = '▲';
-      upBtn.addEventListener('click', (e)=>{
-        e.stopPropagation();
-        if(idx===0) return;
-        const a = state[key];
-        [a[idx-1], a[idx]] = [a[idx], a[idx-1]];
-        refreshAll();
-      });
-      chip.appendChild(upBtn);
-
-      const downBtn = document.createElement('span');
-      downBtn.className = 'move' + (idx===arr.length-1 ? ' disabled' : '');
-      downBtn.title = 'Move down';
-      downBtn.textContent = '▼';
-      downBtn.addEventListener('click', (e)=>{
-        e.stopPropagation();
-        if(idx===arr.length-1) return;
-        const a = state[key];
-        [a[idx], a[idx+1]] = [a[idx+1], a[idx]];
-        refreshAll();
-      });
-      chip.appendChild(downBtn);
-
-      const rm = document.createElement('span');
-      rm.className = 'rm';
-      rm.title = 'Remove';
-      rm.textContent = '×';
-      rm.addEventListener('click', ()=>{
-        state[key] = state[key].filter(f=>f!==field);
-        refreshAll();
-      });
-      chip.appendChild(rm);
-
-      chip.addEventListener('dragstart', e=>{
-        e.dataTransfer.setData('text/plain', JSON.stringify({field, from:key}));
-      });
-      zone.appendChild(chip);
-    });
-  }
-
-  // Draws the Values zone — like renderSimpleZone but each chip also has
-  // an aggregation dropdown (Sum/Count/Average/Min/Max, from AGGS).
-  function renderValuesZone(){
-    const zone = el('zoneValues');
-    zone.innerHTML = '';
-    zone.classList.toggle('empty', state.values.length===0);
-    state.values.forEach((v,idx)=>{
-      const chip = document.createElement('div');
-      chip.className = 'zchip values';
-      chip.draggable = true;
-      chip.dataset.field = v.field;
-      const sel = document.createElement('select');
-      Object.keys(AGGS).forEach(k=>{
-        const o = document.createElement('option');
-        o.value = k; o.textContent = AGGS[k].label;
-        if(k===v.agg) o.selected = true;
-        sel.appendChild(o);
-      });
-      sel.addEventListener('change', ()=>{ v.agg = sel.value; computeAndRenderPivot(); });
-      const label = document.createElement('span');
-      label.textContent = v.field;
-      const rm = document.createElement('span');
-      rm.className='rm'; rm.title='Remove'; rm.textContent='×';
-      rm.addEventListener('click', ()=>{
-        state.values.splice(idx,1); refreshAll();
-      });
-      chip.appendChild(label); chip.appendChild(sel); chip.appendChild(rm);
-      chip.addEventListener('dragstart', e=>{
-        e.dataTransfer.setData('text/plain', JSON.stringify({field:v.field, from:'values'}));
-      });
-      zone.appendChild(chip);
-    });
-  }
-
-  // Draws the Filters zone: one collapsible box per filter field, with
-  // All/None shortcuts, a value search box, and one checkbox per distinct
-  // value. Unchecking a value only removes it from f.selected (not from
-  // allValues) — getFilteredRows() (SECTION 4) uses f.selected to exclude rows.
-  function renderFiltersZone(){
-    const zone = el('zoneFilters');
-    zone.innerHTML = '';
-    zone.classList.toggle('empty', state.filters.length===0);
-    zone.style.display = 'block';
-    state.filters.forEach((f)=>{
-      const box = document.createElement('div');
-      box.className = 'filter-field';
-      const activeCount = f.selected.size;
-      const head = document.createElement('div');
-      head.className = 'filter-head';
-      head.innerHTML = '<span>'+escapeHtml(f.field)+' <span style="color:var(--muted)">('+activeCount+'/'+f.allValues.length+')</span></span><span class="rm">×</span>';
-      head.addEventListener('click', (e)=>{
-        if(e.target.classList.contains('rm')) return;
-        f.open = !f.open;
-        body.classList.toggle('open', f.open);
-      });
-      head.querySelector('.rm').addEventListener('click', ()=>{
-        removeFieldEverywhere(f.field); refreshAll();
-      });
-      const body = document.createElement('div');
-      body.className = 'filter-body' + (f.open ? ' open':'');
-
-      const controls = document.createElement('div');
-      controls.style.marginBottom='6px';
-      const allBtn = document.createElement('span'); allBtn.className='filter-mini'; allBtn.textContent='All';
-      const noneBtn = document.createElement('span'); noneBtn.className='filter-mini'; noneBtn.textContent=' / None';
-      allBtn.addEventListener('click', ()=>{ f.allValues.forEach(v=>f.selected.add(v)); renderFiltersZone(); computeAndRenderPivot(); });
-      noneBtn.addEventListener('click', ()=>{ f.selected.clear(); renderFiltersZone(); computeAndRenderPivot(); });
-      controls.appendChild(allBtn); controls.appendChild(noneBtn);
-      body.appendChild(controls);
-
-      const search = document.createElement('input');
-      search.type = 'text';
-      search.className = 'filter-value-search';
-      search.placeholder = 'Search values…';
-      body.appendChild(search);
-
-      const valueList = document.createElement('div');
-      valueList.className = 'filter-value-list';
-      body.appendChild(valueList);
-
-      f.allValues.forEach(val=>{
-        const lab = document.createElement('label');
-        lab.dataset.value = (val === '' ? '(blank)' : val).toLowerCase();
-        const cb = document.createElement('input');
-        cb.type='checkbox'; cb.checked = f.selected.has(val);
-        cb.addEventListener('change', ()=>{
-          if(cb.checked) f.selected.add(val); else f.selected.delete(val);
-          computeAndRenderPivot();
-          head.querySelector('span span').textContent = '('+f.selected.size+'/'+f.allValues.length+')';
-        });
-        lab.appendChild(cb);
-        lab.appendChild(document.createTextNode(val === '' ? '(blank)' : val));
-        valueList.appendChild(lab);
-      });
-
-      search.addEventListener('input', ()=>{
-        const q = search.value.trim().toLowerCase();
-        valueList.querySelectorAll('label').forEach(lab=>{
-          lab.style.display = lab.dataset.value.includes(q) ? '' : 'none';
-        });
-      });
-
-      box.appendChild(head); box.appendChild(body);
-      zone.appendChild(box);
-    });
-  }
-
-  // Turns any cell value into a plain string key (for grouping/comparing).
-  // Dates become "YYYY-MM-DD"; null/undefined become ''.
-  function fmtKey(v){
-    if(v===null || v===undefined) return '';
-    if(v instanceof Date) return v.toISOString().slice(0,10);
-    return String(v);
-  }
-
-  // Formats an Asset ID for display: left-pads purely-numeric IDs to
-  // 12 digits (e.g. "3805" -> "000000003805"); leaves others untouched.
-  function formatAssetId(v){
-    if(v===null || v===undefined || v==='') return '';
-    const s = String(v).trim();
-    if(/^\d+$/.test(s)) return s.padStart(12,'0');
-    return s;
-  }
-
-  // ==================== SECTION 4: PIVOT TABLE ====================
-  // Builds the <table> from rawRows + state. computeAndRenderPivot() is
-  // the main function; everything else here is a helper it calls.
-
-  // Applies every active filter to rawRows (filters are AND'ed together —
-  // a row must match every filter field's selected values).
-  function getFilteredRows(){
-    let rows = rawRows;
-    state.filters.forEach(f=>{
-      rows = rows.filter(r => f.selected.has(fmtKey(r[f.field])));
-    });
-    return rows;
-  }
-
-  // Main pivot builder. Rebuilds from scratch every call. Steps:
-  //  1. Get filtered rows, then narrow further by the Asset ID search box.
-  //  2. Bail out with a placeholder if the pivot isn't complete yet.
-  //  3. Pre-compute each row's column-group key and numeric values.
-  //  4. Work out the full sorted list of column groups.
-  //  5. Build a nested tree of row-groups (one level per Rows field).
-  //  6. Walk the tree, drawing one <tr> per node (leaf = data row, parent = subtotal).
-  //  7. Add a Grand Total row/columns over ALL filtered rows (the "only
-  //     issues" checkbox only hides rows from view, never from totals).
-  function computeAndRenderPivot(){
-    const scroll = el('tableScroll');
-    const meta = el('resultsMeta');
-    let dataRows = getFilteredRows();
-    // Columns are always enumerated from the pre-search set, so the
-    // Asset ID search only narrows ROWS — it never hides a column just
-    // because the matched asset has no data under that book.
-    const rowsForColumns = dataRows;
-
-    // Asset ID search: matches padded or unpadded form (e.g. "3805" == "000000003805").
-    const assetColSearch = findCol('ASSET_ID');
-    if(assetSearchQuery.trim() && assetColSearch){
-      const q = assetSearchQuery.trim();
-      const qNorm = stripLeadingZeros(q);
-      dataRows = dataRows.filter(r=>{
-        const raw = fmtKey(r[assetColSearch]);
-        const rawNorm = stripLeadingZeros(raw);
-        return rawNorm.includes(qNorm) || raw.includes(q);
-      });
-    }
-
-    if((state.rows.length===0 && state.columns.length===0) || state.values.length===0){
-      scroll.innerHTML = '<div class="placeholder-msg">Drop at least one field into <b>Rows</b> or <b>Columns</b>, and one into <b>Values</b>, to see a pivot table.</div>';
-      meta.textContent = dataRows.length + ' source rows loaded';
-      return;
-    }
-
-    if(assetSearchQuery.trim() && assetColSearch && dataRows.length===0){
-      scroll.innerHTML = '<div class="placeholder-msg">No rows match Asset ID <b>'+escapeHtml(assetSearchQuery.trim())+'</b>.</div>';
-      meta.textContent = '0 of ' + rawRows.length + ' source rows matched the Asset ID search';
-      return;
-    }
-
-    const colKeyOf = r => state.columns.map(f=>fmtKey(r[f]));
-    const assetColForSort = findCol('ASSET_ID');
-
-
-    const rowColKey = new Map();
-    const rowValueNums = new Map();
-    dataRows.forEach(r=>{
-      rowColKey.set(r, state.columns.length ? colKeyOf(r).join('\u0001') : '');
-      const nums = new Array(state.values.length);
-      state.values.forEach((v, vi)=>{
-        const raw = r[v.field];
-        if(v.agg === 'count'){
-          nums[vi] = (raw!==null && raw!=='' && raw!==undefined) ? 1 : null;
-        } else {
-          const num = typeof raw==='number' ? raw : parseFloat(raw);
-          nums[vi] = isNaN(num) ? null : num;
-        }
-      });
-      rowValueNums.set(r, nums);
-    });
-
-    // Column set comes from rowsForColumns (pre-search) so a Book column
-    // never disappears just because of the Asset ID search.
-    const colKeySet = new Set();
-    rowsForColumns.forEach(r=> colKeySet.add(state.columns.length ? colKeyOf(r).join('\u0001') : ''));
-    const sortedColKeys = state.columns.length ? Array.from(colKeySet).sort((a,b)=>a.localeCompare(b)) : [''];
-
-    // Buckets a set of rows' numeric values by column-group, plus a
-    // "grand" bucket ignoring column entirely. Nulls are skipped (not
-    // treated as 0) so averages/min/max aren't skewed by blanks.
-    function computeAggregates(rows){
-      const byCol = new Map();
-      const grand = state.values.map(()=>[]);
-      rows.forEach(r=>{
-        const cKey = rowColKey.get(r);
-        let bucket = byCol.get(cKey);
-        if(!bucket){ bucket = state.values.map(()=>[]); byCol.set(cKey, bucket); }
-        const nums = rowValueNums.get(r);
-        nums.forEach((n, vi)=>{
-          if(n!==null){ bucket[vi].push(n); grand[vi].push(n); }
-        });
-      });
-      return {byCol, grand};
-    }
-    // Merges several already-computed aggregate results into one, by
-    // concatenating their value arrays (cheaper than re-scanning rows).
-    // This is how a parent tree node's aggregate is built from its
-    // children's aggregates, instead of re-scanning every row at every
-    // level of the tree. Safe because AGGS functions only need a flat
-    // array of numbers, however it was assembled.
-    function mergeAggregates(childAggs){
-      const byCol = new Map();
-      const grand = state.values.map(()=>[]);
-      for(const agg of childAggs){
-        agg.byCol.forEach((bucket, cKey)=>{
-          let target = byCol.get(cKey);
-          if(!target){ target = state.values.map(()=>[]); byCol.set(cKey, target); }
-          bucket.forEach((arr, vi)=>{
-            const t = target[vi];
-            for(let i=0;i<arr.length;i++) t.push(arr[i]);
-          });
-        });
-        agg.grand.forEach((arr, vi)=>{
-          const t = grand[vi];
-          for(let i=0;i<arr.length;i++) t.push(arr[i]);
-        });
+      // Placeholder for future tabs that don't have a page yet.
+      let placeholder = document.getElementById('frame-placeholder');
+      if (!placeholder) {
+        placeholder = document.createElement('iframe');
+        placeholder.id = 'frame-placeholder';
+        placeholder.className = 'content-frame';
+        placeholder.srcdoc = underConstructionHTML;
+        document.getElementById('frameStack').appendChild(placeholder);
       }
-      return {byCol, grand};
-    }
-
-    // Runs the chosen aggregation (Sum/Count/Average/Min/Max) over one
-    // bucket of numbers. Returns null (blank cell) if nothing to aggregate.
-    function aggFromBucket(arr, vi){
-      if(!arr || arr.length===0) return null;
-      return AGGS[state.values[vi].agg].fn(arr);
-    }
-
-    // Recursively groups `rows` by fields[0], then recurses into each
-    // group using the remaining fields. Turns Rows=[BU, Asset] into a
-    // 2-level tree: one node per BU, each with one child per Asset.
-    // Each node: { label, field, rows, children }.
-    function buildTree(rows, fields){
-      const field = fields[0];
-      const groups = new Map();
-      rows.forEach(r=>{
-        const key = fmtKey(r[field]);
-        if(!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(r);
-      });
-      // Asset ID sorts on its zero-padded form so it sorts numerically,
-      // not lexicographically on the raw string.
-      const isAssetField = field === assetColForSort;
-      const sortedKeys = Array.from(groups.keys()).sort((a,b)=>{
-        if(isAssetField) return formatAssetId(a).localeCompare(formatAssetId(b));
-        return a.localeCompare(b);
-      });
-      return sortedKeys.map(key=>{
-        const childRows = groups.get(key);
-        const children = fields.length>1 ? buildTree(childRows, fields.slice(1)) : null;
-        return { label: key, field, rows: childRows, children };
-      });
-    }
-
-    const tree = state.rows.length ? buildTree(dataRows, state.rows) : [{label:'(all)', field:null, rows:dataRows, children:null}];
-
-    // Computes every node's aggregate bottom-up, cached as node._agg.
-    // A leaf scans its own rows; a parent just merges its children's
-    // aggregates — so every row is scanned exactly once total, no matter
-    // how deep the tree is.
-    function computeNodeAgg(node){
-      node._agg = node.children
-        ? mergeAggregates(node.children.map(computeNodeAgg))
-        : computeAggregates(node.rows);
-      return node._agg;
-    }
-    tree.forEach(computeNodeAgg);
-
-    const table = document.createElement('table');
-    table.className = 'pivot tree';
-    const thead = document.createElement('thead');
-    const headRow1 = document.createElement('tr');
-    const rowheadTh = document.createElement('th');
-    rowheadTh.className = 'rowhead';
-    rowheadTh.textContent = 'BU/ Asset_ID ▾';
-    headRow1.appendChild(rowheadTh);
-
-    sortedColKeys.forEach(cKey=>{
-      state.values.forEach((v)=>{
-        const th = document.createElement('th');
-        const label = state.columns.length ? (cKey.split('\u0001').join(' \u2022 ') || '(blank)') : '';
-        th.textContent = (label ? label+' — ' : '') + AGGS[v.agg].label+' of '+v.field;
-        headRow1.appendChild(th);
-      });
-    });
-    state.values.forEach(v=>{
-      const th = document.createElement('th');
-      th.textContent = 'Grand Total ('+AGGS[v.agg].label+' '+v.field+')';
-      headRow1.appendChild(th);
-    });
-    thead.appendChild(headRow1);
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    const assetColForDisplay = findCol('ASSET_ID');
-    let rowGroupCount = 0;
-    const fragment = document.createDocumentFragment();
-
-    const bookColForCheck = findCol('BOOK');
-    const amountColForCheck = findCol('AMOUNT');
-    const txnColForCheck = findCol('TXN_AMOUNT');
-    const canCheckRollup = state.columns.length===1 && state.columns[0]===bookColForCheck;
-    const amountValueIdx = canCheckRollup && amountColForCheck!=null
-      ? state.values.findIndex(v=>v.field===amountColForCheck) : -1;
-    const txnValueIdx = canCheckRollup && txnColForCheck!=null
-      ? state.values.findIndex(v=>v.field===txnColForCheck) : -1;
-
-    // Cheap in-pivot version of the Book sync check. Only applies when
-    // the pivot's only Columns field is BOOK, so agg.byCol is already
-    // keyed by book name — lets us compare AMOUNT/TXN_AMOUNT sums across
-    // books for this exact node, without a separate grouping pass.
-    function nodeHasRollupMismatch(agg){
-      if(amountValueIdx>-1){
-        const a = agg.byCol.get('ACT-USD'), c = agg.byCol.get('CORPORATE');
-        if(a && c){
-          const av = aggFromBucket(a[amountValueIdx], amountValueIdx);
-          const cv = aggFromBucket(c[amountValueIdx], amountValueIdx);
-          if(av!==null && cv!==null && Math.abs(av-cv) > SYNC_TOLERANCE) return true;
-        }
-      }
-      // Compares whichever of ACT-USD/CORP-BASE/CORPORATE this node
-      // actually has (2 or 3), matching the relaxation in check (B) below.
-      if(txnValueIdx>-1){
-        const buckets = ['ACT-USD','CORP-BASE','CORPORATE']
-          .map(bookName => agg.byCol.get(bookName))
-          .filter(Boolean)
-          .map(bucket => aggFromBucket(bucket[txnValueIdx], txnValueIdx))
-          .filter(v => v!==null);
-        if(buckets.length>=2 && (Math.max(...buckets)-Math.min(...buckets)) > SYNC_TOLERANCE) return true;
-      }
-      return false;
-    }
-
-    // True if this leaf node should be highlighted red: either its rows
-    // were flagged by the SECTION 5 sync check, or the cheap in-pivot
-    // rollup check above catches something the sync check might miss
-    // (e.g. a finer Rows grouping than the sync check uses).
-    function isNodeFlagged(node){
-      // Only leaves get flagged directly — parents just roll issues up.
-      if(node.children) return false;
-      // Reuses node._agg (already computed by computeNodeAgg above).
-      return node.rows.some(r=>erroringRawRows.has(r)) || nodeHasRollupMismatch(node._agg);
-    }
-
-    // Marks each node with whether it (or a descendant) has an issue —
-    // used only to decide which rows to hide under "Show only issues".
-    // Never affects aggregates or the Grand Total.
-    function markHasIssue(node){
-      if(node.children){
-        node._hasIssue = node.children.reduce((any, child)=> markHasIssue(child) || any, false);
-      } else {
-        node._hasIssue = isNodeFlagged(node);
-      }
-      return node._hasIssue;
-    }
-    tree.forEach(node => markHasIssue(node));
-
-    // Draws one tree node as a <tr>, then recurses into children (one
-    // indent level deeper each time). Subtotal rows (nodes with
-    // children) are bolded; flagged leaf rows get a red background.
-    function renderNode(node, depth){
-      if(showOnlyIssuesInPivot && !node._hasIssue) return;
-
-      rowGroupCount++;
-      const isLeaf = !node.children;
-      const tr = document.createElement('tr');
-      // Reuses node._agg / node._hasIssue computed once above.
-      const agg = node._agg;
-      const flagged = isLeaf && node._hasIssue;
-      if(flagged) tr.classList.add('row-error');
-      if(!isLeaf) tr.classList.add('subtotal-row');
-
-      const th = document.createElement('th');
-      th.className = 'tree-label';
-      th.style.paddingLeft = (14 + depth*22)+'px';
-      const isAssetCol = assetColForDisplay && node.field === assetColForDisplay;
-      const label = node.label==='' ? '(blank)' : node.label;
-      th.textContent = node.field===null ? label : (isAssetCol ? formatAssetId(label) : label);
-      tr.appendChild(th);
-
-      sortedColKeys.forEach(cKey=>{
-        const bucket = agg.byCol.get(cKey);
-        state.values.forEach((v, vi)=>{
-          const td = document.createElement('td');
-          td.textContent = fmtNum(bucket ? aggFromBucket(bucket[vi], vi) : null);
-          tr.appendChild(td);
-        });
-      });
-      state.values.forEach((v, vi)=>{
-        const td = document.createElement('td');
-        td.textContent = fmtNum(aggFromBucket(agg.grand[vi], vi));
-        td.style.fontWeight = '600';
-        tr.appendChild(td);
-      });
-      fragment.appendChild(tr);
-
-      if(node.children){
-        node.children.forEach(child => renderNode(child, depth+1));
-      }
-    }
-
-    tree.forEach(node => renderNode(node, 0));
-
-    if(showOnlyIssuesInPivot && rowGroupCount===0){
-      scroll.innerHTML = '<div class="placeholder-msg">No sync issues found — nothing to show with <b>Show only issue assets</b> enabled.</div>';
-      meta.textContent = '0 row groups shown (of ' + dataRows.length + ' source rows) • showing issue rows only';
-      return;
-    }
-
-    tbody.appendChild(fragment);
-    table.appendChild(tbody);
-
-    const tfoot = document.createElement('tfoot');
-    const ftr = document.createElement('tr');
-    const fth = document.createElement('th');
-    fth.textContent = 'Grand Total';
-    ftr.appendChild(fth);
-    // Grand Total = every top-level tree node's aggregate merged
-    // together (root nodes cover every row exactly once, so this
-    // matches computeAggregates(dataRows) without a second full scan).
-    const footAgg = mergeAggregates(tree.map(node => node._agg));
-    sortedColKeys.forEach(cKey=>{
-      const bucket = footAgg.byCol.get(cKey);
-      state.values.forEach((v, vi)=>{
-        const td = document.createElement('td');
-        td.textContent = fmtNum(bucket ? aggFromBucket(bucket[vi], vi) : null);
-        ftr.appendChild(td);
-      });
-    });
-    state.values.forEach((v, vi)=>{
-      const td = document.createElement('td');
-      td.textContent = fmtNum(aggFromBucket(footAgg.grand[vi], vi));
-      ftr.appendChild(td);
-    });
-    tfoot.appendChild(ftr);
-    table.appendChild(tfoot);
-
-    scroll.innerHTML = '';
-    scroll.appendChild(table);
-    meta.textContent = dataRows.length + ' of ' + rawRows.length + ' source rows • ' + rowGroupCount + ' row groups' + (state.columns.length? ' • '+sortedColKeys.length+' column groups':'') + (showOnlyIssuesInPivot ? ' • showing issue rows only' : '') + (assetSearchQuery.trim() ? ' • Asset ID contains "'+assetSearchQuery.trim()+'"' : '');
-
-    window.__lastPivotTable = table;
-  }
-
-  // Formats a number for display: rounds near-zero noise to a clean 0,
-  // shows whole numbers with no decimals, others with 2 decimals, using
-  // US-style thousands separators.
-  function fmtNum(v){
-    if(v===null || v===undefined) return '';
-    if(Object.is(v, -0) || Math.abs(v) < 0.005) v = 0;
-    if(Number.isInteger(v)) return v.toLocaleString('en-US');
-    return v.toLocaleString('en-US', {maximumFractionDigits:2, minimumFractionDigits:2});
-  }
-
-  // Escapes HTML special characters before inserting text via innerHTML.
-  // Always wrap untrusted/data-driven text in this.
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-
-  // ================ SECTION 5: BOOK SYNC CHECK ================
-  // Accounting-reconciliation feature, separate from the pivot table.
-  // Only activates when the sheet has BUSINESS_UNIT, ASSET_ID, BOOK and
-  // AMOUNT/TXN_AMOUNT columns. Checks 4 things:
-  //   (A) Sum(AMOUNT) for ACT-USD should equal Sum(AMOUNT) for CORPORATE,
-  //       per group (Business Unit + Asset ID + whatever else is in Rows).
-  //   (B) Sum(TXN_AMOUNT) should match across whichever of ACT-USD,
-  //       CORP-BASE, CORPORATE the group has (needs at least 2 present).
-  //   (C) Every canonical book (ACT-USD/CORP-BASE/CORPORATE) should cover
-  //       the same Distribution Types as the union seen across all 3 for
-  //       that entry. A book absent entirely comes out missing everything
-  //       (reported as "book missing entirely"); a partially-covering
-  //       book is reported with just its specific gap. No Distribution
-  //       Type column -> falls back to a plain book-existence check.
-  //   (D) "Imbalance Entry": for every (timestamp, book) pair, Sum(AMOUNT)
-  //       across all rows should net to zero (double-entry bookkeeping).
-  // runSyncCheck() computes all of this and renders: the unique-error-
-  // assets table, the summary tiles, and the detailed breakdown tables.
-
-  // Groups rows by Business Unit + Asset ID (ignoring any finer grouping)
-  // — used only for the summary tile counts, to avoid double-counting.
-  function dedupeByBuAsset(rows){
-    const map = new Map();
-    rows.forEach(r=>{
-      const buNorm = fmtKey(r.bu);
-      const assetNorm = formatAssetId(r.asset);
-      const key = buNorm+'\u0001'+assetNorm;
-      if(!map.has(key)) map.set(key, {bu:r.bu, asset:assetNorm, rows:[]});
-      map.get(key).rows.push(r);
-    });
-    return Array.from(map.values());
-  }
-
-  // How close two numbers must be to count as "the same" (avoids
-  // floating-point noise causing false mismatches).
-  const SYNC_TOLERANCE = 0.01;
-
-  // Normalizes a header for matching (trim, uppercase, collapse spaces/
-  // underscores) so findCol('BUSINESS_UNIT') matches "Business Unit" too.
-  function normHeader(s){ return s.trim().toUpperCase().replace(/[\s_]+/g,'_'); }
-  // Finds the real header name matching `target` (see normHeader), or
-  // null if this sheet doesn't have that column.
-  function findCol(target){
-    const t = normHeader(target);
-    return headers.find(h => normHeader(h) === t) || null;
-  }
-  // Normalizes a BOOK value for comparison (trim + uppercase).
-  function normBook(v){ return (v===null||v===undefined) ? '' : String(v).trim().toUpperCase(); }
-
-  // "Show/Hide detail" toggle — just show/hide, no recompute.
-  let syncDetailVisible = false;
-  function applySyncVisibility(){
-    el('syncTiles').style.display = syncDetailVisible ? '' : 'none';
-    el('syncDetail').style.display = syncDetailVisible ? '' : 'none';
-    el('syncToggle').textContent = syncDetailVisible ? 'Hide detail ▾' : 'Show detail ▸';
-  }
-  el('syncToggle').addEventListener('click', ()=>{
-    syncDetailVisible = !syncDetailVisible;
-    applySyncVisibility();
-  });
-
-  let showErrorOnly = true;
-  el('showErrorToggle').addEventListener('click', ()=>{
-    showErrorOnly = !showErrorOnly;
-    el('showErrorToggle').textContent = showErrorOnly ? 'Show all' : 'Show error';
-    el('showErrorToggle').classList.toggle('active-filter', showErrorOnly);
-    runSyncCheck();
-  });
-
-  // Main sync-check function (see SECTION 5 banner for what it checks).
-  // Always runs over the full rawRows, not the pivot's filtered rows.
-  // Steps: find the relevant columns -> decide grouping fields (BU +
-  // Asset always, plus Trans Type/Timestamp if those columns exist AND
-  // are currently in the pivot's Rows zone) -> group rawRows and sum
-  // AMOUNT/TXN_AMOUNT per book per group -> run checks (A)-(C) per group,
-  // check (D) separately -> hand off to the 3 render functions.
-  function runSyncCheck(){
-    const panel = el('syncPanel');
-    const buCol = findCol('BUSINESS_UNIT');
-    const assetCol = findCol('ASSET_ID');
-    const bookCol = findCol('BOOK');
-    const amountCol = findCol('AMOUNT');
-    const txnCol = findCol('TXN_AMOUNT');
-    const transTypeCol = findCol('TRANS_TYPE');
-    const dttmCol = findCol('DTTM_STAMP');
-    const distTypeCol = findCol('DISTRIBUTION_TYPE');
-    const journalCol = findCol('JOURNAL_ID') || findCol('JRNL_ID') || findCol('JOURNALID') || findCol('JE_ID') || findCol('JNL_ID');
-
-    // Collects distinct Journal IDs from a set of rows, so a flagged
-    // group can show which journal entries to look at. [] if no
-    // recognizable journal-ID column exists.
-    function journalIdsFromRows(rows){
-      if(!journalCol) return [];
-      const set = new Set();
-      rows.forEach(r=>{
-        const v = r[journalCol];
-        if(v!==null && v!==undefined && v!=='') set.add(fmtKey(v));
-      });
-      return Array.from(set);
-    }
-
-    // Without BU + Asset + Book + at least one of Amount/Txn Amount,
-    // there's nothing to reconcile — hide the sync panel entirely.
-    if(!buCol || !assetCol || !bookCol || (!amountCol && !txnCol)){
-      panel.style.display = 'none';
-      el('topBar').style.display = 'flex';
-      return;
-    }
-    panel.style.display = 'block';
-    el('topBar').style.display = 'none';
-
-    // BU + Asset ID always group; Trans Type/Timestamp are added only
-    // if that column exists AND is currently in the pivot's Rows zone.
-    //
-    // Distribution Type is deliberately NEVER part of the grouping key
-    // (even if it's in Rows): books sometimes record the same entry
-    // under different Distribution Type sub-codes, so grouping by it
-    // could make an out-of-balance entry look "fine" one sub-code at a
-    // time. Keeping it out means checks always compare whole-entry totals.
-    const candidateFields = [
-      {col: buCol, prop:'bu', label:'Business unit', required:true},
-      {col: assetCol, prop:'asset', label:'Asset', isAsset:true, required:true},
-      {col: transTypeCol, prop:'transType', label:'Trans type'},
-      {col: dttmCol, prop:'dttm', label:'Timestamp'}
-    ].filter(f => f.col);
-    const activeFields = candidateFields.filter(f => f.required || state.rows.includes(f.col));
-    const inRows = activeFields.filter(f => state.rows.includes(f.col));
-    inRows.sort((a,b) => state.rows.indexOf(a.col) - state.rows.indexOf(b.col));
-    const notInRows = activeFields.filter(f => !state.rows.includes(f.col));
-    const fieldDefs = [...inRows, ...notInRows];
-
-    el('syncScope').textContent = '(grouped by '+fieldDefs.map(f=>f.col).join(' + ')+', split by '+bookCol+')';
-
-    // The 3 books every group is expected to have rows under.
-    const CANONICAL_BOOKS = ['ACT-USD','CORP-BASE','CORPORATE'];
-    // Pass 1: walk every row once, building `groups` keyed by the
-    // fieldDefs combination. Each group tracks: which books it has seen,
-    // running AMOUNT/TXN_AMOUNT sums per book, and its member rows.
-    const groups = new Map();
-    const fieldDefCount = fieldDefs.length;
-    rawRows.forEach(r=>{
-      const bu = r[buCol];
-      const asset = r[assetCol];
-      const transType = transTypeCol ? r[transTypeCol] : undefined;
-      const dttm = dttmCol ? r[dttmCol] : undefined;
-      const book = normBook(r[bookCol]);
-      const propValues = {bu, asset, dttm, transType};
-      let key = '';
-      for(let i=0;i<fieldDefCount;i++){
-        if(i>0) key += '\u0001';
-        key += fmtKey(propValues[fieldDefs[i].prop]);
-      }
-      if(!groups.has(key)) groups.set(key, {bu, asset, transType, dttm, amountByBook:new Map(), txnByBook:new Map(), booksSeen:new Set(), distTypesByBook:new Map(), memberRows:[]});
-      const g = groups.get(key);
-      g.booksSeen.add(book);
-      g.memberRows.push(r);
-      // For check (C): which Distribution Type codes each book recorded
-      // a row under, within this entry.
-      if(distTypeCol){
-        const distType = fmtKey(r[distTypeCol]);
-        if(distType !== ''){
-          let set = g.distTypesByBook.get(book);
-          if(!set){ set = new Set(); g.distTypesByBook.set(book, set); }
-          set.add(distType);
-        }
-      }
-      if(amountCol){
-        const raw = r[amountCol];
-        const num = typeof raw==='number'? raw : parseFloat(raw);
-        if(!isNaN(num)){
-          g.amountByBook.set(book, (g.amountByBook.get(book)||0) + num);
-        }
-      }
-      if(txnCol){
-        const rawT = r[txnCol];
-        const numT = typeof rawT==='number'? rawT : parseFloat(rawT);
-        if(!isNaN(numT)){
-          g.txnByBook.set(book, (g.txnByBook.get(book)||0) + numT);
-        }
-      }
-    });
-
-    // Pass 2: run checks (A), (B), (C) per group. Any row belonging to a
-    // group with a failing check gets added to erroringRawRows (read by
-    // the pivot table's red-highlighting).
-    const amountRows = [];
-    const txnRows = [];
-    const distTypeGapRows = [];
-    erroringRawRows = new Set();
-
-    groups.forEach(g=>{
-      let groupHasError = false;
-      if(amountCol && g.amountByBook.has('ACT-USD') && g.amountByBook.has('CORPORATE')){
-        const a = g.amountByBook.get('ACT-USD');
-        const c = g.amountByBook.get('CORPORATE');
-        const diff = a - c;
-        let inSync = Math.abs(diff) <= SYNC_TOLERANCE;
-
-        // Sign-mismatch check across all 3 books. Boundary is inclusive
-        // at ±SYNC_TOLERANCE, so a value like -0.01 keeps its real sign.
-        let signMismatch = false;
-        if(g.amountByBook.has('CORP-BASE')){
-          const b = g.amountByBook.get('CORP-BASE');
-          const signOf = n => n >= SYNC_TOLERANCE ? 1 : (n <= -SYNC_TOLERANCE ? -1 : 0);
-          const sA = signOf(a), sB = signOf(b), sC = signOf(c);
-          if(!(sA === sB && sB === sC)) signMismatch = true;
-        }
-        if(signMismatch) inSync = false;
-
-        if(!inSync) groupHasError = true;
-        amountRows.push({bu:g.bu, asset:g.asset, transType:g.transType, dttm:g.dttm, actUsd:a, corpBase:g.amountByBook.get('CORP-BASE'), corporate:c, diff, inSync, signMismatch, journalIds: journalIdsFromRows(g.memberRows)});
-      }
-      // Check (B): compares Sum(TXN_AMOUNT) across whichever of the 3
-      // canonical books are present (needs at least 2 to compare). A
-      // group with only 1 book has nothing to compare here — check (C)
-      // below still flags it as "book missing".
-      if(txnCol){
-        const presentTxnBooks = CANONICAL_BOOKS.filter(b=>g.txnByBook.has(b));
-        if(presentTxnBooks.length >= 2){
-          const vals = presentTxnBooks.map(b=>g.txnByBook.get(b));
-          const maxDiff = Math.max(...vals) - Math.min(...vals);
-          const inSync = maxDiff <= SYNC_TOLERANCE;
-          if(!inSync) groupHasError = true;
-          txnRows.push({bu:g.bu, asset:g.asset, transType:g.transType, dttm:g.dttm,
-            actUsd:g.txnByBook.get('ACT-USD'), corpBase:g.txnByBook.get('CORP-BASE'), corporate:g.txnByBook.get('CORPORATE'),
-            maxDiff, inSync, comparedBooks: presentTxnBooks, journalIds: journalIdsFromRows(g.memberRows)});
-        }
-      }
-      // Check (C): unified book / Distribution Type coverage check.
-      // Compares each canonical book against the union of Distribution
-      // Types seen anywhere in the entry. A book absent entirely has an
-      // empty set, so it comes out missing everything (bookAbsent:true
-      // marks these so rendering can say "missing entirely"). A book
-      // present but only partially covering the union gets just its
-      // specific gap. No Distribution Type column -> falls back to a
-      // plain book-existence check (no union to compare against).
-      if(distTypeCol){
-        const unionDistTypes = new Set();
-        g.distTypesByBook.forEach(set => set.forEach(dt=>unionDistTypes.add(dt)));
-        if(unionDistTypes.size > 0){
-          const bookGaps = [];
-          CANONICAL_BOOKS.forEach(b=>{
-            const bookAbsent = !g.booksSeen.has(b);
-            const bookSet = g.distTypesByBook.get(b) || new Set();
-            const missingDistTypes = Array.from(unionDistTypes).filter(dt=>!bookSet.has(dt));
-            if(missingDistTypes.length) bookGaps.push({book:b, missingDistTypes, bookAbsent});
-          });
-          if(bookGaps.length){
-            groupHasError = true;
-            distTypeGapRows.push({bu:g.bu, asset:g.asset, transType:g.transType, dttm:g.dttm, bookGaps, journalIds: journalIdsFromRows(g.memberRows)});
-          }
-        }
-      } else {
-        const missingBooks = CANONICAL_BOOKS.filter(b=>!g.booksSeen.has(b));
-        if(missingBooks.length > 0){
-          groupHasError = true;
-          const bookGaps = missingBooks.map(b=>({book:b, missingDistTypes:[], bookAbsent:true}));
-          distTypeGapRows.push({bu:g.bu, asset:g.asset, transType:g.transType, dttm:g.dttm, bookGaps, journalIds: journalIdsFromRows(g.memberRows)});
-        }
-      }
-      if(groupHasError){
-        g.memberRows.forEach(r=>erroringRawRows.add(r));
-      }
-    });
-
-    const amountMismatches = amountRows.filter(r=>!r.inSync);
-    const txnMismatches = txnRows.filter(r=>!r.inSync);
-
-    // Rolls up every error type into one Map keyed by BU + Asset ID —
-    // feeds the "unique error assets" table/export at the top of the
-    // sync panel (one row per problem asset, reasons combined).
-    const uniqueErrorAssets = new Map();
-    function markError(bu, asset, reason, journalIds, transType, dttm){
-      const assetNorm = formatAssetId(asset);
-      const key = fmtKey(bu)+'\u0001'+fmtKey(assetNorm);
-      if(!uniqueErrorAssets.has(key)) uniqueErrorAssets.set(key, {bu, asset:assetNorm, reasons:new Set(), journalIds:new Set(), transTypes:new Set(), timestamps:new Set()});
-      const entry = uniqueErrorAssets.get(key);
-      entry.reasons.add(reason);
-      if(journalIds) journalIds.forEach(j=>entry.journalIds.add(j));
-      if(transType!==undefined && transType!==null && fmtKey(transType)!=='') entry.transTypes.add(fmtKey(transType));
-      if(dttm!==undefined && dttm!==null && fmtKey(dttm)!=='') entry.timestamps.add(fmtKey(dttm));
-    }
-    amountMismatches.forEach(r=>markError(r.bu, r.asset, 'AMOUNT', r.journalIds, r.transType, r.dttm));
-    txnMismatches.forEach(r=>markError(r.bu, r.asset, 'TXN_AMOUNT', r.journalIds, r.transType, r.dttm));
-    distTypeGapRows.forEach(r=>markError(r.bu, r.asset, 'MISSING BOOK / DIST TYPE', r.journalIds, r.transType, r.dttm));
-
-    // Check (D): "Imbalance Entry" — ignores the BU/Asset grouping and
-    // instead groups ALL rows by (Timestamp, Book). Sum(AMOUNT) within
-    // each group should net to zero (debits match credits). Only runs
-    // if both Timestamp and Amount columns exist.
-    const zeroSumRows = [];
-    if(dttmCol && amountCol){
-      const tsBookGroups = new Map();
-      rawRows.forEach(r=>{
-        const dttm = r[dttmCol];
-        const book = normBook(r[bookCol]);
-        const raw = r[amountCol];
-        const num = typeof raw==='number' ? raw : parseFloat(raw);
-        if(isNaN(num)) return;
-        const key = fmtKey(dttm)+'\u0001'+book;
-        if(!tsBookGroups.has(key)){
-          tsBookGroups.set(key, {dttm, book, sum:0, memberRows:[]});
-        }
-        const g = tsBookGroups.get(key);
-        g.sum += num;
-        g.memberRows.push(r);
-      });
-
-      const imbalancedCombos = new Map();
-      tsBookGroups.forEach(g=>{
-        const inSync = Math.abs(g.sum) <= SYNC_TOLERANCE;
-        if(!inSync){
-          g.memberRows.forEach(r=>erroringRawRows.add(r));
-          g.memberRows.forEach(r=>{
-            const bu = fmtKey(r[buCol]);
-            const asset = formatAssetId(r[assetCol]);
-            const key = bu+'\u0001'+asset;
-            if(!imbalancedCombos.has(key)){
-              imbalancedCombos.set(key, {bu, asset, instances:[], journalIds:new Set()});
-            }
-            const combo = imbalancedCombos.get(key);
-            if(!combo.instances.some(i=>i.dttm===g.dttm && i.book===g.book)){
-              combo.instances.push({dttm:g.dttm, book:g.book, sum:g.sum});
-            }
-            if(journalCol){
-              const jv = r[journalCol];
-              if(jv!==null && jv!==undefined && jv!=='') combo.journalIds.add(fmtKey(jv));
-            }
-          });
-        }
-      });
-
-      imbalancedCombos.forEach(combo=>{
-        const journalIds = Array.from(combo.journalIds);
-        zeroSumRows.push({bu:combo.bu, asset:combo.asset, instances:combo.instances, inSync:false, journalIds});
-        combo.instances.forEach(inst => markError(combo.bu, combo.asset, 'IMBALANCE ENTRY', journalIds, undefined, inst.dttm));
-      });
-    }
-
-
-    renderUniqueErrorAssets(uniqueErrorAssets, fieldDefs);
-    renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, fieldDefs, zeroSumRows, distTypeGapRows);
-    renderSyncDetail(amountCol, txnCol, amountRows, txnRows, fieldDefs, zeroSumRows, distTypeGapRows);
-    applySyncVisibility();
-
-    lastSyncContext = {fieldDefs, bookCol, amountCol, txnCol};
-  }
-
-  // Holds the data currently shown in the "unique error assets" table
-  // in export-ready shape, so the export button just dumps what's on screen.
-  let lastErrorAssetsExport = [];
-
-  // Draws the top-of-panel banner + table: "N unique BU + Asset
-  // combinations have an issue", one row per problem asset with its
-  // Journal ID(s) and what went wrong.
-  function renderUniqueErrorAssets(uniqueErrorAssets, fieldDefs){
-    const box = el('syncErrorAssets');
-    box.innerHTML = '';
-    lastErrorAssetsExport = [];
-
-    const banner = document.createElement('div');
-    banner.className = 'error-assets-banner' + (uniqueErrorAssets.size===0 ? ' clean' : '');
-
-    const head = document.createElement('div');
-    head.className = 'error-assets-head';
-
-    const headText = document.createElement('span');
-    if(uniqueErrorAssets.size===0){
-      headText.innerHTML = '<b>0</b> Business Unit + Asset combinations have any sync issue';
-    } else {
-      headText.innerHTML = '<b>'+uniqueErrorAssets.size+'</b> unique Business Unit + Asset combination'+(uniqueErrorAssets.size===1?'':'s')+' with at least one sync issue';
-    }
-    head.appendChild(headText);
-
-    if(uniqueErrorAssets.size){
-      const exportBtn = document.createElement('button');
-      exportBtn.type = 'button';
-      exportBtn.className = 'error-assets-export-btn';
-      exportBtn.innerHTML = '&#11015; Export to Excel';
-      exportBtn.addEventListener('click', exportErrorAssetsToExcel);
-      head.appendChild(exportBtn);
-    }
-
-    banner.appendChild(head);
-
-    if(uniqueErrorAssets.size){
-      const table = document.createElement('table');
-      table.className = 'sync error-assets-table';
-      table.innerHTML = '<thead><tr><th>Business Unit</th><th>Asset ID</th><th>Journal ID</th><th>Timestamp</th><th>Trans Type</th><th>Error Description</th></tr></thead>';
-      const tbody = document.createElement('tbody');
-      Array.from(uniqueErrorAssets.values()).forEach(a=>{
-        const buVal = String(a.bu);
-        const assetVal = formatAssetId(a.asset);
-        const journalVal = a.journalIds && a.journalIds.size ? Array.from(a.journalIds).join(', ') : '';
-        const timestampVal = a.timestamps && a.timestamps.size ? Array.from(a.timestamps).join(', ') : '';
-        const transTypeVal = a.transTypes && a.transTypes.size ? Array.from(a.transTypes).join(', ') : '';
-        const reasonVal = Array.from(a.reasons).join(', ');
-
-        const tr = document.createElement('tr');
-        tr.classList.add('mismatch');
-        tr.innerHTML = '<td>'+escapeHtml(buVal)+'</td><td>'+escapeHtml(assetVal)+'</td><td>'+escapeHtml(journalVal)+'</td><td>'+escapeHtml(timestampVal)+'</td><td>'+escapeHtml(transTypeVal)+'</td><td>'+escapeHtml(reasonVal)+'</td>';
-        tbody.appendChild(tr);
-
-        lastErrorAssetsExport.push({
-          'Business Unit': buVal,
-          'Asset ID': assetVal,
-          'Journal ID': journalVal,
-          'Timestamp': timestampVal,
-          'Trans Type': transTypeVal,
-          'Error Description': reasonVal
-        });
-      });
-      table.appendChild(tbody);
-      banner.appendChild(table);
-    }
-
-    box.appendChild(banner);
-  }
-
-  // "Export to Excel" — downloads lastErrorAssetsExport as a timestamped .xlsx file.
-  function exportErrorAssetsToExcel(){
-    if(!lastErrorAssetsExport.length) return;
-    const ws = XLSX.utils.json_to_sheet(lastErrorAssetsExport);
-    ws['!cols'] = [{wch:16},{wch:18},{wch:18},{wch:18},{wch:14},{wch:40}];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Sync Issues');
-    const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-    XLSX.writeFile(wb, 'sync_issues_'+stamp+'.xlsx');
-  }
-
-  // Currently unused (renderSyncTiles builds chip labels inline instead)
-  // — kept for a possible future reusable "BU / Asset" label formatter.
-  function chipLabel(m, fieldDefs){
-    const escParts = fieldDefs.map(f=>{
-      const raw = f.isAsset ? formatAssetId(m[f.prop]) : String(m[f.prop]);
-      const esc = escapeHtml(raw);
-      return f.isAsset ? '<b>'+esc+'</b>' : esc;
-    });
-    return escParts.join(' / ');
-  }
-
-  // Draws the summary tiles (green = ok, red = issues found) — one tile
-  // per check type: AMOUNT mismatch, TXN_AMOUNT mismatch, book/Dist Type
-  // coverage, imbalance entries. Each shows a count + chips listing the
-  // affected BU/Asset combinations.
-  function renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, fieldDefs, zeroSumRows, distTypeGapRows){
-    zeroSumRows = zeroSumRows || [];
-    distTypeGapRows = distTypeGapRows || [];
-    const tiles = el('syncTiles');
-    tiles.innerHTML = '';
-
-    if(amountCol){
-      const uniqueAmountMismatches = dedupeByBuAsset(amountMismatches);
-      const tile = document.createElement('div');
-      tile.className = 'sync-tile ' + (uniqueAmountMismatches.length ? 'bad' : 'ok');
-      tile.innerHTML = '<div class="n">'+uniqueAmountMismatches.length+'</div>'+
-        '<div class="t">unique Business Unit + Asset combination'+(uniqueAmountMismatches.length===1?'':'s')+' out of sync — Sum(AMOUNT), ACT-USD vs CORPORATE</div>'+
-        '<div class="d">'+amountRows.length+' groups checked</div>';
-      if(uniqueAmountMismatches.length){
-        const chips = document.createElement('div');
-        chips.className = 'sync-chips';
-        uniqueAmountMismatches.forEach(combo=>{
-          const c = document.createElement('span');
-          c.className = 'sync-chip';
-          const anySign = combo.rows.some(r=>r.signMismatch);
-          c.innerHTML = 'BU/Asset: <b>'+escapeHtml(fmtKey(combo.bu))+' / '+escapeHtml(combo.asset)+'</b>'+
-            (combo.rows.length>1 ? ' — '+combo.rows.length+' occurrences' : '') +
-            (anySign ? ' — <b>sign mismatch (3 books)</b>' : '');
-          chips.appendChild(c);
-        });
-        tile.appendChild(chips);
-      }
-      tiles.appendChild(tile);
-    }
-
-    if(txnCol){
-      const uniqueTxnMismatches = dedupeByBuAsset(txnMismatches);
-      const tile = document.createElement('div');
-      tile.className = 'sync-tile ' + (uniqueTxnMismatches.length ? 'bad' : 'ok');
-      tile.innerHTML = '<div class="n">'+uniqueTxnMismatches.length+'</div>'+
-        '<div class="t">unique Business Unit + Asset combination'+(uniqueTxnMismatches.length===1?'':'s')+' out of sync — Sum(TXN_AMOUNT), across whichever books are present</div>'+
-        '<div class="d">'+txnRows.length+' groups checked</div>';
-      if(uniqueTxnMismatches.length){
-        const chips = document.createElement('div');
-        chips.className = 'sync-chips';
-        uniqueTxnMismatches.forEach(combo=>{
-          const c = document.createElement('span');
-          c.className = 'sync-chip';
-          c.innerHTML = 'BU/Asset: <b>'+escapeHtml(fmtKey(combo.bu))+' / '+escapeHtml(combo.asset)+'</b>'+
-            (combo.rows.length>1 ? ' — '+combo.rows.length+' occurrences' : '');
-          chips.appendChild(c);
-        });
-        tile.appendChild(chips);
-      }
-      tiles.appendChild(tile);
-    }
-
-    {
-      const uniqueDistTypeGaps = dedupeByBuAsset(distTypeGapRows);
-      const tile = document.createElement('div');
-      tile.className = 'sync-tile ' + (uniqueDistTypeGaps.length ? 'bad' : 'ok');
-      tile.innerHTML = '<div class="n">'+uniqueDistTypeGaps.length+'</div>'+
-        '<div class="t">unique Business Unit + Asset combination'+(uniqueDistTypeGaps.length===1?'':'s')+' with a book missing entirely, or missing a Distribution Type another book has</div>'+
-        '<div class="d">checked every canonical book (ACT-USD / CORP-BASE / CORPORATE) against every Distribution Type seen for that entry</div>';
-      if(uniqueDistTypeGaps.length){
-        const chips = document.createElement('div');
-        chips.className = 'sync-chips';
-        uniqueDistTypeGaps.forEach(combo=>{
-          const c = document.createElement('span');
-          c.className = 'sync-chip';
-          const perBook = new Map();
-          combo.rows.forEach(r=>r.bookGaps.forEach(bg=>{
-            let entry = perBook.get(bg.book);
-            if(!entry){ entry = {dts:new Set(), bookAbsent:false}; perBook.set(bg.book, entry); }
-            bg.missingDistTypes.forEach(dt=>entry.dts.add(dt));
-            if(bg.bookAbsent) entry.bookAbsent = true;
-          }));
-          // A book flagged "bookAbsent" has zero rows in this entry —
-          // phrase that as "missing entirely" rather than listing codes.
-          const gapLabel = Array.from(perBook.entries())
-            .map(([book, entry])=> entry.bookAbsent
-              ? escapeHtml(book)+' missing entirely'
-              : escapeHtml(book)+' missing '+escapeHtml(Array.from(entry.dts).join('/')))
-            .join(', ');
-          c.innerHTML = 'BU/Asset: <b>'+escapeHtml(fmtKey(combo.bu))+' / '+escapeHtml(combo.asset)+'</b>'+
-            (combo.rows.length>1 ? ' — '+combo.rows.length+' occurrences' : '') +
-            ' — <b>'+gapLabel+'</b>';
-          chips.appendChild(c);
-        });
-        tile.appendChild(chips);
-      }
-      tiles.appendChild(tile);
-    }
-
-    {
-      const tile = document.createElement('div');
-      tile.className = 'sync-tile ' + (zeroSumRows.length ? 'bad' : 'ok');
-      tile.innerHTML = '<div class="n">'+zeroSumRows.length+'</div>'+
-        '<div class="t">unique Business Unit + Asset combination'+(zeroSumRows.length===1?'':'s')+' with an Imbalance Entry</div>'+
-        '<div class="d">checked Sum(AMOUNT) per DTTM_STAMP, per BOOK, should net to zero</div>';
-      if(zeroSumRows.length){
-        const chips = document.createElement('div');
-        chips.className = 'sync-chips';
-        zeroSumRows.forEach(m=>{
-          const c = document.createElement('span');
-          c.className = 'sync-chip';
-          const instLabel = m.instances.map(i=>escapeHtml(String(i.dttm))+' / '+escapeHtml(i.book)+' (sum '+escapeHtml(fmtNum(i.sum))+')').join('; ');
-          c.innerHTML = 'BU/Asset: <b>'+escapeHtml(m.bu)+' / '+escapeHtml(m.asset)+'</b> &mdash; '+instLabel;
-          chips.appendChild(c);
-        });
-        tile.appendChild(chips);
-      }
-      tiles.appendChild(tile);
+      placeholder.classList.add('active');
     }
   }
-
-  // Draws the detailed row-by-row breakdown tables shown when "Show
-  // detail" is expanded — one table per check type. Respects the
-  // "Show all / Show error" toggle to optionally hide passing rows.
-  function renderSyncDetail(amountCol, txnCol, amountRows, txnRows, fieldDefs, zeroSumRows, distTypeGapRows){
-    zeroSumRows = zeroSumRows || [];
-    distTypeGapRows = distTypeGapRows || [];
-    const detail = el('syncDetail');
-    detail.innerHTML = '';
-
-    const idHeadCells = fieldDefs.map(f=>'<th>'+escapeHtml(f.label)+'</th>').join('');
-    const idRowCells = r => fieldDefs.map(f=>{
-      const v = f.isAsset ? formatAssetId(r[f.prop]) : String(r[f.prop]);
-      return '<td>'+escapeHtml(v)+'</td>';
-    }).join('');
-
-    if(amountCol){
-      const block = document.createElement('div');
-      block.className = 'sync-detail-block';
-      block.innerHTML = '<h4>Sum of AMOUNT — ACT-USD vs CORPORATE</h4>';
-      const shownRows = showErrorOnly ? amountRows.filter(r=>!r.inSync) : amountRows;
-      if(amountRows.length===0){
-        block.innerHTML += '<div class="sync-empty-note">No group had both an ACT-USD and a CORPORATE book to compare.</div>';
-      } else if(shownRows.length===0){
-        block.innerHTML += '<div class="sync-empty-note">No sync issues — every checked group is in sync.</div>';
-      } else {
-        const table = document.createElement('table');
-        table.className = 'sync';
-        table.innerHTML = '<thead><tr>'+idHeadCells+'<th>ACT-USD</th><th>CORPORATE</th><th>Difference</th><th>Status</th></tr></thead>';
-        const tbody = document.createElement('tbody');
-        shownRows.sort((a,b)=> (a.inSync - b.inSync) || 0).forEach(r=>{
-          const tr = document.createElement('tr');
-          if(!r.inSync) tr.classList.add('mismatch');
-          tr.innerHTML = idRowCells(r)+
-            '<td>'+fmtNum(r.actUsd)+'</td><td>'+fmtNum(r.corporate)+'</td><td>'+fmtNum(r.diff)+'</td>'+
-            '<td class="'+(r.inSync?'status-ok':'status-bad')+'">'+(r.inSync?'In sync':(r.signMismatch?'Sign mismatch (3 books)':'Not in sync'))+'</td>';
-          tbody.appendChild(tr);
-        });
-        table.appendChild(tbody);
-        block.appendChild(table);
-      }
-      detail.appendChild(block);
-    }
-
-    if(txnCol){
-      const block = document.createElement('div');
-      block.className = 'sync-detail-block';
-      block.innerHTML = '<h4>Sum of TXN_AMOUNT — ACT-USD vs CORP-BASE vs CORPORATE (whichever of the 3 are present)</h4>';
-      const shownRows = showErrorOnly ? txnRows.filter(r=>!r.inSync) : txnRows;
-      if(txnRows.length===0){
-        block.innerHTML += '<div class="sync-empty-note">No group had at least 2 of the 3 books (ACT-USD, CORP-BASE, CORPORATE) to compare.</div>';
-      } else if(shownRows.length===0){
-        block.innerHTML += '<div class="sync-empty-note">No sync issues — every checked group is in sync.</div>';
-      } else {
-        const table = document.createElement('table');
-        table.className = 'sync';
-        table.innerHTML = '<thead><tr>'+idHeadCells+'<th>ACT-USD</th><th>CORP-BASE</th><th>CORPORATE</th><th>Max difference</th><th>Status</th></tr></thead>';
-        const tbody = document.createElement('tbody');
-        shownRows.sort((a,b)=> (a.inSync - b.inSync) || 0).forEach(r=>{
-          const tr = document.createElement('tr');
-          if(!r.inSync) tr.classList.add('mismatch');
-          tr.innerHTML = idRowCells(r)+
-            '<td>'+fmtNum(r.actUsd)+'</td><td>'+fmtNum(r.corpBase)+'</td><td>'+fmtNum(r.corporate)+'</td>'+
-            '<td>'+fmtNum(r.maxDiff)+'</td>'+
-            '<td class="'+(r.inSync?'status-ok':'status-bad')+'">'+(r.inSync?'In sync':'Not in sync')+'</td>';
-          tbody.appendChild(tr);
-        });
-        table.appendChild(tbody);
-        block.appendChild(table);
-      }
-      detail.appendChild(block);
-    }
-
-    {
-      const block = document.createElement('div');
-      block.className = 'sync-detail-block';
-      block.innerHTML = '<h4>Book missing entirely, or missing a Distribution Type another book has — expected ACT-USD, CORP-BASE, CORPORATE to cover the same Distribution Types</h4>';
-      if(distTypeGapRows.length===0){
-        block.innerHTML += '<div class="sync-empty-note">Every group in this sheet has rows under all 3 books, covering the same Distribution Types.</div>';
-      } else {
-        const table = document.createElement('table');
-        table.className = 'sync';
-        table.innerHTML = '<thead><tr>'+idHeadCells+'<th>Book</th><th>Issue</th></tr></thead>';
-        const tbody = document.createElement('tbody');
-        distTypeGapRows.forEach(r=>{
-          r.bookGaps.forEach(bg=>{
-            const tr = document.createElement('tr');
-            tr.classList.add('mismatch');
-            // A book with no rows at all in this entry (bookAbsent) is
-            // shown as "missing entirely" rather than listing every code.
-            const issueText = bg.bookAbsent
-              ? 'Missing entirely'
-              : 'Missing Distribution Type(s): '+bg.missingDistTypes.join(', ');
-            tr.innerHTML = idRowCells(r)+
-              '<td>'+escapeHtml(bg.book)+'</td>'+
-              '<td class="status-bad">'+escapeHtml(issueText)+'</td>';
-            tbody.appendChild(tr);
-          });
-        });
-        table.appendChild(tbody);
-        block.appendChild(table);
-      }
-      detail.appendChild(block);
-    }
-
-    {
-      const block = document.createElement('div');
-      block.className = 'sync-detail-block';
-      block.innerHTML = '<h4>Imbalance Entry — Sum(AMOUNT) per timestamp, per book should be zero</h4>';
-      const shownZeroSumRows = showErrorOnly ? zeroSumRows.filter(r=>!r.inSync) : zeroSumRows;
-      if(zeroSumRows.length===0){
-        block.innerHTML += '<div class="sync-empty-note">Every timestamp + book group nets to zero — no imbalance entries.</div>';
-      } else if(shownZeroSumRows.length===0){
-        block.innerHTML += '<div class="sync-empty-note">No sync issues — every checked timestamp/book group is in sync.</div>';
-      } else {
-        const table = document.createElement('table');
-        table.className = 'sync';
-        table.innerHTML = '<thead><tr><th>Business unit</th><th>Asset</th><th>Timestamp / Book (Sum AMOUNT)</th><th>Status</th></tr></thead>';
-        const tbody = document.createElement('tbody');
-        shownZeroSumRows.sort((a,b)=> (a.inSync - b.inSync) || 0).forEach(r=>{
-          const tr = document.createElement('tr');
-          if(!r.inSync) tr.classList.add('mismatch');
-          const instCell = r.instances.map(i=>escapeHtml(String(i.dttm))+' / '+escapeHtml(i.book)+' (sum '+fmtNum(i.sum)+')').join('<br>');
-          tr.innerHTML = '<td>'+escapeHtml(r.bu)+'</td>'+
-            '<td>'+escapeHtml(r.asset)+'</td>'+
-            '<td>'+instCell+'</td>'+
-            '<td class="'+(r.inSync?'status-ok':'status-bad')+'">'+(r.inSync?'In sync':'Imbalance Entry')+'</td>';
-          tbody.appendChild(tr);
-        });
-        table.appendChild(tbody);
-        block.appendChild(table);
-      }
-      detail.appendChild(block);
-    }
-  }
-
-})();
 </script>
+
 </body>
 </html>

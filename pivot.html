@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Journal Helper</title>
+<title>Pivot</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -79,6 +79,26 @@
     align-items:center;justify-content:center;z-index:50;padding:20px;
   }
   .modal-backdrop.open{display:flex;}
+  /* Overlay shown while a file/paste is being turned into the workspace. */
+  .loading-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,72,0.45);
+    align-items:center;justify-content:center;z-index:80;padding:20px;
+  }
+  .loading-overlay.open{display:flex;}
+  .loading-box{
+    background:#fff;border-radius:8px;padding:28px 34px;
+    box-shadow:0 12px 40px rgba(0,0,72,0.25);border:1px solid var(--border);
+    display:flex;flex-direction:column;align-items:center;gap:14px;
+  }
+  .loading-spinner{
+    width:34px;height:34px;border-radius:50%;
+    border:3px solid var(--accent-dim);border-top-color:var(--cog-blue);
+    animation:loading-spin .8s linear infinite;
+  }
+  @keyframes loading-spin{ to{ transform:rotate(360deg); } }
+  .loading-text{
+    font-family:'Golos Text',sans-serif;font-size:13.5px;color:var(--cog-navy);font-weight:600;
+  }
   .modal-box{
     background:#fff;border-radius:8px;padding:20px 22px;width:100%;max-width:640px;
     box-shadow:0 12px 40px rgba(0,0,72,0.25);
@@ -249,7 +269,9 @@
   }
   .error-assets-export-btn:hover{background:var(--cog-blue);color:#fff;border-color:var(--cog-blue);}
   table.error-assets-table td:nth-child(3), table.error-assets-table th:nth-child(3),
-  table.error-assets-table td:nth-child(4), table.error-assets-table th:nth-child(4){text-align:left;}
+  table.error-assets-table td:nth-child(4), table.error-assets-table th:nth-child(4),
+  table.error-assets-table td:nth-child(5), table.error-assets-table th:nth-child(5),
+  table.error-assets-table td:nth-child(6), table.error-assets-table th:nth-child(6){text-align:left;}
   .sync-tile{
     flex:1;min-width:180px;border-radius:8px;padding:8px 10px;border:1px solid var(--border);
     display:flex;flex-direction:column;gap:2px;
@@ -324,6 +346,14 @@
             <span class="btn secondary" id="pasteCancel">Cancel</span>
             <span class="btn" id="pasteLoad">Load data</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Loading overlay, shown between "load started" and "workspace ready". -->
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-box">
+          <div class="loading-spinner"></div>
+          <div class="loading-text" id="loadingText">Loading…</div>
         </div>
       </div>
 
@@ -408,16 +438,45 @@
   </div>
 
 <script>
+/* =====================================================================
+   HOW THIS FILE WORKS
+   =====================================================================
+   1. User uploads a file or pastes rows -> parsed into rawRows (array
+      of plain row objects) and headers (column names).
+   2. Every column becomes a draggable chip. User drags chips into 4
+      zones: Filters / Rows / Columns / Values. This is stored in `state`.
+   3. Any change to `state` triggers computeAndRenderPivot(), which
+      rebuilds the pivot table from scratch (rawRows + state).
+   4. If the sheet looks like an accounting journal (has BUSINESS_UNIT,
+      ASSET_ID, BOOK, AMOUNT columns), we also run a "Book sync check"
+      (SECTION 5) that flags rows where different books don't reconcile.
+
+   SECTIONS (search these banner comments to jump around):
+     SECTION 1: STATE & CONFIG
+     SECTION 2: LOADING DATA
+     SECTION 3: FIELD LIST & DRAG-DROP
+     SECTION 4: PIVOT TABLE
+     SECTION 5: BOOK SYNC CHECK
+     SECTION 6: SMALL HELPERS
+
+   `state` SHAPE:
+   state.filters = [{field, selected:Set, allValues:[...], open:bool}, ...]
+   state.rows    = ['COL_A', 'COL_B', ...]
+   state.columns = ['COL_C', ...]
+   state.values  = [{field:'AMOUNT', agg:'sum'}, ...]
+   ===================================================================== */
 (function(){
   "use strict";
 
-  let rawRows = [];
-  let headers = [];
-  let colTypes = {};
-  let workbook = null;
-  let erroringRawRows = new Set();
-  let lastSyncContext = null;
+  // ===================== SECTION 1: STATE & CONFIG =====================
+  let rawRows = [];               // every loaded data row, unmodified
+  let headers = [];                // all column names seen
+  let colTypes = {};               // header -> 'num' or 'str'
+  let workbook = null;             // parsed xlsx workbook (null if pasted text)
+  let erroringRawRows = new Set(); // rows flagged by the sync check (SECTION 5)
+  let lastSyncContext = null;      // debug bookkeeping, not read elsewhere
 
+  // The single object describing "what pivot the user has built".
   const state = {
     filters: [],
     rows: [],
@@ -425,6 +484,7 @@
     values: []
   };
 
+  // Aggregation functions available in the Values zone dropdown.
   const AGGS = {
     sum:   {label:'Sum',   fn: vals => vals.reduce((a,b)=>a+b,0)},
     count: {label:'Count', fn: vals => vals.length},
@@ -438,6 +498,25 @@
   const emptyState = el('emptyState');
   const workspace = el('workspace');
 
+  // ===================== SECTION 2: LOADING DATA =====================
+  // Gets data INTO rawRows/headers/colTypes, from a file, a paste, or a
+  // sheet switch.
+
+  // Shows the loading spinner overlay.
+  function showLoading(message){
+    el('loadingText').textContent = message || 'Loading…';
+    el('loadingOverlay').classList.add('open');
+  }
+  // Hides the loading overlay (called once ingestRows() finishes).
+  function hideLoading(){
+    el('loadingOverlay').classList.remove('open');
+  }
+  // Delays `work` one tick so the loading overlay actually paints first.
+  function runAfterPaint(work){
+    setTimeout(work, 30);
+  }
+
+  // "Refresh" = just reload the page (simplest possible reset).
   function confirmRefresh(){
     if(confirm('This will clear the currently loaded data on this tab and let you upload/paste fresh data. Continue?')){
       window.location.reload();
@@ -456,24 +535,23 @@
     el('panelToggle').textContent = collapsed ? 'Show fields panel ▸' : 'Hide fields panel ◂';
   });
 
-  // Checkbox: hide non-issue rows from the rendered pivot table.
-  // This never changes which rows feed the aggregates/Grand Total —
-  // only which rows get appended to the visible table.
+  // "Only issues" checkbox: hides non-flagged rows from the table view
+  // only — never changes what feeds the aggregates/Grand Total.
   let showOnlyIssuesInPivot = false;
   el('onlyIssuesToggle').addEventListener('change', e=>{
     showOnlyIssuesInPivot = e.target.checked;
     computeAndRenderPivot();
   });
 
-  // Search box: narrows the pivot's underlying data down to a specific
-  // Asset ID, typed with or without the leading-zero padding
-  // (e.g. "3805" and "000000003805" both match the same asset).
+  // Asset ID search box: narrows the pivot data to one asset (matches
+  // padded or unpadded form, e.g. "3805" == "000000003805").
   let assetSearchQuery = '';
   el('assetSearchInput').addEventListener('input', e=>{
     assetSearchQuery = e.target.value;
     computeAndRenderPivot();
   });
 
+  // Strips leading zeros for Asset ID comparisons ("0000" -> "0", not "").
   function stripLeadingZeros(s){
     const stripped = String(s).replace(/^0+/, '');
     return stripped === '' ? '0' : stripped;
@@ -498,7 +576,8 @@
     el('sheetSelect').innerHTML = '';
     closePasteModal();
     el('pasteArea').value = '';
-    ingestRows(json, 'Pasted data');
+    showLoading('Reading pasted data…');
+    runAfterPaint(()=> ingestRows(json, 'Pasted data'));
   });
 
   const sqlModal = el('sqlModal');
@@ -508,26 +587,44 @@
   el('sqlClose').addEventListener('click', ()=> sqlModal.classList.remove('open'));
   sqlModal.addEventListener('click', e=>{ if(e.target === sqlModal) sqlModal.classList.remove('open'); });
 
+  // Reads the uploaded file, parses it with xlsx.js, fills the "Sheet:"
+  // dropdown, then loads the first sheet.
   function handleFile(e){
     const file = e.target.files[0];
     if(!file) return;
+    showLoading('Reading file…');
     const reader = new FileReader();
     reader.onload = function(ev){
-      const data = new Uint8Array(ev.target.result);
-      workbook = XLSX.read(data, {type:'array', cellDates:true});
-      const sel = el('sheetSelect');
-      sel.innerHTML = '';
-      workbook.SheetNames.forEach(name=>{
-        const opt = document.createElement('option');
-        opt.value = name; opt.textContent = name;
-        sel.appendChild(opt);
+      // Yield a tick so the overlay paints before the heavy parsing runs.
+      runAfterPaint(()=>{
+        try{
+          const data = new Uint8Array(ev.target.result);
+          workbook = XLSX.read(data, {type:'array', cellDates:true});
+          const sel = el('sheetSelect');
+          sel.innerHTML = '';
+          workbook.SheetNames.forEach(name=>{
+            const opt = document.createElement('option');
+            opt.value = name; opt.textContent = name;
+            sel.appendChild(opt);
+          });
+          el('sheetSelectWrap').style.display = 'inline-flex';
+          loadSheet(workbook.SheetNames[0]);
+        } catch(err){
+          hideLoading();
+          alert('Could not read this file: ' + err.message);
+        }
       });
-      el('sheetSelectWrap').style.display = 'inline-flex';
-      loadSheet(workbook.SheetNames[0]);
+    };
+    reader.onerror = function(){
+      hideLoading();
+      alert('Could not read the file.');
     };
     reader.readAsArrayBuffer(file);
   }
 
+  // Converts pasted text (tab- or comma-separated) into the same
+  // row-object shape xlsx.js gives us, so the rest of the app doesn't
+  // care whether data came from a file or a paste.
   function parsePastedText(text){
     const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n')
       .filter(l => l.trim() !== '');
@@ -559,17 +656,26 @@
     return rows;
   }
 
+  // Reads one sheet from `workbook` into row-objects, drops blank rows,
+  // then hands off to ingestRows(). Called on upload and on sheet switch.
   function loadSheet(sheetName){
-    const ws = workbook.Sheets[sheetName];
-    let json = XLSX.utils.sheet_to_json(ws, {defval:null});
-    json = json.filter(r => Object.values(r).some(v => v !== null && v !== ''));
-    if(json.length === 0){
-      alert('No tabular data with headers found on sheet "'+sheetName+'". Try a different sheet.');
-      return;
-    }
-    ingestRows(json, sheetName);
+    showLoading('Loading sheet "'+sheetName+'"…');
+    runAfterPaint(()=>{
+      const ws = workbook.Sheets[sheetName];
+      let json = XLSX.utils.sheet_to_json(ws, {defval:null});
+      json = json.filter(r => Object.values(r).some(v => v !== null && v !== ''));
+      if(json.length === 0){
+        hideLoading();
+        alert('No tabular data with headers found on sheet "'+sheetName+'". Try a different sheet.');
+        return;
+      }
+      ingestRows(json, sheetName);
+    });
   }
 
+  // The common entry point once we have data (from file or paste):
+  // stores rawRows/headers, guesses colTypes, resets `state`, shows the
+  // workspace, builds the field list + starter pivot + sync check.
   function ingestRows(json, sourceLabel){
     rawRows = json;
     headers = Object.keys(json[0]);
@@ -600,8 +706,16 @@
     renderZones();
     runSyncCheck(sourceLabel);
     computeAndRenderPivot();
+    // Success path always ends here, whether data came from a file,
+    // a sheet switch, or a paste.
+    hideLoading();
   }
 
+  // If the sheet has the accounting-journal columns (BUSINESS_UNIT,
+  // ASSET_ID, BOOK, AMOUNT), pre-fill a sensible starter pivot:
+  // Rows = Business Unit, Asset ID (+ Trans Type/Timestamp/Dist Type if
+  // present), Columns = Book, Values = Sum of Amount. Otherwise does
+  // nothing and the user builds the pivot manually.
   function autoPopulatePivot(){
     const buCol = findCol('BUSINESS_UNIT');
     const assetCol = findCol('ASSET_ID');
@@ -626,6 +740,12 @@
     state.filters = [];
   }
 
+  // ============== SECTION 3: FIELD LIST & DRAG-DROP ==============
+  // Draws the field chips and handles dragging them into the 4 zones.
+  // Just edits `state`, then redraws — no pivot math here (that's SECTION 4).
+
+  // Redraws the horizontal chip list, filtered by the search box.
+  // Each chip is draggable; dragstart stores {field, from:'fieldlist'}.
   function renderFieldList(){
     const q = el('fieldSearch').value.trim().toLowerCase();
     const list = el('fieldList');
@@ -645,6 +765,10 @@
     });
   }
 
+  // Wires up drag-and-drop for all 4 zones. On drop: figure out which
+  // zone, whether we dropped on top of an existing chip (insert before
+  // or after based on cursor position), then either reorder within the
+  // same zone or move the field in from elsewhere.
   ['zoneFilters','zoneRows','zoneColumns','zoneValues'].forEach(id=>{
     const zone = el(id);
     zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('dragover'); });
@@ -676,12 +800,18 @@
     });
   });
 
+  // Redraws zones + sync check + pivot table. Call after any state change.
   function refreshAll(){
     renderZones();
     runSyncCheck();
     computeAndRenderPivot();
   }
 
+  // Moves `field` into zone `targetKey`, removing it from any other zone
+  // first (a field lives in only one zone at a time).
+  //   - values: stored as {field, agg} (default agg: sum for numbers, count for text)
+  //   - filters: stored as {field, selected, allValues, open} — starts with everything selected
+  //   - rows/columns: stored as plain field name
   function addFieldToZone(field, targetKey, from, insertIndex){
     removeFieldEverywhere(field);
     if(targetKey === 'values'){
@@ -701,6 +831,8 @@
     refreshAll();
   }
 
+  // Moves a field to a new position within the same zone (e.g. reordering
+  // which Rows field is outer vs inner grouping).
   function reorderWithinZone(key, field, insertIndex){
     if(key === 'values'){
       const idx = state.values.findIndex(v=>v.field===field);
@@ -728,6 +860,8 @@
     refreshAll();
   }
 
+  // Removes a field from all 4 zones at once (used before moving it to a
+  // new zone, and by each chip's "×" remove button).
   function removeFieldEverywhere(field){
     state.rows = state.rows.filter(f=>f!==field);
     state.columns = state.columns.filter(f=>f!==field);
@@ -735,6 +869,7 @@
     state.filters = state.filters.filter(f=>f.field!==field);
   }
 
+  // Redraws all 4 drop zones from current `state`.
   function renderZones(){
     renderSimpleZone('zoneRows','rows', state.rows);
     renderSimpleZone('zoneColumns','columns', state.columns);
@@ -742,6 +877,8 @@
     renderFiltersZone();
   }
 
+  // Draws the Rows or Columns zone (same shape: ordered list of field
+  // names). Each chip has an up/down reorder button and a remove button.
   function renderSimpleZone(elId, key, arr){
     const zone = el(elId);
     zone.innerHTML = '';
@@ -757,9 +894,7 @@
       label.textContent = field;
       chip.appendChild(label);
 
-      // Up/down buttons — an explicit alternative to drag-and-drop for
-      // reordering which field is more granular (outer group) vs less
-      // granular (inner group) in the pivot tree.
+      // Up/down = drag-and-drop alternative for reordering grouping order.
       const upBtn = document.createElement('span');
       upBtn.className = 'move' + (idx===0 ? ' disabled' : '');
       upBtn.title = 'Move up';
@@ -803,6 +938,8 @@
     });
   }
 
+  // Draws the Values zone — like renderSimpleZone but each chip also has
+  // an aggregation dropdown (Sum/Count/Average/Min/Max, from AGGS).
   function renderValuesZone(){
     const zone = el('zoneValues');
     zone.innerHTML = '';
@@ -835,6 +972,10 @@
     });
   }
 
+  // Draws the Filters zone: one collapsible box per filter field, with
+  // All/None shortcuts, a value search box, and one checkbox per distinct
+  // value. Unchecking a value only removes it from f.selected (not from
+  // allValues) — getFilteredRows() (SECTION 4) uses f.selected to exclude rows.
   function renderFiltersZone(){
     const zone = el('zoneFilters');
     zone.innerHTML = '';
@@ -904,12 +1045,16 @@
     });
   }
 
+  // Turns any cell value into a plain string key (for grouping/comparing).
+  // Dates become "YYYY-MM-DD"; null/undefined become ''.
   function fmtKey(v){
     if(v===null || v===undefined) return '';
     if(v instanceof Date) return v.toISOString().slice(0,10);
     return String(v);
   }
 
+  // Formats an Asset ID for display: left-pads purely-numeric IDs to
+  // 12 digits (e.g. "3805" -> "000000003805"); leaves others untouched.
   function formatAssetId(v){
     if(v===null || v===undefined || v==='') return '';
     const s = String(v).trim();
@@ -917,6 +1062,12 @@
     return s;
   }
 
+  // ==================== SECTION 4: PIVOT TABLE ====================
+  // Builds the <table> from rawRows + state. computeAndRenderPivot() is
+  // the main function; everything else here is a helper it calls.
+
+  // Applies every active filter to rawRows (filters are AND'ed together —
+  // a row must match every filter field's selected values).
   function getFilteredRows(){
     let rows = rawRows;
     state.filters.forEach(f=>{
@@ -925,19 +1076,25 @@
     return rows;
   }
 
+  // Main pivot builder. Rebuilds from scratch every call. Steps:
+  //  1. Get filtered rows, then narrow further by the Asset ID search box.
+  //  2. Bail out with a placeholder if the pivot isn't complete yet.
+  //  3. Pre-compute each row's column-group key and numeric values.
+  //  4. Work out the full sorted list of column groups.
+  //  5. Build a nested tree of row-groups (one level per Rows field).
+  //  6. Walk the tree, drawing one <tr> per node (leaf = data row, parent = subtotal).
+  //  7. Add a Grand Total row/columns over ALL filtered rows (the "only
+  //     issues" checkbox only hides rows from view, never from totals).
   function computeAndRenderPivot(){
     const scroll = el('tableScroll');
     const meta = el('resultsMeta');
     let dataRows = getFilteredRows();
-    // Columns (e.g. ACT-USD / CORP-BASE / CORPORATE) are always enumerated from
-    // this pre-search set, so the Asset ID search box only narrows which ROWS
-    // show up — it never makes a column disappear just because the matched
-    // asset happens to have no data under that particular book.
+    // Columns are always enumerated from the pre-search set, so the
+    // Asset ID search only narrows ROWS — it never hides a column just
+    // because the matched asset has no data under that book.
     const rowsForColumns = dataRows;
 
-    // Asset ID search box: narrows the working data set down to whatever
-    // was typed, matching whether the person types the padded or
-    // unpadded form of the asset id (e.g. "3805" or "000000003805").
+    // Asset ID search: matches padded or unpadded form (e.g. "3805" == "000000003805").
     const assetColSearch = findCol('ASSET_ID');
     if(assetSearchQuery.trim() && assetColSearch){
       const q = assetSearchQuery.trim();
@@ -982,12 +1139,15 @@
       rowValueNums.set(r, nums);
     });
 
-    // Column set comes from rowsForColumns (pre-search), not dataRows, so
-    // a Book column never gets hidden purely because of the Asset ID search.
+    // Column set comes from rowsForColumns (pre-search) so a Book column
+    // never disappears just because of the Asset ID search.
     const colKeySet = new Set();
     rowsForColumns.forEach(r=> colKeySet.add(state.columns.length ? colKeyOf(r).join('\u0001') : ''));
     const sortedColKeys = state.columns.length ? Array.from(colKeySet).sort((a,b)=>a.localeCompare(b)) : [''];
 
+    // Buckets a set of rows' numeric values by column-group, plus a
+    // "grand" bucket ignoring column entirely. Nulls are skipped (not
+    // treated as 0) so averages/min/max aren't skewed by blanks.
     function computeAggregates(rows){
       const byCol = new Map();
       const grand = state.values.map(()=>[]);
@@ -1002,11 +1162,43 @@
       });
       return {byCol, grand};
     }
+    // Merges several already-computed aggregate results into one, by
+    // concatenating their value arrays (cheaper than re-scanning rows).
+    // This is how a parent tree node's aggregate is built from its
+    // children's aggregates, instead of re-scanning every row at every
+    // level of the tree. Safe because AGGS functions only need a flat
+    // array of numbers, however it was assembled.
+    function mergeAggregates(childAggs){
+      const byCol = new Map();
+      const grand = state.values.map(()=>[]);
+      for(const agg of childAggs){
+        agg.byCol.forEach((bucket, cKey)=>{
+          let target = byCol.get(cKey);
+          if(!target){ target = state.values.map(()=>[]); byCol.set(cKey, target); }
+          bucket.forEach((arr, vi)=>{
+            const t = target[vi];
+            for(let i=0;i<arr.length;i++) t.push(arr[i]);
+          });
+        });
+        agg.grand.forEach((arr, vi)=>{
+          const t = grand[vi];
+          for(let i=0;i<arr.length;i++) t.push(arr[i]);
+        });
+      }
+      return {byCol, grand};
+    }
+
+    // Runs the chosen aggregation (Sum/Count/Average/Min/Max) over one
+    // bucket of numbers. Returns null (blank cell) if nothing to aggregate.
     function aggFromBucket(arr, vi){
       if(!arr || arr.length===0) return null;
       return AGGS[state.values[vi].agg].fn(arr);
     }
 
+    // Recursively groups `rows` by fields[0], then recurses into each
+    // group using the remaining fields. Turns Rows=[BU, Asset] into a
+    // 2-level tree: one node per BU, each with one child per Asset.
+    // Each node: { label, field, rows, children }.
     function buildTree(rows, fields){
       const field = fields[0];
       const groups = new Map();
@@ -1015,9 +1207,8 @@
         if(!groups.has(key)) groups.set(key, []);
         groups.get(key).push(r);
       });
-      // Asset ID sorts ascending on its zero-padded form (so e.g. "386" sorts
-      // before "3805"/"3806" numerically instead of lexicographically on the
-      // raw, unpadded string).
+      // Asset ID sorts on its zero-padded form so it sorts numerically,
+      // not lexicographically on the raw string.
       const isAssetField = field === assetColForSort;
       const sortedKeys = Array.from(groups.keys()).sort((a,b)=>{
         if(isAssetField) return formatAssetId(a).localeCompare(formatAssetId(b));
@@ -1031,6 +1222,18 @@
     }
 
     const tree = state.rows.length ? buildTree(dataRows, state.rows) : [{label:'(all)', field:null, rows:dataRows, children:null}];
+
+    // Computes every node's aggregate bottom-up, cached as node._agg.
+    // A leaf scans its own rows; a parent just merges its children's
+    // aggregates — so every row is scanned exactly once total, no matter
+    // how deep the tree is.
+    function computeNodeAgg(node){
+      node._agg = node.children
+        ? mergeAggregates(node.children.map(computeNodeAgg))
+        : computeAggregates(node.rows);
+      return node._agg;
+    }
+    tree.forEach(computeNodeAgg);
 
     const table = document.createElement('table');
     table.className = 'pivot tree';
@@ -1071,6 +1274,10 @@
     const txnValueIdx = canCheckRollup && txnColForCheck!=null
       ? state.values.findIndex(v=>v.field===txnColForCheck) : -1;
 
+    // Cheap in-pivot version of the Book sync check. Only applies when
+    // the pivot's only Columns field is BOOK, so agg.byCol is already
+    // keyed by book name — lets us compare AMOUNT/TXN_AMOUNT sums across
+    // books for this exact node, without a separate grouping pass.
     function nodeHasRollupMismatch(agg){
       if(amountValueIdx>-1){
         const a = agg.byCol.get('ACT-USD'), c = agg.byCol.get('CORPORATE');
@@ -1080,30 +1287,33 @@
           if(av!==null && cv!==null && Math.abs(av-cv) > SYNC_TOLERANCE) return true;
         }
       }
+      // Compares whichever of ACT-USD/CORP-BASE/CORPORATE this node
+      // actually has (2 or 3), matching the relaxation in check (B) below.
       if(txnValueIdx>-1){
-        const a = agg.byCol.get('ACT-USD'), b = agg.byCol.get('CORP-BASE'), c = agg.byCol.get('CORPORATE');
-        if(a && b && c){
-          const av = aggFromBucket(a[txnValueIdx], txnValueIdx);
-          const bv = aggFromBucket(b[txnValueIdx], txnValueIdx);
-          const cv = aggFromBucket(c[txnValueIdx], txnValueIdx);
-          if(av!==null && bv!==null && cv!==null && (Math.max(av,bv,cv)-Math.min(av,bv,cv)) > SYNC_TOLERANCE) return true;
-        }
+        const buckets = ['ACT-USD','CORP-BASE','CORPORATE']
+          .map(bookName => agg.byCol.get(bookName))
+          .filter(Boolean)
+          .map(bucket => aggFromBucket(bucket[txnValueIdx], txnValueIdx))
+          .filter(v => v!==null);
+        if(buckets.length>=2 && (Math.max(...buckets)-Math.min(...buckets)) > SYNC_TOLERANCE) return true;
       }
       return false;
     }
 
+    // True if this leaf node should be highlighted red: either its rows
+    // were flagged by the SECTION 5 sync check, or the cheap in-pivot
+    // rollup check above catches something the sync check might miss
+    // (e.g. a finer Rows grouping than the sync check uses).
     function isNodeFlagged(node){
-      // Only leaves are ever "the" flagged row — parents merely roll issues up.
+      // Only leaves get flagged directly — parents just roll issues up.
       if(node.children) return false;
-      const agg = computeAggregates(node.rows);
-      return node.rows.some(r=>erroringRawRows.has(r)) || nodeHasRollupMismatch(agg);
+      // Reuses node._agg (already computed by computeNodeAgg above).
+      return node.rows.some(r=>erroringRawRows.has(r)) || nodeHasRollupMismatch(node._agg);
     }
 
-    // Pre-pass: mark each node with whether it (a leaf) or any descendant carries
-    // a sync issue. This is only used to decide which rows to hide when
-    // "Show only issue assets" is checked — it never touches the underlying
-    // dataRows, the aggregates, or the Grand Total row/columns, which always
-    // reflect the full dataset regardless of this checkbox.
+    // Marks each node with whether it (or a descendant) has an issue —
+    // used only to decide which rows to hide under "Show only issues".
+    // Never affects aggregates or the Grand Total.
     function markHasIssue(node){
       if(node.children){
         node._hasIssue = node.children.reduce((any, child)=> markHasIssue(child) || any, false);
@@ -1114,14 +1324,18 @@
     }
     tree.forEach(node => markHasIssue(node));
 
+    // Draws one tree node as a <tr>, then recurses into children (one
+    // indent level deeper each time). Subtotal rows (nodes with
+    // children) are bolded; flagged leaf rows get a red background.
     function renderNode(node, depth){
       if(showOnlyIssuesInPivot && !node._hasIssue) return;
 
       rowGroupCount++;
       const isLeaf = !node.children;
       const tr = document.createElement('tr');
-      const agg = computeAggregates(node.rows);
-      const flagged = isLeaf && (node.rows.some(r=>erroringRawRows.has(r)) || nodeHasRollupMismatch(agg));
+      // Reuses node._agg / node._hasIssue computed once above.
+      const agg = node._agg;
+      const flagged = isLeaf && node._hasIssue;
       if(flagged) tr.classList.add('row-error');
       if(!isLeaf) tr.classList.add('subtotal-row');
 
@@ -1170,7 +1384,10 @@
     const fth = document.createElement('th');
     fth.textContent = 'Grand Total';
     ftr.appendChild(fth);
-    const footAgg = computeAggregates(dataRows);
+    // Grand Total = every top-level tree node's aggregate merged
+    // together (root nodes cover every row exactly once, so this
+    // matches computeAggregates(dataRows) without a second full scan).
+    const footAgg = mergeAggregates(tree.map(node => node._agg));
     sortedColKeys.forEach(cKey=>{
       const bucket = footAgg.byCol.get(cKey);
       state.values.forEach((v, vi)=>{
@@ -1194,6 +1411,9 @@
     window.__lastPivotTable = table;
   }
 
+  // Formats a number for display: rounds near-zero noise to a clean 0,
+  // shows whole numbers with no decimals, others with 2 decimals, using
+  // US-style thousands separators.
   function fmtNum(v){
     if(v===null || v===undefined) return '';
     if(Object.is(v, -0) || Math.abs(v) < 0.005) v = 0;
@@ -1201,10 +1421,33 @@
     return v.toLocaleString('en-US', {maximumFractionDigits:2, minimumFractionDigits:2});
   }
 
+  // Escapes HTML special characters before inserting text via innerHTML.
+  // Always wrap untrusted/data-driven text in this.
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  // ================ SECTION 5: BOOK SYNC CHECK ================
+  // Accounting-reconciliation feature, separate from the pivot table.
+  // Only activates when the sheet has BUSINESS_UNIT, ASSET_ID, BOOK and
+  // AMOUNT/TXN_AMOUNT columns. Checks 4 things:
+  //   (A) Sum(AMOUNT) for ACT-USD should equal Sum(AMOUNT) for CORPORATE,
+  //       per group (Business Unit + Asset ID + whatever else is in Rows).
+  //   (B) Sum(TXN_AMOUNT) should match across whichever of ACT-USD,
+  //       CORP-BASE, CORPORATE the group has (needs at least 2 present).
+  //   (C) Every canonical book (ACT-USD/CORP-BASE/CORPORATE) should cover
+  //       the same Distribution Types as the union seen across all 3 for
+  //       that entry. A book absent entirely comes out missing everything
+  //       (reported as "book missing entirely"); a partially-covering
+  //       book is reported with just its specific gap. No Distribution
+  //       Type column -> falls back to a plain book-existence check.
+  //   (D) "Imbalance Entry": for every (timestamp, book) pair, Sum(AMOUNT)
+  //       across all rows should net to zero (double-entry bookkeeping).
+  // runSyncCheck() computes all of this and renders: the unique-error-
+  // assets table, the summary tiles, and the detailed breakdown tables.
+
+  // Groups rows by Business Unit + Asset ID (ignoring any finer grouping)
+  // — used only for the summary tile counts, to avoid double-counting.
   function dedupeByBuAsset(rows){
     const map = new Map();
     rows.forEach(r=>{
@@ -1217,15 +1460,23 @@
     return Array.from(map.values());
   }
 
+  // How close two numbers must be to count as "the same" (avoids
+  // floating-point noise causing false mismatches).
   const SYNC_TOLERANCE = 0.01;
 
+  // Normalizes a header for matching (trim, uppercase, collapse spaces/
+  // underscores) so findCol('BUSINESS_UNIT') matches "Business Unit" too.
   function normHeader(s){ return s.trim().toUpperCase().replace(/[\s_]+/g,'_'); }
+  // Finds the real header name matching `target` (see normHeader), or
+  // null if this sheet doesn't have that column.
   function findCol(target){
     const t = normHeader(target);
     return headers.find(h => normHeader(h) === t) || null;
   }
+  // Normalizes a BOOK value for comparison (trim + uppercase).
   function normBook(v){ return (v===null||v===undefined) ? '' : String(v).trim().toUpperCase(); }
 
+  // "Show/Hide detail" toggle — just show/hide, no recompute.
   let syncDetailVisible = false;
   function applySyncVisibility(){
     el('syncTiles').style.display = syncDetailVisible ? '' : 'none';
@@ -1245,6 +1496,13 @@
     runSyncCheck();
   });
 
+  // Main sync-check function (see SECTION 5 banner for what it checks).
+  // Always runs over the full rawRows, not the pivot's filtered rows.
+  // Steps: find the relevant columns -> decide grouping fields (BU +
+  // Asset always, plus Trans Type/Timestamp if those columns exist AND
+  // are currently in the pivot's Rows zone) -> group rawRows and sum
+  // AMOUNT/TXN_AMOUNT per book per group -> run checks (A)-(C) per group,
+  // check (D) separately -> hand off to the 3 render functions.
   function runSyncCheck(){
     const panel = el('syncPanel');
     const buCol = findCol('BUSINESS_UNIT');
@@ -1257,6 +1515,9 @@
     const distTypeCol = findCol('DISTRIBUTION_TYPE');
     const journalCol = findCol('JOURNAL_ID') || findCol('JRNL_ID') || findCol('JOURNALID') || findCol('JE_ID') || findCol('JNL_ID');
 
+    // Collects distinct Journal IDs from a set of rows, so a flagged
+    // group can show which journal entries to look at. [] if no
+    // recognizable journal-ID column exists.
     function journalIdsFromRows(rows){
       if(!journalCol) return [];
       const set = new Set();
@@ -1267,6 +1528,8 @@
       return Array.from(set);
     }
 
+    // Without BU + Asset + Book + at least one of Amount/Txn Amount,
+    // there's nothing to reconcile — hide the sync panel entirely.
     if(!buCol || !assetCol || !bookCol || (!amountCol && !txnCol)){
       panel.style.display = 'none';
       el('topBar').style.display = 'flex';
@@ -1275,12 +1538,19 @@
     panel.style.display = 'block';
     el('topBar').style.display = 'none';
 
+    // BU + Asset ID always group; Trans Type/Timestamp are added only
+    // if that column exists AND is currently in the pivot's Rows zone.
+    //
+    // Distribution Type is deliberately NEVER part of the grouping key
+    // (even if it's in Rows): books sometimes record the same entry
+    // under different Distribution Type sub-codes, so grouping by it
+    // could make an out-of-balance entry look "fine" one sub-code at a
+    // time. Keeping it out means checks always compare whole-entry totals.
     const candidateFields = [
       {col: buCol, prop:'bu', label:'Business unit', required:true},
       {col: assetCol, prop:'asset', label:'Asset', isAsset:true, required:true},
       {col: transTypeCol, prop:'transType', label:'Trans type'},
-      {col: dttmCol, prop:'dttm', label:'Timestamp'},
-      {col: distTypeCol, prop:'distType', label:'Distribution type'}
+      {col: dttmCol, prop:'dttm', label:'Timestamp'}
     ].filter(f => f.col);
     const activeFields = candidateFields.filter(f => f.required || state.rows.includes(f.col));
     const inRows = activeFields.filter(f => state.rows.includes(f.col));
@@ -1290,26 +1560,39 @@
 
     el('syncScope').textContent = '(grouped by '+fieldDefs.map(f=>f.col).join(' + ')+', split by '+bookCol+')';
 
+    // The 3 books every group is expected to have rows under.
     const CANONICAL_BOOKS = ['ACT-USD','CORP-BASE','CORPORATE'];
+    // Pass 1: walk every row once, building `groups` keyed by the
+    // fieldDefs combination. Each group tracks: which books it has seen,
+    // running AMOUNT/TXN_AMOUNT sums per book, and its member rows.
     const groups = new Map();
     const fieldDefCount = fieldDefs.length;
     rawRows.forEach(r=>{
       const bu = r[buCol];
       const asset = r[assetCol];
       const transType = transTypeCol ? r[transTypeCol] : undefined;
-      const distType = distTypeCol ? r[distTypeCol] : undefined;
       const dttm = dttmCol ? r[dttmCol] : undefined;
       const book = normBook(r[bookCol]);
-      const propValues = {bu, asset, dttm, transType, distType};
+      const propValues = {bu, asset, dttm, transType};
       let key = '';
       for(let i=0;i<fieldDefCount;i++){
         if(i>0) key += '\u0001';
         key += fmtKey(propValues[fieldDefs[i].prop]);
       }
-      if(!groups.has(key)) groups.set(key, {bu, asset, transType, distType, dttm, amountByBook:new Map(), txnByBook:new Map(), booksSeen:new Set(), memberRows:[]});
+      if(!groups.has(key)) groups.set(key, {bu, asset, transType, dttm, amountByBook:new Map(), txnByBook:new Map(), booksSeen:new Set(), distTypesByBook:new Map(), memberRows:[]});
       const g = groups.get(key);
       g.booksSeen.add(book);
       g.memberRows.push(r);
+      // For check (C): which Distribution Type codes each book recorded
+      // a row under, within this entry.
+      if(distTypeCol){
+        const distType = fmtKey(r[distTypeCol]);
+        if(distType !== ''){
+          let set = g.distTypesByBook.get(book);
+          if(!set){ set = new Set(); g.distTypesByBook.set(book, set); }
+          set.add(distType);
+        }
+      }
       if(amountCol){
         const raw = r[amountCol];
         const num = typeof raw==='number'? raw : parseFloat(raw);
@@ -1326,9 +1609,12 @@
       }
     });
 
+    // Pass 2: run checks (A), (B), (C) per group. Any row belonging to a
+    // group with a failing check gets added to erroringRawRows (read by
+    // the pivot table's red-highlighting).
     const amountRows = [];
     const txnRows = [];
-    const missingRows = [];
+    const distTypeGapRows = [];
     erroringRawRows = new Set();
 
     groups.forEach(g=>{
@@ -1339,9 +1625,8 @@
         const diff = a - c;
         let inSync = Math.abs(diff) <= SYNC_TOLERANCE;
 
-        // Sign-mismatch check across all 3 books (ACT-USD, CORP-BASE, CORPORATE).
-        // Boundary is inclusive at exactly ±SYNC_TOLERANCE, so a value like -0.01
-        // keeps its real sign (-1) instead of being bucketed into the "neutral" 0 zone.
+        // Sign-mismatch check across all 3 books. Boundary is inclusive
+        // at ±SYNC_TOLERANCE, so a value like -0.01 keeps its real sign.
         let signMismatch = false;
         if(g.amountByBook.has('CORP-BASE')){
           const b = g.amountByBook.get('CORP-BASE');
@@ -1352,22 +1637,55 @@
         if(signMismatch) inSync = false;
 
         if(!inSync) groupHasError = true;
-        amountRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, actUsd:a, corpBase:g.amountByBook.get('CORP-BASE'), corporate:c, diff, inSync, signMismatch, journalIds: journalIdsFromRows(g.memberRows)});
+        amountRows.push({bu:g.bu, asset:g.asset, transType:g.transType, dttm:g.dttm, actUsd:a, corpBase:g.amountByBook.get('CORP-BASE'), corporate:c, diff, inSync, signMismatch, journalIds: journalIdsFromRows(g.memberRows)});
       }
-      if(txnCol && g.txnByBook.has('ACT-USD') && g.txnByBook.has('CORP-BASE') && g.txnByBook.has('CORPORATE')){
-        const a = g.txnByBook.get('ACT-USD');
-        const b = g.txnByBook.get('CORP-BASE');
-        const c = g.txnByBook.get('CORPORATE');
-        const maxDiff = Math.max(a,b,c) - Math.min(a,b,c);
-        const inSync = maxDiff <= SYNC_TOLERANCE;
-        if(!inSync) groupHasError = true;
-        txnRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, actUsd:a, corpBase:b, corporate:c, maxDiff, inSync, journalIds: journalIdsFromRows(g.memberRows)});
+      // Check (B): compares Sum(TXN_AMOUNT) across whichever of the 3
+      // canonical books are present (needs at least 2 to compare). A
+      // group with only 1 book has nothing to compare here — check (C)
+      // below still flags it as "book missing".
+      if(txnCol){
+        const presentTxnBooks = CANONICAL_BOOKS.filter(b=>g.txnByBook.has(b));
+        if(presentTxnBooks.length >= 2){
+          const vals = presentTxnBooks.map(b=>g.txnByBook.get(b));
+          const maxDiff = Math.max(...vals) - Math.min(...vals);
+          const inSync = maxDiff <= SYNC_TOLERANCE;
+          if(!inSync) groupHasError = true;
+          txnRows.push({bu:g.bu, asset:g.asset, transType:g.transType, dttm:g.dttm,
+            actUsd:g.txnByBook.get('ACT-USD'), corpBase:g.txnByBook.get('CORP-BASE'), corporate:g.txnByBook.get('CORPORATE'),
+            maxDiff, inSync, comparedBooks: presentTxnBooks, journalIds: journalIdsFromRows(g.memberRows)});
+        }
       }
-      const missingBooks = CANONICAL_BOOKS.filter(b=>!g.booksSeen.has(b));
-      if(missingBooks.length > 0){
-        groupHasError = true;
-        const presentBooks = CANONICAL_BOOKS.filter(b=>g.booksSeen.has(b));
-        missingRows.push({bu:g.bu, asset:g.asset, transType:g.transType, distType:g.distType, dttm:g.dttm, presentBooks, missingBooks, journalIds: journalIdsFromRows(g.memberRows)});
+      // Check (C): unified book / Distribution Type coverage check.
+      // Compares each canonical book against the union of Distribution
+      // Types seen anywhere in the entry. A book absent entirely has an
+      // empty set, so it comes out missing everything (bookAbsent:true
+      // marks these so rendering can say "missing entirely"). A book
+      // present but only partially covering the union gets just its
+      // specific gap. No Distribution Type column -> falls back to a
+      // plain book-existence check (no union to compare against).
+      if(distTypeCol){
+        const unionDistTypes = new Set();
+        g.distTypesByBook.forEach(set => set.forEach(dt=>unionDistTypes.add(dt)));
+        if(unionDistTypes.size > 0){
+          const bookGaps = [];
+          CANONICAL_BOOKS.forEach(b=>{
+            const bookAbsent = !g.booksSeen.has(b);
+            const bookSet = g.distTypesByBook.get(b) || new Set();
+            const missingDistTypes = Array.from(unionDistTypes).filter(dt=>!bookSet.has(dt));
+            if(missingDistTypes.length) bookGaps.push({book:b, missingDistTypes, bookAbsent});
+          });
+          if(bookGaps.length){
+            groupHasError = true;
+            distTypeGapRows.push({bu:g.bu, asset:g.asset, transType:g.transType, dttm:g.dttm, bookGaps, journalIds: journalIdsFromRows(g.memberRows)});
+          }
+        }
+      } else {
+        const missingBooks = CANONICAL_BOOKS.filter(b=>!g.booksSeen.has(b));
+        if(missingBooks.length > 0){
+          groupHasError = true;
+          const bookGaps = missingBooks.map(b=>({book:b, missingDistTypes:[], bookAbsent:true}));
+          distTypeGapRows.push({bu:g.bu, asset:g.asset, transType:g.transType, dttm:g.dttm, bookGaps, journalIds: journalIdsFromRows(g.memberRows)});
+        }
       }
       if(groupHasError){
         g.memberRows.forEach(r=>erroringRawRows.add(r));
@@ -1377,19 +1695,28 @@
     const amountMismatches = amountRows.filter(r=>!r.inSync);
     const txnMismatches = txnRows.filter(r=>!r.inSync);
 
+    // Rolls up every error type into one Map keyed by BU + Asset ID —
+    // feeds the "unique error assets" table/export at the top of the
+    // sync panel (one row per problem asset, reasons combined).
     const uniqueErrorAssets = new Map();
-    function markError(bu, asset, reason, journalIds){
+    function markError(bu, asset, reason, journalIds, transType, dttm){
       const assetNorm = formatAssetId(asset);
       const key = fmtKey(bu)+'\u0001'+fmtKey(assetNorm);
-      if(!uniqueErrorAssets.has(key)) uniqueErrorAssets.set(key, {bu, asset:assetNorm, reasons:new Set(), journalIds:new Set()});
+      if(!uniqueErrorAssets.has(key)) uniqueErrorAssets.set(key, {bu, asset:assetNorm, reasons:new Set(), journalIds:new Set(), transTypes:new Set(), timestamps:new Set()});
       const entry = uniqueErrorAssets.get(key);
       entry.reasons.add(reason);
       if(journalIds) journalIds.forEach(j=>entry.journalIds.add(j));
+      if(transType!==undefined && transType!==null && fmtKey(transType)!=='') entry.transTypes.add(fmtKey(transType));
+      if(dttm!==undefined && dttm!==null && fmtKey(dttm)!=='') entry.timestamps.add(fmtKey(dttm));
     }
-    amountMismatches.forEach(r=>markError(r.bu, r.asset, 'AMOUNT', r.journalIds));
-    txnMismatches.forEach(r=>markError(r.bu, r.asset, 'TXN_AMOUNT', r.journalIds));
-    missingRows.forEach(r=>markError(r.bu, r.asset, 'MISSING BOOK', r.journalIds));
+    amountMismatches.forEach(r=>markError(r.bu, r.asset, 'AMOUNT', r.journalIds, r.transType, r.dttm));
+    txnMismatches.forEach(r=>markError(r.bu, r.asset, 'TXN_AMOUNT', r.journalIds, r.transType, r.dttm));
+    distTypeGapRows.forEach(r=>markError(r.bu, r.asset, 'MISSING BOOK / DIST TYPE', r.journalIds, r.transType, r.dttm));
 
+    // Check (D): "Imbalance Entry" — ignores the BU/Asset grouping and
+    // instead groups ALL rows by (Timestamp, Book). Sum(AMOUNT) within
+    // each group should net to zero (debits match credits). Only runs
+    // if both Timestamp and Amount columns exist.
     const zeroSumRows = [];
     if(dttmCol && amountCol){
       const tsBookGroups = new Map();
@@ -1435,21 +1762,26 @@
       imbalancedCombos.forEach(combo=>{
         const journalIds = Array.from(combo.journalIds);
         zeroSumRows.push({bu:combo.bu, asset:combo.asset, instances:combo.instances, inSync:false, journalIds});
-        markError(combo.bu, combo.asset, 'IMBALANCE ENTRY', journalIds);
+        combo.instances.forEach(inst => markError(combo.bu, combo.asset, 'IMBALANCE ENTRY', journalIds, undefined, inst.dttm));
       });
     }
 
 
     renderUniqueErrorAssets(uniqueErrorAssets, fieldDefs);
-    renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, missingRows, fieldDefs, zeroSumRows);
-    renderSyncDetail(amountCol, txnCol, amountRows, txnRows, missingRows, fieldDefs, zeroSumRows);
+    renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, fieldDefs, zeroSumRows, distTypeGapRows);
+    renderSyncDetail(amountCol, txnCol, amountRows, txnRows, fieldDefs, zeroSumRows, distTypeGapRows);
     applySyncVisibility();
 
     lastSyncContext = {fieldDefs, bookCol, amountCol, txnCol};
   }
 
+  // Holds the data currently shown in the "unique error assets" table
+  // in export-ready shape, so the export button just dumps what's on screen.
   let lastErrorAssetsExport = [];
 
+  // Draws the top-of-panel banner + table: "N unique BU + Asset
+  // combinations have an issue", one row per problem asset with its
+  // Journal ID(s) and what went wrong.
   function renderUniqueErrorAssets(uniqueErrorAssets, fieldDefs){
     const box = el('syncErrorAssets');
     box.innerHTML = '';
@@ -1483,23 +1815,27 @@
     if(uniqueErrorAssets.size){
       const table = document.createElement('table');
       table.className = 'sync error-assets-table';
-      table.innerHTML = '<thead><tr><th>Business Unit</th><th>Asset ID</th><th>Journal ID</th><th>Error Description</th></tr></thead>';
+      table.innerHTML = '<thead><tr><th>Business Unit</th><th>Asset ID</th><th>Journal ID</th><th>Timestamp</th><th>Trans Type</th><th>Error Description</th></tr></thead>';
       const tbody = document.createElement('tbody');
       Array.from(uniqueErrorAssets.values()).forEach(a=>{
         const buVal = String(a.bu);
         const assetVal = formatAssetId(a.asset);
         const journalVal = a.journalIds && a.journalIds.size ? Array.from(a.journalIds).join(', ') : '';
+        const timestampVal = a.timestamps && a.timestamps.size ? Array.from(a.timestamps).join(', ') : '';
+        const transTypeVal = a.transTypes && a.transTypes.size ? Array.from(a.transTypes).join(', ') : '';
         const reasonVal = Array.from(a.reasons).join(', ');
 
         const tr = document.createElement('tr');
         tr.classList.add('mismatch');
-        tr.innerHTML = '<td>'+escapeHtml(buVal)+'</td><td>'+escapeHtml(assetVal)+'</td><td>'+escapeHtml(journalVal)+'</td><td>'+escapeHtml(reasonVal)+'</td>';
+        tr.innerHTML = '<td>'+escapeHtml(buVal)+'</td><td>'+escapeHtml(assetVal)+'</td><td>'+escapeHtml(journalVal)+'</td><td>'+escapeHtml(timestampVal)+'</td><td>'+escapeHtml(transTypeVal)+'</td><td>'+escapeHtml(reasonVal)+'</td>';
         tbody.appendChild(tr);
 
         lastErrorAssetsExport.push({
           'Business Unit': buVal,
           'Asset ID': assetVal,
           'Journal ID': journalVal,
+          'Timestamp': timestampVal,
+          'Trans Type': transTypeVal,
           'Error Description': reasonVal
         });
       });
@@ -1510,16 +1846,19 @@
     box.appendChild(banner);
   }
 
+  // "Export to Excel" — downloads lastErrorAssetsExport as a timestamped .xlsx file.
   function exportErrorAssetsToExcel(){
     if(!lastErrorAssetsExport.length) return;
     const ws = XLSX.utils.json_to_sheet(lastErrorAssetsExport);
-    ws['!cols'] = [{wch:16},{wch:18},{wch:18},{wch:40}];
+    ws['!cols'] = [{wch:16},{wch:18},{wch:18},{wch:18},{wch:14},{wch:40}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sync Issues');
     const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
     XLSX.writeFile(wb, 'sync_issues_'+stamp+'.xlsx');
   }
 
+  // Currently unused (renderSyncTiles builds chip labels inline instead)
+  // — kept for a possible future reusable "BU / Asset" label formatter.
   function chipLabel(m, fieldDefs){
     const escParts = fieldDefs.map(f=>{
       const raw = f.isAsset ? formatAssetId(m[f.prop]) : String(m[f.prop]);
@@ -1529,8 +1868,13 @@
     return escParts.join(' / ');
   }
 
-  function renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, missingRows, fieldDefs, zeroSumRows){
+  // Draws the summary tiles (green = ok, red = issues found) — one tile
+  // per check type: AMOUNT mismatch, TXN_AMOUNT mismatch, book/Dist Type
+  // coverage, imbalance entries. Each shows a count + chips listing the
+  // affected BU/Asset combinations.
+  function renderSyncTiles(amountCol, txnCol, amountRows, amountMismatches, txnRows, txnMismatches, fieldDefs, zeroSumRows, distTypeGapRows){
     zeroSumRows = zeroSumRows || [];
+    distTypeGapRows = distTypeGapRows || [];
     const tiles = el('syncTiles');
     tiles.innerHTML = '';
 
@@ -1563,7 +1907,7 @@
       const tile = document.createElement('div');
       tile.className = 'sync-tile ' + (uniqueTxnMismatches.length ? 'bad' : 'ok');
       tile.innerHTML = '<div class="n">'+uniqueTxnMismatches.length+'</div>'+
-        '<div class="t">unique Business Unit + Asset combination'+(uniqueTxnMismatches.length===1?'':'s')+' out of sync — Sum(TXN_AMOUNT), all 3 books</div>'+
+        '<div class="t">unique Business Unit + Asset combination'+(uniqueTxnMismatches.length===1?'':'s')+' out of sync — Sum(TXN_AMOUNT), across whichever books are present</div>'+
         '<div class="d">'+txnRows.length+' groups checked</div>';
       if(uniqueTxnMismatches.length){
         const chips = document.createElement('div');
@@ -1581,23 +1925,35 @@
     }
 
     {
-      const uniqueMissingRows = dedupeByBuAsset(missingRows);
+      const uniqueDistTypeGaps = dedupeByBuAsset(distTypeGapRows);
       const tile = document.createElement('div');
-      tile.className = 'sync-tile ' + (uniqueMissingRows.length ? 'bad' : 'ok');
-      tile.innerHTML = '<div class="n">'+uniqueMissingRows.length+'</div>'+
-        '<div class="t">unique Business Unit + Asset combination'+(uniqueMissingRows.length===1?'':'s')+' with a book missing entirely — ACT-USD / CORP-BASE / CORPORATE</div>'+
-        '<div class="d">checked across all groups in this sheet</div>';
-      if(uniqueMissingRows.length){
+      tile.className = 'sync-tile ' + (uniqueDistTypeGaps.length ? 'bad' : 'ok');
+      tile.innerHTML = '<div class="n">'+uniqueDistTypeGaps.length+'</div>'+
+        '<div class="t">unique Business Unit + Asset combination'+(uniqueDistTypeGaps.length===1?'':'s')+' with a book missing entirely, or missing a Distribution Type another book has</div>'+
+        '<div class="d">checked every canonical book (ACT-USD / CORP-BASE / CORPORATE) against every Distribution Type seen for that entry</div>';
+      if(uniqueDistTypeGaps.length){
         const chips = document.createElement('div');
         chips.className = 'sync-chips';
-        uniqueMissingRows.forEach(combo=>{
+        uniqueDistTypeGaps.forEach(combo=>{
           const c = document.createElement('span');
           c.className = 'sync-chip';
-          const allMissing = new Set();
-          combo.rows.forEach(r=>r.missingBooks.forEach(b=>allMissing.add(b)));
+          const perBook = new Map();
+          combo.rows.forEach(r=>r.bookGaps.forEach(bg=>{
+            let entry = perBook.get(bg.book);
+            if(!entry){ entry = {dts:new Set(), bookAbsent:false}; perBook.set(bg.book, entry); }
+            bg.missingDistTypes.forEach(dt=>entry.dts.add(dt));
+            if(bg.bookAbsent) entry.bookAbsent = true;
+          }));
+          // A book flagged "bookAbsent" has zero rows in this entry —
+          // phrase that as "missing entirely" rather than listing codes.
+          const gapLabel = Array.from(perBook.entries())
+            .map(([book, entry])=> entry.bookAbsent
+              ? escapeHtml(book)+' missing entirely'
+              : escapeHtml(book)+' missing '+escapeHtml(Array.from(entry.dts).join('/')))
+            .join(', ');
           c.innerHTML = 'BU/Asset: <b>'+escapeHtml(fmtKey(combo.bu))+' / '+escapeHtml(combo.asset)+'</b>'+
             (combo.rows.length>1 ? ' — '+combo.rows.length+' occurrences' : '') +
-            ' — <b>missing '+escapeHtml(Array.from(allMissing).join(', '))+'</b>';
+            ' — <b>'+gapLabel+'</b>';
           chips.appendChild(c);
         });
         tile.appendChild(chips);
@@ -1627,8 +1983,12 @@
     }
   }
 
-  function renderSyncDetail(amountCol, txnCol, amountRows, txnRows, missingRows, fieldDefs, zeroSumRows){
+  // Draws the detailed row-by-row breakdown tables shown when "Show
+  // detail" is expanded — one table per check type. Respects the
+  // "Show all / Show error" toggle to optionally hide passing rows.
+  function renderSyncDetail(amountCol, txnCol, amountRows, txnRows, fieldDefs, zeroSumRows, distTypeGapRows){
     zeroSumRows = zeroSumRows || [];
+    distTypeGapRows = distTypeGapRows || [];
     const detail = el('syncDetail');
     detail.innerHTML = '';
 
@@ -1669,10 +2029,10 @@
     if(txnCol){
       const block = document.createElement('div');
       block.className = 'sync-detail-block';
-      block.innerHTML = '<h4>Sum of TXN_AMOUNT — ACT-USD vs CORP-BASE vs CORPORATE</h4>';
+      block.innerHTML = '<h4>Sum of TXN_AMOUNT — ACT-USD vs CORP-BASE vs CORPORATE (whichever of the 3 are present)</h4>';
       const shownRows = showErrorOnly ? txnRows.filter(r=>!r.inSync) : txnRows;
       if(txnRows.length===0){
-        block.innerHTML += '<div class="sync-empty-note">No group had all 3 books (ACT-USD, CORP-BASE, CORPORATE) to compare.</div>';
+        block.innerHTML += '<div class="sync-empty-note">No group had at least 2 of the 3 books (ACT-USD, CORP-BASE, CORPORATE) to compare.</div>';
       } else if(shownRows.length===0){
         block.innerHTML += '<div class="sync-empty-note">No sync issues — every checked group is in sync.</div>';
       } else {
@@ -1698,21 +2058,28 @@
     {
       const block = document.createElement('div');
       block.className = 'sync-detail-block';
-      block.innerHTML = '<h4>Book missing entirely — expected ACT-USD, CORP-BASE, CORPORATE</h4>';
-      if(missingRows.length===0){
-        block.innerHTML += '<div class="sync-empty-note">Every group in this sheet has rows under all 3 books.</div>';
+      block.innerHTML = '<h4>Book missing entirely, or missing a Distribution Type another book has — expected ACT-USD, CORP-BASE, CORPORATE to cover the same Distribution Types</h4>';
+      if(distTypeGapRows.length===0){
+        block.innerHTML += '<div class="sync-empty-note">Every group in this sheet has rows under all 3 books, covering the same Distribution Types.</div>';
       } else {
         const table = document.createElement('table');
         table.className = 'sync';
-        table.innerHTML = '<thead><tr>'+idHeadCells+'<th>Books present</th><th>Books missing</th></tr></thead>';
+        table.innerHTML = '<thead><tr>'+idHeadCells+'<th>Book</th><th>Issue</th></tr></thead>';
         const tbody = document.createElement('tbody');
-        missingRows.forEach(r=>{
-          const tr = document.createElement('tr');
-          tr.classList.add('mismatch');
-          tr.innerHTML = idRowCells(r)+
-            '<td>'+escapeHtml(r.presentBooks.join(', ')||'—')+'</td>'+
-            '<td class="status-bad">'+escapeHtml(r.missingBooks.join(', '))+'</td>';
-          tbody.appendChild(tr);
+        distTypeGapRows.forEach(r=>{
+          r.bookGaps.forEach(bg=>{
+            const tr = document.createElement('tr');
+            tr.classList.add('mismatch');
+            // A book with no rows at all in this entry (bookAbsent) is
+            // shown as "missing entirely" rather than listing every code.
+            const issueText = bg.bookAbsent
+              ? 'Missing entirely'
+              : 'Missing Distribution Type(s): '+bg.missingDistTypes.join(', ');
+            tr.innerHTML = idRowCells(r)+
+              '<td>'+escapeHtml(bg.book)+'</td>'+
+              '<td class="status-bad">'+escapeHtml(issueText)+'</td>';
+            tbody.appendChild(tr);
+          });
         });
         table.appendChild(tbody);
         block.appendChild(table);
