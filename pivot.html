@@ -563,22 +563,79 @@
   el('pasteBtn2').addEventListener('click', openPasteModal);
   el('pasteCancel').addEventListener('click', closePasteModal);
   pasteModal.addEventListener('click', e=>{ if(e.target === pasteModal) closePasteModal(); });
+
+  // Large clipboard pastes (thousands of rows) can make the browser hang
+  // for a moment while it inserts + reflows that much text into the
+  // textarea — with the default browser paste, that happens with zero
+  // visual feedback, so it just looks like the tab froze/crashed.
+  // We intercept the paste, show the spinner FIRST, then insert the text
+  // on the next tick so the spinner actually gets to paint before the
+  // (still potentially slow) insert happens.
+  const PASTE_INTERCEPT_THRESHOLD = 20000; // characters; ~small paste stays snappy/native
+  el('pasteArea').addEventListener('paste', function(e){
+    const cd = e.clipboardData || window.clipboardData;
+    const text = cd ? cd.getData('text') : '';
+    if(!text || text.length < PASTE_INTERCEPT_THRESHOLD) return; // let small pastes behave natively
+
+    e.preventDefault();
+    const textarea = e.target;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const before = textarea.value.slice(0, start);
+    const after = textarea.value.slice(end);
+
+    const approxRows = text.split('\n').length;
+    showLoading('Receiving pasted data (' + approxRows.toLocaleString('en-US') + ' rows)…');
+    runAfterPaint(()=>{
+      textarea.value = before + text + after;
+      const pos = before.length + text.length;
+      textarea.selectionStart = textarea.selectionEnd = pos;
+      hideLoading();
+    });
+  });
+
   el('pasteLoad').addEventListener('click', ()=>{
     const text = el('pasteArea').value;
     if(!text.trim()){ alert('Paste some rows first — include a header row on top.'); return; }
+
+    // Show the spinner FIRST (and close the modal), then do the actual
+    // parsing on the next tick. Otherwise, for a large paste, the parse
+    // itself runs synchronously before any overlay is visible — the tab
+    // just sits there frozen for a bit, which looks like it crashed.
+    // Doing it in this order guarantees the "Reading pasted data…" /
+    // "Processing X rows…" overlay actually paints before the heavy work starts.
+    closePasteModal();
+    showLoading('Reading pasted data…');
+    runAfterPaint(()=>{
+      const lineCount = text.split('\n').length;
+      if(lineCount > 2000){
+        // Extra-large paste: update the message so it's clear we're
+        // still working, not stuck, then give the browser one more
+        // paint before the actual parse/ingest work runs.
+        el('loadingText').textContent = 'Processing ' + lineCount.toLocaleString('en-US') + ' pasted rows…';
+        runAfterPaint(()=> finishPasteLoad(text));
+      } else {
+        finishPasteLoad(text);
+      }
+    });
+  });
+
+  // Does the actual parse + ingest for a paste, once the loading overlay
+  // is already showing. Split out so both the "small paste" and
+  // "large paste" branches above can call it the same way.
+  function finishPasteLoad(text){
     const json = parsePastedText(text);
     if(!json || json.length===0){
+      hideLoading();
       alert('Could not find any data rows. Make sure the first line is a header row.');
       return;
     }
     workbook = null;
     el('sheetSelectWrap').style.display = 'none';
     el('sheetSelect').innerHTML = '';
-    closePasteModal();
     el('pasteArea').value = '';
-    showLoading('Reading pasted data…');
     runAfterPaint(()=> ingestRows(json, 'Pasted data'));
-  });
+  }
 
   const sqlModal = el('sqlModal');
   el('generateSqlBtn').addEventListener('click', ()=>{
@@ -592,12 +649,21 @@
   function handleFile(e){
     const file = e.target.files[0];
     if(!file) return;
-    showLoading('Reading file…');
+    const sizeMb = file.size / (1024*1024);
+    // Bigger files get a message that sets expectations ("this can take
+    // a moment") instead of the plain "Reading file…", which otherwise
+    // looks identical whether the file is 10KB or 50MB — and for a big
+    // file, a spinner that doesn't change for several seconds reads the
+    // same as a frozen/crashed tab.
+    showLoading(sizeMb > 5
+      ? 'Reading file (' + sizeMb.toFixed(1) + ' MB)… this can take a moment for large files'
+      : 'Reading file…');
     const reader = new FileReader();
     reader.onload = function(ev){
       // Yield a tick so the overlay paints before the heavy parsing runs.
       runAfterPaint(()=>{
         try{
+          if(sizeMb > 5) el('loadingText').textContent = 'Parsing spreadsheet…';
           const data = new Uint8Array(ev.target.result);
           workbook = XLSX.read(data, {type:'array', cellDates:true});
           const sel = el('sheetSelect');
@@ -669,7 +735,16 @@
         alert('No tabular data with headers found on sheet "'+sheetName+'". Try a different sheet.');
         return;
       }
-      ingestRows(json, sheetName);
+      if(json.length > 2000){
+        // Large sheet: update the message so it's clear we're still
+        // working (not stuck), then give the browser one more paint
+        // before the ingest work (field-list build, auto-pivot, sync
+        // check) runs — same pattern used for large pastes.
+        el('loadingText').textContent = 'Processing ' + json.length.toLocaleString('en-US') + ' rows…';
+        runAfterPaint(()=> ingestRows(json, sheetName));
+      } else {
+        ingestRows(json, sheetName);
+      }
     });
   }
 
