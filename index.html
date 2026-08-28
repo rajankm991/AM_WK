@@ -7,14 +7,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --cog-navy: rgba(9, 9, 95, 0.99); /*#000048;*/
-    --cog-blue: #0000ff;
-    --border: #d0d7de;
     --nav-text: #ffffff;
     --nav-hover: rgba(255, 255, 255, 0.25);
+
+    --hdr-grad: linear-gradient(135deg, #003A8C 0%, #0066CC 60%, #0052CC 100%);
+    --hdr-solid: #0052CC;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  
+
   /* Flexbox viewport layout */
   html, body { 
     width: 100%;
@@ -25,19 +25,47 @@
     display: flex;
     flex-direction: column;
   }
-  
+
   /* Compact Sticky Navbar */
   header.navbar {
     height: 45px;
-    background: var(--cog-navy);
+    background: var(--hdr-grad);
     padding: 0 0.75rem;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 1px 5px rgba(0, 0, 72, 0.15);
+    justify-content: flex-start;
+    box-shadow: 0 2px 12px rgba(0, 60, 140, 0.3);
     z-index: 1000;
     flex-shrink: 0;
     gap: 0.75rem;
+  }
+
+  /* Hamburger that collapses/expands the side nav */
+  .nav-toggle {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0;
+    transition: background-color 0.2s, border-color 0.2s;
+  }
+  .nav-toggle:hover {
+    background: var(--nav-hover);
+  }
+  .nav-toggle span {
+    display: block;
+    width: 15px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--nav-text);
   }
   .brand {
     display: flex;
@@ -70,17 +98,109 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
+
+  .hdr-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .clk {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    font-family: Consolas, 'SFMono-Regular', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums; /* stops the width jumping every tick */
+    white-space: nowrap;
+  }
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    color: var(--nav-text);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0.55;
+  }
+  .user-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .user-chip .chev {
+    width: 11px;
+    height: 11px;
+    opacity: 0.7;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Row that holds the side nav + the tool frames */
+  .workspace {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Vertical side nav. */
+  .sidebar {
+    width: 175px;
+    flex-shrink: 0;
+    background: var(--hdr-solid);
+    padding: 6px;
+    overflow: hidden;
+    transition: width 0.22s ease, padding 0.22s ease, box-shadow 0.22s ease;
+  }
+
+  /* Collapsed: */
+  body.nav-collapsed .sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 15px;
+    padding: 6px 0;
+    z-index: 900;
+  }
+  body.nav-collapsed .frame-stack {
+    margin-left: 14px;
+  }
+
+  /* Hover the rail to peek the full nav */
+  body.nav-collapsed .sidebar:hover {
+    width: 175px;
+    padding: 6px;
+    box-shadow: 2px 0 10px rgba(0, 0, 72, 0.28);
+  }
+
   /* Scrollable Navigation Container with lighter background */
   .nav-tabs {
     display: flex;
+    flex-direction: column;
     gap: 6px;
-    height: 40px;
-    align-items: center;
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
+    height: 100%;
+    align-items: stretch;
+    overflow-y: auto;
+    overflow-x: hidden;
     background: rgba(255, 255, 255, 0.12); /* Adjusted to a lighter highlight color */
-    padding: 0 6px;
+    padding: 6px;
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     scrollbar-width: thin;
@@ -89,7 +209,7 @@
 
   /* Custom Scrollbar Styling */
   .nav-tabs::-webkit-scrollbar {
-    height: 3px;
+    width: 3px;
   }
   .nav-tabs::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.5);
@@ -103,7 +223,7 @@
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: #ffffff;
-    padding: 0.15rem 0.6rem;
+    padding: 0.4rem 0.6rem;
     font-family: inherit;
     font-size: 0.72rem;
     font-weight: 600;
@@ -112,21 +232,26 @@
     transition: background-color 0.2s, border-color 0.2s;
     flex-shrink: 0;
     white-space: nowrap;
+    width: 100%;
+    text-align: left;
   }
   .tab-btn:hover {
     background: var(--nav-hover);
   }
+  /* Matches  */
   .tab-btn.active {
-    background: var(--cog-blue);
-    border-color: var(--cog-blue);
+    background: #ffffff;
+    border-color: #ffffff;
+    color: var(--hdr-solid);
   }
 
   /* Full Fill Seamless Iframe */
   .frame-stack {
-    width: 100%;
     flex: 1;
+    min-width: 0;
     position: relative;
     min-height: 0;
+    background: #f4f6f8;
   }
   .content-frame {
     width: 100%;
@@ -141,9 +266,27 @@
     display: block;
   }
 
+  /* On narrow screens the nav floats over the tool even when pinned open,
+     instead of squeezing it down to nothing */
+  @media (max-width: 700px) {
+    body:not(.nav-collapsed) .sidebar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      z-index: 900;
+      box-shadow: 2px 0 8px rgba(0, 0, 72, 0.25);
+    }
+  }
+
+  /* Drop the clock before the brand and the chip start colliding */
+  @media (max-width: 520px) {
+    .clk { display: none; }
+  }
+
   /* Micro Footer */
   footer {
-    background: var(--cog-navy);
+    background: var(--hdr-solid);
     color: rgba(255, 255, 255, 0.7);
     padding: 1px 1rem;
     font-size: 0.6rem;
@@ -155,38 +298,53 @@
   }
 </style>
 </head>
-<body>
+<body class="nav-collapsed">
 
 <header class="navbar">
+  <button class="nav-toggle" id="navToggle" type="button" aria-label="Toggle navigation"
+          aria-controls="sidebar" aria-expanded="false" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </button>
   <div class="brand">
     <div class="brand-logo-wrapper">
       <img src="https://careers.cognizant.com/images/logo.svg" alt="Cognizant Logo" class="brand-logo-img">
     </div>
     <div class="brand-tag">AM Workspace</div>
   </div>
-  <nav class="nav-tabs">
-    <button class="tab-btn active" data-key="pivot" data-url="pivot.html" data-exists="true" onclick="switchTab(this)">Pivot Table Tool</button>
-    <button class="tab-btn" data-key="text_compare" data-url="text_compare.html" data-exists="true" onclick="switchTab(this)">Text Compare Tool</button>
-    <!--button class="tab-btn" data-key="dp_close" data-url="dp_close.html" data-exists="true" onclick="switchTab(this)">DP Close Tool</button>
-<button class="tab-btn" data-key="am_activity_tracker" data-url="am_activity_tracker.html" data-exists="true" onclick="switchTab(this)">Tracker Tool</button>
--->
 
+  <div class="hdr-right">
+    <span class="clk" id="clkEl"></span>
 
-  </nav>
+    <div class="user-chip" title="Signed-in user">
+      <div class="user-avatar">&ndash;</div>
+      <span>CTS</span>
+      <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+  </div>
 </header>
 
-<div class="frame-stack" id="frameStack">
-  <iframe id="frame-pivot" class="content-frame active" data-key="pivot" src="pivot.html"></iframe>
-  <iframe id="frame-text_compare" class="content-frame" data-key="text_compare" src="text_compare.html"></iframe>
-  <iframe id="frame-dp_close" class="content-frame" data-key="dp_close" src="dp_close.html"></iframe>
-  <iframe id="frame-am_activity_tracker" class="content-frame" data-key="am_activity_tracker" src="am_activity_tracker.html"></iframe>
+<div class="workspace">
+
+  <aside class="sidebar" id="sidebar">
+    <nav class="nav-tabs">
+      <!-- data-key must be unique per tool -->
+     <button class="tab-btn active" data-key="pivot" data-url="pivot.html" onclick="switchTab(this)">Pivot Table Tool</button>
+     <button class="tab-btn" data-key="text_compare" data-url="text_compare.html"  onclick="switchTab(this)">Text Compare Tool</button>
+     <button class="tab-btn" data-key="am_activity_tracker" data-url="am_activity_tracker.html" onclick="switchTab(this)">Tracker Tool</button>
+	<button class="tab-btn" data-key="Trial" data-url="2" onclick="switchTab(this)">Trial</button>
   
-  
+    </nav>
+  </aside>
+
+  <!-- Left empty on purpose: switchTab creates each tool's iframe on first use. -->
+  <div class="frame-stack" id="frameStack"></div>
+
 </div>
 
 <footer>&copy; Cognizant 2026, all rights reserved.(RKM)</footer>
 
 <script>
+
   const underConstructionHTML = `
     <!DOCTYPE html>
     <html>
@@ -216,35 +374,100 @@
     </html>
   `;
 
-  // Switching tabs now ONLY toggles which iframe is visible.
-  // Every tool's iframe stays loaded in the background, so whatever the
-  // user uploaded/typed/pivoted stays exactly as it was until they hit
-  // that tool's own "Refresh" button (or reload the whole workspace page).
+  // ── LIVE CLOCK ──
+  // Same locale/format as the tracker's own clock, so they read identically.
+  function updateClock() {
+    document.getElementById('clkEl').textContent =
+      new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+
+  // Collapse / expand the vertical side nav.
+  function toggleNav() {
+    const collapsed = document.body.classList.toggle('nav-collapsed');
+    document.getElementById('navToggle')
+            .setAttribute('aria-expanded', String(!collapsed));
+  }
+
+
+  // Show the "Coming Soon" frame for tools whose page isn't there.
+  function showPlaceholder() {
+    let placeholder = document.getElementById('frame-placeholder');
+    if (!placeholder) {
+      placeholder = document.createElement('iframe');
+      placeholder.id = 'frame-placeholder';
+      placeholder.className = 'content-frame';
+      placeholder.srcdoc = underConstructionHTML;
+      document.getElementById('frameStack').appendChild(placeholder);
+    }
+    placeholder.classList.add('active');
+  }
+
+
+  function fileExists(url, cb) {
+    const link = document.createElement('link');
+    let settled = false;
+    const finish = ok => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      link.remove();
+      cb(ok);
+    };
+
+    const timer = setTimeout(() => finish(true), 1500);
+    link.rel = 'prefetch';
+    link.href = url;
+    link.onload = () => finish(true);
+    link.onerror = () => finish(false);
+    document.head.appendChild(link);
+  }
+
+  function getFrame(key) {
+    let frame = document.getElementById('frame-' + key);
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.id = 'frame-' + key;
+      frame.className = 'content-frame';
+      frame.dataset.key = key;
+      document.getElementById('frameStack').appendChild(frame);
+    }
+    return frame;
+  }
+
   function switchTab(btn) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
     const key = btn.getAttribute('data-key');
-    const exists = btn.getAttribute('data-exists') === 'true';
+    const url = btn.getAttribute('data-url');
 
     document.querySelectorAll('.content-frame').forEach(f => f.classList.remove('active'));
 
-    if (exists) {
-      const target = document.getElementById('frame-' + key);
-      if (target) target.classList.add('active');
-    } else {
-      // Placeholder for future tabs that don't have a page yet.
-      let placeholder = document.getElementById('frame-placeholder');
-      if (!placeholder) {
-        placeholder = document.createElement('iframe');
-        placeholder.id = 'frame-placeholder';
-        placeholder.className = 'content-frame';
-        placeholder.srcdoc = underConstructionHTML;
-        document.getElementById('frameStack').appendChild(placeholder);
+    const target = key ? getFrame(key) : null;
+
+    if (!url || !target || btn.dataset.missing === '1') { showPlaceholder(); return; }
+
+    if (target.src) { target.classList.add('active'); return; }
+
+    fileExists(url, ok => {
+ 
+      if (!btn.classList.contains('active')) return;
+      if (ok) {
+        target.src = url;
+        target.classList.add('active');
+      } else {
+        btn.dataset.missing = '1';
+        showPlaceholder();
       }
-      placeholder.classList.add('active');
-    }
+    });
   }
+
+
+  const initialTab = document.querySelector('.tab-btn.active') || document.querySelector('.tab-btn');
+  if (initialTab) switchTab(initialTab);
 </script>
 
 </body>
