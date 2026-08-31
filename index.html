@@ -125,7 +125,11 @@
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
-    opacity: 0.55;
+    cursor: pointer;
+    user-select: none;
+  }
+  .user-chip:hover {
+    background: rgba(255, 255, 255, 0.2);
   }
   .user-avatar {
     width: 22px;
@@ -146,6 +150,72 @@
     fill: none;
     stroke: currentColor;
     stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.15s ease;
+  }
+  .user-chip.menu-open .chev {
+    transform: rotate(180deg);
+  }
+  .user-chip-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .user-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 170px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 40, 0.25);
+    padding: 6px;
+    display: none;
+    z-index: 1100;
+  }
+  .user-menu.open {
+    display: block;
+  }
+  .user-menu-label {
+    font-size: 10px;
+    color: #667085;
+    padding: 6px 8px 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .user-menu-divider {
+    height: 1px;
+    background: #eaecf0;
+    margin: 4px 0;
+  }
+  .user-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 8px;
+    border: none;
+    background: transparent;
+    color: #b42318;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    text-decoration: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .user-menu-item:hover {
+    background: #fef3f2;
+  }
+  .user-menu-item svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
@@ -298,11 +368,11 @@
   }
 </style>
 </head>
-<body class="nav-collapsed">
+<body>
 
 <header class="navbar">
   <button class="nav-toggle" id="navToggle" type="button" aria-label="Toggle navigation"
-          aria-controls="sidebar" aria-expanded="false" onclick="toggleNav()">
+          aria-controls="sidebar" aria-expanded="true" onclick="toggleNav()">
     <span></span><span></span><span></span>
   </button>
   <div class="brand">
@@ -315,10 +385,20 @@
   <div class="hdr-right">
     <span class="clk" id="clkEl"></span>
 
-    <div class="user-chip" title="Signed-in user">
-      <div class="user-avatar">&ndash;</div>
-      <span>CTS</span>
-      <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    <div class="user-chip-wrap">
+      <div class="user-chip" id="userChip" title="Signed-in user" onclick="toggleUserMenu(event)">
+        <div class="user-avatar" id="userAvatar">&ndash;</div>
+        <span id="userChipName">FMS-AM</span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="user-menu" id="userMenu">
+        <div class="user-menu-label" id="userMenuLabel"></div>
+        <div class="user-menu-divider"></div>
+        <a class="user-menu-item" id="signOutLink" href="signed_out.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          Sign Out
+        </a>
+      </div>
     </div>
   </div>
 </header>
@@ -328,7 +408,8 @@
   <aside class="sidebar" id="sidebar">
     <nav class="nav-tabs">
       <!-- data-key must be unique per tool -->
-     <button class="tab-btn active" data-key="pivot" data-url="pivot.html" onclick="switchTab(this)">Pivot Table Tool</button>
+     <button class="tab-btn active" data-key="home" onclick="switchTab(this)">Home</button>
+	 <button class="tab-btn" data-key="pivot" data-url="pivot.html" onclick="switchTab(this)">Pivot Table Tool</button>
      <button class="tab-btn" data-key="text_compare" data-url="text_compare.html"  onclick="switchTab(this)">Text Compare Tool</button>
      <button class="tab-btn" data-key="am_activity_tracker" data-url="am_activity_tracker.html" onclick="switchTab(this)">Tracker Tool</button>
 	<button class="tab-btn" data-key="Trial" data-url="2" onclick="switchTab(this)">Trial</button>
@@ -374,6 +455,36 @@
     </html>
   `;
 
+  // ── USER MENU (dropdown with Sign Out) ──
+  function toggleUserMenu(e) {
+    if (e) e.stopPropagation();
+    const chip = document.getElementById('userChip');
+    const menu = document.getElementById('userMenu');
+    const isOpen = menu.classList.contains('open');
+    if (isOpen) {
+      menu.classList.remove('open');
+      chip.classList.remove('menu-open');
+    } else {
+      menu.classList.add('open');
+      chip.classList.add('menu-open');
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const wrap = document.querySelector('.user-chip-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      document.getElementById('userMenu').classList.remove('open');
+      document.getElementById('userChip').classList.remove('menu-open');
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.getElementById('userMenu').classList.remove('open');
+      document.getElementById('userChip').classList.remove('menu-open');
+    }
+  });
+
   // ── LIVE CLOCK ──
   // Same locale/format as the tracker's own clock, so they read identically.
   function updateClock() {
@@ -391,6 +502,63 @@
             .setAttribute('aria-expanded', String(!collapsed));
   }
 
+
+  // ── CURRENT USER (single source of truth) ──
+  // Avatar initial, header chip, menu label, and the Home panel greeting
+  // all read from this. Call setCurrentUser('NEW NAME') at runtime (e.g.
+  // after login/SSO resolves) and every one of those spots updates together.
+  function setCurrentUser(name) {
+    const trimmed = (name || '').trim();
+    const initial = trimmed ? trimmed.charAt(0).toUpperCase() : '\u2013';
+
+    const avatarEl = document.getElementById('userAvatar');
+    const chipNameEl = document.getElementById('userChipName');
+    const menuLabelEl = document.getElementById('userMenuLabel');
+    const homeNameEl = document.getElementById('homeUserName');
+
+    if (avatarEl) avatarEl.textContent = initial;
+    if (chipNameEl) chipNameEl.textContent = trimmed;
+    if (menuLabelEl) menuLabelEl.textContent = trimmed;
+    if (homeNameEl) homeNameEl.textContent = trimmed;
+  }
+
+  // Initialize from whatever is currently in the chip markup, so the
+  // very first render (before any runtime change) still stays consistent.
+  setCurrentUser(document.getElementById('userChipName').textContent);
+
+
+  // Home is rendered inline (not an iframe) so it never nests a copy of this
+  // same page inside itself.
+  const homeHTML = `
+    <div id="amws-home" style="font-family:'Golos Text','Inter',sans-serif; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:transparent; position:relative; overflow:hidden;">
+<div style="position:absolute; top:50%; left:50%; width:220%; height:220%; transform:translate(-50%,-50%) rotate(-30deg); background-image:url('https://careers.cognizant.com/images/logo.svg'); background-repeat:repeat; background-size:320px 200px; background-position:0 0; opacity:0.07; pointer-events:none;"></div>
+      <div style="position:relative; z-index:1; background:#ffffff; border-radius:16px; padding:40px 36px; max-width:380px; width:90%; text-align:center; box-shadow:0 20px 50px rgba(0,0,40,0.3);">
+        <div style="width:56px; height:56px; margin:0 auto 18px; border-radius:50%; background:#e7f0ff; display:flex; align-items:center; justify-content:center;">
+          <svg viewBox="0 0 24 24" aria-hidden="true" style="width:28px; height:28px; fill:none; stroke:#0052CC; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round;"><path d="M3 12l9-9 9 9"/><path d="M9 21V12h6v9"/></svg>
+        </div>
+        <h1 style="font-size:1.25rem; color:#001d4a; margin-bottom:8px;">Welcome to AM Workspace</h1>
+        <p style="font-size:0.85rem; color:#667085; line-height:1.5; margin-bottom:0;">You're signed in as <strong id="homeUserName"></strong>.<br>Choose a tool from the left-hand navigation to get started.</p>
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:26px; opacity:0.7;">
+          <img src="https://careers.cognizant.com/images/logo.svg" alt="Cognizant" style="height:14px;">
+          <span style="font-size:0.65rem; color:#98a2b3; letter-spacing:0.03em; text-transform:uppercase;">AM Workspace</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  function showHome() {
+    let home = document.getElementById('frame-home-panel');
+    if (!home) {
+      home = document.createElement('div');
+      home.id = 'frame-home-panel';
+      home.className = 'content-frame';
+      home.innerHTML = homeHTML;
+      document.getElementById('frameStack').appendChild(home);
+    }
+    home.classList.add('active');
+    // Re-sync in case setCurrentUser() was called while Home wasn't mounted yet.
+    setCurrentUser(document.getElementById('userChipName').textContent);
+  }
 
   // Show the "Coming Soon" frame for tools whose page isn't there.
   function showPlaceholder() {
@@ -445,6 +613,8 @@
     const url = btn.getAttribute('data-url');
 
     document.querySelectorAll('.content-frame').forEach(f => f.classList.remove('active'));
+
+    if (key === 'home') { showHome(); return; }
 
     const target = key ? getFrame(key) : null;
 
