@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plain HTML ⇄ APEX Region Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<style>
+  /* ==========================================================================
+     1. CSS Variables & Design Tokens
+     ========================================================================== */
+  :root {
+    --cog-navy: #000048;
+    --cog-blue: #0000ff;
+    --border: #d0d7de;
+    --border-dark: #bbc5d0;
+    --editor-bg: #ffffff;
+    --editor-text: #000048;
+    --plain-text: #0000ff;
+    --apex-text: #b35400;
+  }
+
+  /* ==========================================================================
+     2. Global Reset & Base Styles
+     ========================================================================== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #f4f6f9;
+    color: var(--cog-navy);
+    font-family: 'Golos Text', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ==========================================================================
+     3. Layout Container
+     ========================================================================== */
+  .container {
+    max-width: 1500px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  header.top h1 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  header.top h1 span.a { color: var(--cog-blue); }
+  header.top h1 span.b { color: #b35400; }
+  header.top p {
+    margin: 0.35rem 0 0;
+    color: #57606a;
+    font-size: 0.85rem;
+    max-width: 620px;
+    line-height: 1.5;
+  }
+
+  /* ==========================================================================
+     4. Direction Rail & Buttons
+     ========================================================================== */
+  .rail { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+  .dir-pill {
+    display: flex; align-items: center; gap: 10px;
+    background: #ffffff; border: 1px solid var(--border);
+    border-radius: 6px; padding: 0.5rem 0.9rem; cursor: pointer;
+    user-select: none; font-size: 0.82rem; font-weight: 600;
+    transition: border-color 0.2s;
+  }
+  .dir-pill:hover { border-color: var(--border-dark); }
+  .dir-pill .side { padding: 3px 9px; border-radius: 4px; transition: background .15s, color .15s; }
+  .dir-pill .side.plain { background: rgba(0,0,255,0.08); color: var(--cog-blue); }
+  .dir-pill .side.apex { background: rgba(179,84,0,0.1); color: #b35400; }
+  .dir-pill .arrow { color: #8a94a3; transition: transform .2s; }
+  .dir-pill.flipped .arrow { transform: scaleX(-1); }
+
+  .btn {
+    background: var(--cog-blue); color: #ffffff; border: none;
+    padding: 0.6rem 1.4rem; font-size: 0.85rem; font-weight: 600;
+    border-radius: 4px; cursor: pointer; font-family: inherit;
+  }
+  .btn:hover { background: #0000cc; }
+  body.dir-apex-to-plain .btn.primary { background: #b35400; }
+  body.dir-apex-to-plain .btn.primary:hover { background: #964800; }
+
+  .file-btn, .btn-secondary, .nav-btn {
+    background: #ffffff; border: 1px solid var(--border-dark);
+    color: var(--cog-navy); padding: 0.4rem 0.85rem; border-radius: 4px;
+    font-size: 0.78rem; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .file-btn:hover, .nav-btn:hover, .btn-secondary:hover {
+    background: var(--cog-blue); color: #ffffff; border-color: var(--cog-blue);
+  }
+  .spacer { flex: 1; }
+
+  /* ==========================================================================
+     5. Editor Grid & Panes
+     ========================================================================== */
+  .editor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .card {
+    background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; display: flex; flex-direction: column; min-height: 460px;
+  }
+
+  .card-header {
+    background: #eef2f7; padding: 0.75rem 1rem; display: flex;
+    justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border); font-size: 0.82rem; font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  .card-header .label.plain { color: var(--cog-blue); }
+  .card-header .label.apex { color: #b35400; }
+  body.dir-apex-to-plain .pane.in .card-header .label { color: #b35400; }
+  body.dir-apex-to-plain .pane.out .card-header .label { color: var(--cog-blue); }
+
+  .file-input-wrapper { position: relative; }
+  .file-input-wrapper input {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+  }
+
+  textarea {
+    flex: 1; width: 100%; resize: none; border: none; outline: none;
+    background: var(--editor-bg); color: var(--editor-text);
+    font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.6;
+    padding: 1rem; white-space: pre;
+  }
+  textarea::placeholder { color: #98a2b3; }
+
+  .pane-foot {
+    display: flex; gap: 0.5rem; padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border); background: #ffffff;
+  }
+
+  /* ==========================================================================
+     6. Options Panel
+     ========================================================================== */
+  details.options {
+    background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.25rem 1.1rem 1.1rem; box-shadow: 0 4px 12px rgba(0,0,72,0.06);
+  }
+  details.options summary {
+    cursor: pointer; padding: 0.85rem 0; font-weight: 700; font-size: 0.85rem;
+    list-style: none; display: flex; align-items: center; gap: 8px;
+    color: var(--cog-navy);
+  }
+  details.options summary::-webkit-details-marker { display: none; }
+  details.options summary .chev { transition: transform .15s; color: #8a94a3; }
+  details.options[open] summary .chev { transform: rotate(90deg); }
+
+  .opt-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem; }
+  @media (max-width: 860px) { .opt-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .field label {
+    display: block; font-size: 0.7rem; color: #57606a; margin-bottom: 5px;
+    font-weight: 600; letter-spacing: 0.01em;
+  }
+  .field input[type=text] {
+    width: 100%; background: #ffffff; border: 1px solid var(--border);
+    border-radius: 4px; color: var(--cog-navy); padding: 0.45rem 0.6rem;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+  }
+  .field input[type=text]:focus { outline: none; border-color: var(--cog-blue); }
+
+  .check-row { display: flex; align-items: center; gap: 8px; margin-bottom: 0.65rem; font-size: 0.8rem; }
+  .check-row input { accent-color: var(--cog-blue); cursor: pointer; }
+  .check-row label { cursor: pointer; }
+  .check-row code, .hint code, .map-box code {
+    background: #eef2f7; padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace;
+  }
+
+  .map-box label {
+    display: block; font-size: 0.7rem; color: #57606a; margin-bottom: 6px; font-weight: 600;
+  }
+  .map-box textarea.map {
+    width: 100%; height: 76px; background: #ffffff; border: 1px solid var(--border);
+    border-radius: 4px; color: var(--cog-navy); font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem; padding: 0.5rem 0.6rem; resize: vertical; white-space: pre;
+  }
+  .map-box textarea.map:focus { outline: none; border-color: var(--cog-blue); }
+  .hint { color: #57606a; font-size: 0.72rem; margin-top: 6px; line-height: 1.5; }
+
+  /* ==========================================================================
+     7. Footer Notes
+     ========================================================================== */
+  footer.notes {
+    color: #57606a; font-size: 0.75rem; line-height: 1.6; max-width: 900px;
+    padding-bottom: 1rem;
+  }
+  footer.notes b { color: var(--cog-navy); }
+  footer.notes code {
+    background: #eef2f7; padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="top">
+    <h1><span class="a">Plain HTML</span> &nbsp;⇄&nbsp; <span class="b">APEX Region</span> Converter</h1>
+    <p>Rewrites a standalone HTML page into an Oracle APEX static-content region source (or back again): scopes CSS under a root id, namespaces the JS, and swaps in/out APEX substitution strings.</p>
+  </header>
+
+  <div class="rail">
+    <div class="dir-pill" id="dirPill" onclick="flipDirection()">
+      <span class="side plain" id="sideLeft">Plain HTML</span>
+      <span class="arrow" id="dirArrow">➜</span>
+      <span class="side apex" id="sideRight">APEX Region</span>
+    </div>
+    <button class="btn primary" onclick="runConvert()">Convert</button>
+    <button class="file-btn" onclick="loadSample()">Load sample</button>
+    <div class="spacer"></div>
+    <button class="file-btn" onclick="swapPanes()">Use output as input ↺</button>
+    <button class="btn-secondary" id="refreshBtn" onclick="refreshTool()">&#8635; Refresh</button>
+  </div>
+
+  <div class="editor-grid">
+    <div class="pane in card">
+      <div class="card-header">
+        <span class="label plain" id="inLabel">Plain HTML source</span>
+        <div class="file-input-wrapper">
+          <button class="file-btn" type="button">Upload File</button>
+          <input type="file" id="uploadFile" accept=".html,.htm,text/html,text/plain">
+        </div>
+      </div>
+      <textarea id="inputArea" spellcheck="false" placeholder="Paste your source HTML here…"></textarea>
+    </div>
+    <div class="pane out card">
+      <div class="card-header"><span class="label apex" id="outLabel">APEX region output</span></div>
+      <textarea id="outputArea" spellcheck="false" readonly placeholder="Converted output appears here…"></textarea>
+      <div class="pane-foot">
+        <button class="file-btn" onclick="copyOutput()">Copy</button>
+        <button class="file-btn" onclick="downloadOutput()">Download .html</button>
+      </div>
+    </div>
+  </div>
+
+  <details class="options">
+    <summary><span class="chev">▶</span> Options</summary>
+
+    <div class="opt-grid">
+      <div class="field">
+        <label>Root element ID</label>
+        <input type="text" id="optRootId" value="amws-root">
+      </div>
+      <div class="field">
+        <label>JS namespace prefix</label>
+        <input type="text" id="optNs" value="amws">
+      </div>
+      <div class="field">
+        <label>APP_FILES substitution</label>
+        <input type="text" id="optAppFiles" value="#APP_FILES#">
+      </div>
+      <div class="field">
+        <label>Document &lt;title&gt; (reverse only)</label>
+        <input type="text" id="optTitle" value="AM Workspace">
+      </div>
+    </div>
+
+    <div class="check-row"><input type="checkbox" id="optScopeQuery" checked><label for="optScopeQuery">&nbsp;Scope class-based <code>querySelector(All)</code> calls to the root id</label></div>
+    <div class="check-row"><input type="checkbox" id="optDataUrl" checked><label for="optDataUrl">&nbsp;Rewrite relative <code>data-url</code> file references with the APP_FILES token</label></div>
+    <div class="check-row"><input type="checkbox" id="optUnwrap" checked><label for="optUnwrap">&nbsp;(Reverse) unwrap the root &lt;div&gt; into &lt;body&gt; directly</label></div>
+
+    <div class="opt-grid" style="grid-template-columns:repeat(2,1fr);margin-top:4px;">
+      <div class="field">
+        <label>Sign-out element ID (leave blank to skip)</label>
+        <input type="text" id="optSignoutId" value="signOutLink">
+      </div>
+      <div class="field">
+        <label>APEX page ID for sign-out</label>
+        <input type="text" id="optPageId" value="3">
+      </div>
+    </div>
+
+    <div class="map-box">
+      <label>Literal ⇄ substitution-string mappings — one per line, format <code>literal text => &amp;SUBSTITUTION.</code></label>
+      <textarea class="map" id="optMappings" placeholder="FMS-AM => &APP_USER.&#10;signed_out.html => (handled by Sign-out ID option above)"></textarea>
+      <div class="hint">Applied left→right when converting to APEX, right→left when converting back to plain HTML. Matching is literal (case-sensitive) text replacement.</div>
+    </div>
+  </details>
+
+  <footer class="notes">
+    <b>How this works:</b> CSS selectors are rescoped under the root id (<code>body</code> → <code>#root</code>, bare classes get <code>#root </code> prefixed, <code>@keyframes</code> is left untouched). Inline-handler functions get namespaced and exposed on <code>window</code>; helper functions only used internally stay as plain declarations inside the wrapping IIFE. Function detection tolerates normal indentation but is still line-based, not a real parser — it can occasionally pick up a shallow nested function, and won't see anything defined inside a single-line or minified script. This is a best-effort, regex-based rewrite — always review the output.
+  </footer>
+</div>
+
+<script>
+(function(){
+
+  var direction = 'plain-to-apex'; // or 'apex-to-plain'
+
+  var SAMPLE_PLAIN = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<title>Demo Tool</title>\n<style>\n  * { box-sizing: border-box; margin: 0; padding: 0; }\n  body { font-family: sans-serif; background: #f4f6f8; }\n  .panel { background: #fff; border-radius: 8px; padding: 16px; }\n  .panel.active { border: 2px solid #0052CC; }\n  body.nav-collapsed .panel { display:none; }\n</style>\n</head>\n<body>\n  <div class="panel active" id="mainPanel">\n    <span id="userChipName">FMS-AM</span>\n    <button onclick="toggleNav()">Toggle</button>\n    <a id="signOutLink" href="signed_out.html">Sign out</a>\n  </div>\n  <script>\n    function toggleNav() {\n      document.body.classList.toggle("nav-collapsed");\n    }\n    document.querySelectorAll(".panel").forEach(function(p){});\n  <\/script>\n</body>\n</html>';
+
+  var SAMPLE_APEX = '<style>\n  #amws-root, #amws-root * { box-sizing: border-box; margin: 0; padding: 0; }\n  #amws-root { font-family: sans-serif; background: #f4f6f8; }\n  #amws-root .panel { background: #fff; border-radius: 8px; padding: 16px; }\n  #amws-root .panel.active { border: 2px solid #0052CC; }\n  #amws-root.nav-collapsed .panel { display:none; }\n</style>\n\n<div id="amws-root">\n  <div class="panel active" id="mainPanel">\n    <span id="userChipName">&APP_USER.</span>\n    <button onclick="amwsToggleNav()">Toggle</button>\n    <a id="signOutLink" href="#" data-app-id="&APP_ID." data-page-id="3" data-session="&SESSION.">Sign out</a>\n  </div>\n</div>\n\n<script>\n(function () {\n  window.amwsToggleNav = function () {\n    document.getElementById("amws-root").classList.toggle("nav-collapsed");\n  };\n  document.querySelectorAll("#amws-root .panel").forEach(function(p){});\n})();\n<\/script>';
+
+  // ── FILE UPLOAD — reads the chosen file straight into the input pane ──
+  document.getElementById('uploadFile').addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      document.getElementById('inputArea').value = ev.target.result;
+    };
+    reader.readAsText(file);
+  });
+
+  // ── REFRESH — fully resets the tool: both panes, uploaded file, and every option back to default.
+  window.refreshTool = function () {
+    if (confirm('This will clear both panes and reset all options to their defaults. Continue?')) {
+      window.location.reload();
+    }
+  };
+
+  function opts(){
+    return {
+      rootId: document.getElementById('optRootId').value.trim() || 'amws-root',
+      ns: document.getElementById('optNs').value.trim() || 'amws',
+      appFiles: document.getElementById('optAppFiles').value.trim() || '#APP_FILES#',
+      title: document.getElementById('optTitle').value.trim() || 'App',
+      scopeQuery: document.getElementById('optScopeQuery').checked,
+      dataUrl: document.getElementById('optDataUrl').checked,
+      unwrap: document.getElementById('optUnwrap').checked,
+      signoutId: document.getElementById('optSignoutId').value.trim(),
+      pageId: document.getElementById('optPageId').value.trim() || '0',
+      mappings: parseMappings(document.getElementById('optMappings').value)
+    };
+  }
+
+  function parseMappings(text){
+    return text.split('\n').map(function(l){return l.trim();}).filter(Boolean)
+      .map(function(line){
+        var idx = line.indexOf('=>');
+        if (idx === -1) return null;
+        return { literal: line.slice(0, idx).trim(), sub: line.slice(idx+2).trim() };
+      }).filter(Boolean);
+  }
+
+  function escapeRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  function applyMappingsForward(text, mappings){
+    mappings.forEach(function(m){
+      if (!m.literal) return;
+      text = text.split(m.literal).join(m.sub);
+    });
+    return text;
+  }
+  function applyMappingsReverse(text, mappings){
+    mappings.forEach(function(m){
+      if (!m.sub) return;
+      text = text.split(m.sub).join(m.literal);
+    });
+    return text;
+  }
+
+  /* ---------- CSS scoping ---------- */
+
+  function splitTopLevelCommas(text){
+    var parts = [], depth = 0, cur = '';
+    for (var i=0;i<text.length;i++){
+      var ch = text[i];
+      if (ch === '(') depth++;
+      if (ch === ')') depth--;
+      if (ch === ',' && depth === 0){ parts.push(cur); cur=''; }
+      else cur += ch;
+    }
+    parts.push(cur);
+    return parts;
+  }
+
+  function scopeSelector(sel, rootId){
+    var t = sel.trim();
+    if (t === '' ) return t;
+    if (t.indexOf(':root') === 0) return t;
+    if (t.indexOf('#'+rootId) === 0) return t;
+    if (t === '*') return '#'+rootId+', #'+rootId+' *';
+    if (/^(html\s*,\s*body|body\s*,\s*html|html|body)$/.test(t)) return '#'+rootId;
+    if (t.indexOf('body') === 0) return '#'+rootId + t.slice(4);
+    if (t.indexOf('html') === 0) return '#'+rootId + t.slice(4);
+    return '#'+rootId+' '+t;
+  }
+
+  function unscopeSelector(sel, rootId){
+    var t = sel.trim();
+    if (t.indexOf(':root') === 0) return t;
+    var re = new RegExp('^#'+escapeRe(rootId)+'\\b');
+    var m = t.match(re);
+    if (!m) return t;
+    var rest = t.slice(m[0].length);
+    if (rest === '') return 'body';
+    // "#root .foo" (space = descendant) -> ".foo" stays a bare descendant selector.
+    // "#root.foo" (no space = compound) -> was originally "body.foo", restore that.
+    if (/^\s/.test(rest)) return rest.trim();
+    return 'body' + rest;
+  }
+
+  function walkCss(css, fn, listFn){
+    var out = '', pos = 0;
+    while (pos < css.length){
+      var brace = css.indexOf('{', pos);
+      if (brace === -1){ out += css.slice(pos); break; }
+      var header = css.slice(pos, brace);
+      var depth = 1, j = brace+1;
+      while (depth > 0 && j < css.length){
+        if (css[j] === '{') depth++;
+        else if (css[j] === '}') depth--;
+        j++;
+      }
+      var body = css.slice(brace+1, j-1);
+      var headTrim = header.trim();
+      if (/^@media/.test(headTrim) || /^@supports/.test(headTrim)){
+        out += header + '{' + walkCss(body, fn, listFn) + '}';
+      } else if (/^@(keyframes|-webkit-keyframes|font-face|import|charset)/.test(headTrim)){
+        out += header + '{' + body + '}';
+      } else if (headTrim === ''){
+        out += header + '{' + body + '}';
+      } else {
+        var lead = header.match(/^\s*/)[0];
+        var selText = header.slice(lead.length);
+        var selArr = splitTopLevelCommas(selText).map(fn);
+        if (listFn) selArr = listFn(selArr);
+        // "html, body" both map to the same root selector — don't emit it twice.
+        selArr = selArr.filter(function(v, i){ return selArr.indexOf(v) === i; });
+        out += lead + selArr.join(',\n  ') + '{' + body + '}';
+      }
+      pos = j;
+    }
+    return out;
+  }
+
+  function scopeCss(css, rootId){ return walkCss(css, function(s){return scopeSelector(s, rootId);}); }
+  function unscopeCss(css, rootId){
+    return walkCss(css, function(s){return unscopeSelector(s, rootId);}, function(arr){
+      // "#root, #root *" (the box-sizing reset pattern) unscopes selector-by-selector
+      // into "body, *" — but it only ever came from a plain "*" originally, so collapse it back.
+      var trimmed = arr.map(function(s){return s.trim();});
+      if (trimmed.length === 2 && trimmed[0] === 'body' && trimmed[1] === '*') return ['*'];
+      return arr;
+    });
+  }
+
+  /* ---------- JS namespacing ---------- */
+
+  function findTopLevelFunctions(js){
+    // Allows leading indentation (most real scripts indent inside <script>),
+    // at the cost of also picking up shallow nested functions with similar
+    // indentation — still a heuristic, but far more useful than a strict
+    // column-0 match.
+    var names = [], re = /^[ \t]*function\s+([A-Za-z_$][\w$]*)\s*\(/gm, m;
+    while ((m = re.exec(js))) names.push(m[1]);
+    return names;
+  }
+
+  function findWindowExportedFunctions(js){
+    var names = [], re = /window\.([A-Za-z_$][\w$]*)\s*=\s*function/g, m;
+    while ((m = re.exec(js))) names.push(m[1]);
+    return names;
+  }
+
+  function namespaceForward(html, js, ns){
+    var names = findTopLevelFunctions(js);
+    names.forEach(function(name){
+      var newName = ns + name.charAt(0).toUpperCase() + name.slice(1);
+      var wb = new RegExp('\\b'+escapeRe(name)+'\\b', 'g');
+      html = html.replace(wb, newName);
+      js = js.replace(wb, newName);
+      var isHandler = new RegExp('\\bon\\w+\\s*=\\s*["\']\\s*'+escapeRe(newName)+'\\s*\\(').test(html);
+      if (isHandler){
+        var declRe = new RegExp('function\\s+'+escapeRe(newName)+'\\s*\\(');
+        js = js.replace(declRe, 'window.'+newName+' = function (');
+      }
+    });
+    // wrap in IIFE if not already
+    if (!/^\s*\(function\s*\(/.test(js)){
+      js = '(function () {\n' + js + '\n})();';
+    }
+    return { html: html, js: js };
+  }
+
+  function namespaceReverse(html, js, ns){
+    var exported = findWindowExportedFunctions(js);
+    exported.forEach(function(name){
+      var re = new RegExp('window\\.'+escapeRe(name)+'\\s*=\\s*function\\s*\\(', 'g');
+      js = js.replace(re, 'function ' + name + '(');
+    });
+    // strip namespace prefix from names (both html + js), lowercasing the next letter back
+    var prefixRe = new RegExp('\\b'+escapeRe(ns)+'([A-Z][\\w$]*)\\b', 'g');
+    function strip(text){
+      return text.replace(prefixRe, function(_, rest){
+        return rest.charAt(0).toLowerCase() + rest.slice(1);
+      });
+    }
+    html = strip(html);
+    js = strip(js);
+    // unwrap top-level IIFE
+    var iifeMatch = js.match(/^\s*\(function\s*\(\)\s*\{([\s\S]*)\}\)\s*\(\)\s*;?\s*$/);
+    if (iifeMatch) js = iifeMatch[1].trim();
+    return { html: html, js: js };
+  }
+
+  /* ---------- data-url + query scoping ---------- */
+
+  function rewriteDataUrlsForward(html, appFiles){
+    return html.replace(/data-url="([^"]*)"/g, function(m, val){
+      if (!val || val === '#' || /^https?:\/\//.test(val) || /^\d+$/.test(val) || val.indexOf(appFiles) === 0 || val.indexOf('#') === 0){
+        return m;
+      }
+      return 'data-url="' + appFiles + val + '"';
+    });
+  }
+  function rewriteDataUrlsReverse(html, appFiles){
+    var re = new RegExp('data-url="'+escapeRe(appFiles)+'([^"]*)"', 'g');
+    return html.replace(re, 'data-url="$1"');
+  }
+
+  function scopeQueriesForward(js, rootId){
+    return js.replace(/(document\.querySelectorAll?\(\s*['"])(\.[\w-]+)/g, function(m, pre, cls){
+      return pre + '#' + rootId + ' ' + cls;
+    });
+  }
+  function scopeQueriesReverse(js, rootId){
+    var re = new RegExp("(document\\.querySelectorAll?\\(\\s*['\"])#"+escapeRe(rootId)+"\\s+", 'g');
+    return js.replace(re, '$1');
+  }
+
+  /* ---------- sign-out scaffolding ---------- */
+
+  function addSignout(html, js, signoutId, pageId){
+    if (!signoutId) return { html: html, js: js };
+    var re = new RegExp('(<a\\b[^>]*\\bid=["\']'+escapeRe(signoutId)+'["\'][^>]*?)\\s*href="[^"]*"([^>]*>)', 'i');
+    if (re.test(html)){
+      html = html.replace(re, function(m, pre, post){
+        if (pre.indexOf('data-app-id') === -1){
+          pre += ' data-app-id="&APP_ID." data-page-id="'+pageId+'" data-session="&SESSION."';
+        }
+        return pre + ' href="#"' + post;
+      });
+      var snippet =
+        "\n  // Sign-out URL builder\n" +
+        "  (function () {\n" +
+        "    var link = document.getElementById('"+signoutId+"');\n" +
+        "    if (!link) return;\n" +
+        "    var appId = link.getAttribute('data-app-id');\n" +
+        "    var pageId = link.getAttribute('data-page-id');\n" +
+        "    var session = link.getAttribute('data-session');\n" +
+        "    var parts = window.location.pathname.split('/').filter(Boolean);\n" +
+        "    var ordsIdx = parts.indexOf('ords');\n" +
+        "    var schema = null;\n" +
+        "    if (ordsIdx !== -1) { schema = (parts[ordsIdx + 1] === 'r') ? parts[ordsIdx + 2] : parts[ordsIdx + 1]; }\n" +
+        "    if (schema && appId && pageId && session) {\n" +
+        "      link.href = window.location.origin + '/ords/' + schema + '/f?p=' + appId + ':' + pageId + ':' + session + ':LOGOUT';\n" +
+        "    } else {\n" +
+        "      link.href = 'f?p=' + appId + ':' + pageId + ':' + session + ':LOGOUT';\n" +
+        "    }\n" +
+        "  })();\n";
+      js = snippet + js;
+    }
+    return { html: html, js: js };
+  }
+
+  function removeSignoutScaffolding(html, js, signoutId){
+    if (!signoutId) return { html: html, js: js };
+    html = html.replace(new RegExp('(<a\\b[^>]*\\bid=["\']'+escapeRe(signoutId)+'["\'][^>]*?)\\s*data-app-id="[^"]*"\\s*data-page-id="[^"]*"\\s*data-session="[^"]*"([^>]*?)\\s*href="#"', 'i'),
+        '$1$2 href="signed_out.html"');
+    js = js.replace(/\/\/ Sign-out URL builder[\s\S]*?\}\)\(\);\n?/, '');
+    return { html: html, js: js };
+  }
+
+  /* ---------- main conversions ---------- */
+
+  function convertPlainToApex(src, o){
+    var doc = new DOMParser().parseFromString(src, 'text/html');
+    var styleText = Array.prototype.map.call(doc.querySelectorAll('style'), function(s){return s.textContent;}).join('\n\n');
+    var scriptText = Array.prototype.map.call(doc.querySelectorAll('script'), function(s){return s.textContent;}).join('\n\n');
+    doc.querySelectorAll('style, script').forEach(function(n){ n.remove(); });
+
+    var bodyChildren = Array.prototype.slice.call(doc.body.children);
+    var rootHtml;
+    if (bodyChildren.length === 1 && bodyChildren[0].id){
+      o.rootId = bodyChildren[0].id;
+      rootHtml = bodyChildren[0].outerHTML;
+    } else {
+      var wrapper = doc.createElement('div');
+      wrapper.id = o.rootId;
+      bodyChildren.forEach(function(c){ wrapper.appendChild(c); });
+      rootHtml = wrapper.outerHTML;
+    }
+
+    var css = scopeCss(styleText, o.rootId);
+
+    var withUrls = rewriteDataUrlsForward(rootHtml, o.appFiles);
+    // Sign-out scaffolding must be injected before the IIFE wrap happens,
+    // so the builder snippet ends up nested inside it rather than sitting
+    // as a separate sibling block before it.
+    var signout = addSignout(withUrls, scriptText, o.signoutId, o.pageId);
+
+    var ns = namespaceForward(signout.html, signout.js, o.ns);
+    var html = ns.html, js = ns.js;
+    if (o.scopeQuery) js = scopeQueriesForward(js, o.rootId);
+    js = js.replace(/document\.body\.classList/g, "document.getElementById('"+o.rootId+"').classList");
+    js = js.replace(/document\.body\b(?!\.classList)/g, "document.getElementById('"+o.rootId+"')");
+
+    var combined = applyMappingsForward(css + '\u0000' + html + '\u0000' + js, o.mappings);
+    var parts = combined.split('\u0000');
+    css = parts[0]; html = parts[1]; js = parts[2];
+
+    return '<style>\n' + css.trim() + '\n</style>\n\n' + html + '\n\n<script>\n' + js.trim() + '\n<\/script>';
+  }
+
+  function convertApexToPlain(src, o){
+    var styleMatch = src.match(/<style>([\s\S]*?)<\/style>/);
+    var scriptMatch = src.match(/<script>([\s\S]*?)<\/script>/);
+    var css = styleMatch ? styleMatch[1] : '';
+    var js = scriptMatch ? scriptMatch[1] : '';
+    var rest = src
+      .replace(/<style>[\s\S]*?<\/style>/, '')
+      .replace(/<script>[\s\S]*?<\/script>/, '')
+      .trim();
+
+    var idMatch = rest.match(/id="([\w-]+)"/);
+    var rootId = idMatch ? idMatch[1] : o.rootId;
+    o.rootId = rootId;
+
+    css = unscopeCss(css, rootId);
+
+    var bodyContent = rest;
+    if (o.unwrap){
+      var div = new DOMParser().parseFromString(rest, 'text/html').body.firstElementChild;
+      if (div) bodyContent = div.innerHTML.trim();
+    }
+
+    if (o.dataUrl) bodyContent = rewriteDataUrlsReverse(bodyContent, o.appFiles);
+
+    var un = namespaceReverse(bodyContent, js, o.ns);
+    bodyContent = un.html; js = un.js;
+    if (o.scopeQuery) js = scopeQueriesReverse(js, rootId);
+    js = js.replace(new RegExp("document\\.getElementById\\('"+escapeRe(rootId)+"'\\)\\.classList", 'g'), 'document.body.classList');
+    js = js.replace(new RegExp("document\\.getElementById\\('"+escapeRe(rootId)+"'\\)", 'g'), 'document.body');
+
+    var rem = removeSignoutScaffolding(bodyContent, js, o.signoutId);
+    bodyContent = rem.html; js = rem.js;
+
+    var combined = applyMappingsReverse(css + '\u0000' + bodyContent + '\u0000' + js, o.mappings);
+    var parts = combined.split('\u0000');
+    css = parts[0]; bodyContent = parts[1]; js = parts[2];
+
+    return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n' +
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+      '<title>' + o.title + '</title>\n<style>\n' + css.trim() + '\n</style>\n</head>\n<body>\n\n' +
+      bodyContent + '\n\n<script>\n' + js.trim() + '\n<\/script>\n</body>\n</html>';
+  }
+
+  /* ---------- UI wiring ---------- */
+
+  window.flipDirection = function(){
+    direction = direction === 'plain-to-apex' ? 'apex-to-plain' : 'plain-to-apex';
+    document.getElementById('dirPill').classList.toggle('flipped');
+    document.body.classList.toggle('dir-apex-to-plain');
+    var toApex = direction === 'plain-to-apex';
+    document.getElementById('inLabel').textContent = toApex ? 'Plain HTML source' : 'APEX region source';
+    document.getElementById('outLabel').textContent = toApex ? 'APEX region output' : 'Plain HTML output';
+  };
+
+  window.loadSample = function(){
+    var toApex = direction === 'plain-to-apex';
+    document.getElementById('inputArea').value = toApex ? SAMPLE_PLAIN : SAMPLE_APEX;
+  };
+
+  window.runConvert = function(){
+    var src = document.getElementById('inputArea').value;
+    if (!src.trim()){ document.getElementById('outputArea').value = ''; return; }
+    var o = opts();
+    var out;
+    try {
+      out = direction === 'plain-to-apex' ? convertPlainToApex(src, o) : convertApexToPlain(src, o);
+    } catch (e){
+      out = '/* Conversion error: ' + e.message + ' */';
+    }
+    document.getElementById('outputArea').value = out;
+  };
+
+  window.swapPanes = function(){
+    var out = document.getElementById('outputArea').value;
+    if (!out.trim()) return;
+    document.getElementById('inputArea').value = out;
+    document.getElementById('outputArea').value = '';
+    window.flipDirection();
+  };
+
+  window.copyOutput = function(){
+    var ta = document.getElementById('outputArea');
+    ta.select();
+    document.execCommand('copy');
+  };
+
+  window.downloadOutput = function(){
+    var out = document.getElementById('outputArea').value;
+    if (!out.trim()) return;
+    var blob = new Blob([out], {type:'text/html'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = direction === 'plain-to-apex' ? 'apex-region.html' : 'plain-page.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+})();
+</script>
+</body>
+</html>
