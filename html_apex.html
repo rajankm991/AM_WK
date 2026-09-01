@@ -138,26 +138,36 @@
   }
   textarea::placeholder { color: #98a2b3; }
 
-  .pane-foot {
-    display: flex; gap: 0.5rem; padding: 0.6rem 1rem;
-    border-top: 1px solid var(--border); background: #ffffff;
-  }
+  .header-actions { display: flex; gap: 0.5rem; }
 
   /* ==========================================================================
      6. Options Panel
      ========================================================================== */
   details.options {
-    background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
-    padding: 0.25rem 1.1rem 1.1rem; box-shadow: 0 4px 12px rgba(0,0,72,0.06);
+    position: relative;
   }
   details.options summary {
-    cursor: pointer; padding: 0.85rem 0; font-weight: 700; font-size: 0.85rem;
-    list-style: none; display: flex; align-items: center; gap: 8px;
-    color: var(--cog-navy);
+    background: #ffffff; border: 1px solid var(--border-dark); color: var(--cog-navy);
+    padding: 0.4rem 0.85rem; border-radius: 4px; font-size: 0.78rem; font-weight: 600;
+    cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  }
+  details.options summary:hover {
+    background: var(--cog-blue); color: #ffffff; border-color: var(--cog-blue);
   }
   details.options summary::-webkit-details-marker { display: none; }
-  details.options summary .chev { transition: transform .15s; color: #8a94a3; }
+  details.options summary .chev { transition: transform .15s; color: inherit; }
   details.options[open] summary .chev { transform: rotate(90deg); }
+
+  details.options .options-body {
+    position: absolute; top: calc(100% + 8px); left: 0; z-index: 500;
+    width: min(760px, 92vw); max-height: 75vh; overflow-y: auto;
+    background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.1rem 1.1rem; box-shadow: 0 12px 32px rgba(0,0,72,0.18);
+  }
+  @media (max-width: 700px) {
+    details.options .options-body { left: auto; right: 0; }
+  }
 
   .opt-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem; }
   @media (max-width: 860px) { .opt-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -191,6 +201,11 @@
   .map-box textarea.map:focus { outline: none; border-color: var(--cog-blue); }
   .hint { color: #57606a; font-size: 0.72rem; margin-top: 6px; line-height: 1.5; }
 
+  .header-mode-group {
+    background: #f4f6f9; border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.9rem 1rem; margin-bottom: 0.5rem;
+  }
+
   /* ==========================================================================
      7. Footer Notes
      ========================================================================== */
@@ -218,6 +233,62 @@
       <span class="arrow" id="dirArrow">➜</span>
       <span class="side apex" id="sideRight">APEX Region</span>
     </div>
+
+    <details class="options">
+      <summary><span class="chev">▶</span> Options</summary>
+      <div class="options-body">
+
+        <div class="header-mode-group">
+          <div class="hint" style="margin:0 0 8px;font-weight:700;color:var(--cog-navy);">Header handling (choose one before converting)</div>
+          <div class="check-row"><input type="checkbox" id="optForceHeader" checked><label for="optForceHeader">&nbsp;Force the standard AM Workspace header (navbar, clock, user avatar via <code>&amp;APP_USER.</code>, sign-out) onto every conversion</label></div>
+          <div class="check-row"><input type="checkbox" id="optAddMinimalChip"><label for="optAddMinimalChip">&nbsp;Add a top-right bar with clock + <code>&amp;APP_USER.</code> avatar/username, dropdown menu, and sign-out — works whether the source page has its own header or not; an existing header is left as-is</label></div>
+        </div>
+
+        <div class="opt-grid" style="margin-top:1rem;">
+          <div class="field">
+            <label>Root element ID</label>
+            <input type="text" id="optRootId" value="amws-root">
+          </div>
+          <div class="field">
+            <label>JS namespace prefix</label>
+            <input type="text" id="optNs" value="amws">
+          </div>
+          <div class="field">
+            <label>APP_FILES substitution</label>
+            <input type="text" id="optAppFiles" value="#APP_FILES#">
+          </div>
+          <div class="field">
+            <label>Document &lt;title&gt; (reverse only)</label>
+            <input type="text" id="optTitle" value="AM Workspace">
+          </div>
+        </div>
+
+        <div class="check-row"><input type="checkbox" id="optScopeQuery" checked><label for="optScopeQuery">&nbsp;Scope class-based <code>querySelector(All)</code> calls to the root id</label></div>
+        <div class="check-row"><input type="checkbox" id="optDataUrl" checked><label for="optDataUrl">&nbsp;Rewrite relative <code>data-url</code> file references with the APP_FILES token</label></div>
+        <div class="check-row"><input type="checkbox" id="optUnwrap" checked><label for="optUnwrap">&nbsp;(Reverse) unwrap the root &lt;div&gt; into &lt;body&gt; directly</label></div>
+
+        <div class="opt-grid" style="grid-template-columns:repeat(2,1fr);margin-top:4px;">
+          <div class="field">
+            <label>Sign-out element ID (leave blank to skip)</label>
+            <input type="text" id="optSignoutId" value="signOutLink">
+          </div>
+          <div class="field">
+            <label>APEX page ID for sign-out</label>
+            <input type="text" id="optPageId" value="3">
+          </div>
+        </div>
+
+        <div class="map-box">
+          <label>Literal ⇄ substitution-string mappings — one per line, format <code>literal text => &amp;SUBSTITUTION.</code></label>
+          <textarea class="map" id="optMappings" placeholder="FMS-AM => &APP_USER.&#10;signed_out.html => (handled by Sign-out ID option above)"></textarea>
+          <div class="hint">Applied left→right when converting to APEX, right→left when converting back to plain HTML. Matching is literal (case-sensitive) text replacement.</div>
+        </div>
+
+      </div>
+    </details>
+  </div>
+
+  <div class="rail">
     <button class="btn primary" onclick="runConvert()">Convert</button>
     <button class="file-btn" onclick="loadSample()">Load sample</button>
     <div class="spacer"></div>
@@ -237,58 +308,17 @@
       <textarea id="inputArea" spellcheck="false" placeholder="Paste your source HTML here…"></textarea>
     </div>
     <div class="pane out card">
-      <div class="card-header"><span class="label apex" id="outLabel">APEX region output</span></div>
-      <textarea id="outputArea" spellcheck="false" readonly placeholder="Converted output appears here…"></textarea>
-      <div class="pane-foot">
-        <button class="file-btn" onclick="copyOutput()">Copy</button>
-        <button class="file-btn" onclick="downloadOutput()">Download .html</button>
+      <div class="card-header">
+        <span class="label apex" id="outLabel">APEX region output</span>
+        <div class="header-actions">
+          <button class="file-btn" onclick="copyOutput()">Copy</button>
+          <button class="file-btn" onclick="downloadOutput()">Download .html</button>
+        </div>
       </div>
+      <textarea id="outputArea" spellcheck="false" readonly placeholder="Converted output appears here…"></textarea>
     </div>
   </div>
 
-  <details class="options">
-    <summary><span class="chev">▶</span> Options</summary>
-
-    <div class="opt-grid">
-      <div class="field">
-        <label>Root element ID</label>
-        <input type="text" id="optRootId" value="amws-root">
-      </div>
-      <div class="field">
-        <label>JS namespace prefix</label>
-        <input type="text" id="optNs" value="amws">
-      </div>
-      <div class="field">
-        <label>APP_FILES substitution</label>
-        <input type="text" id="optAppFiles" value="#APP_FILES#">
-      </div>
-      <div class="field">
-        <label>Document &lt;title&gt; (reverse only)</label>
-        <input type="text" id="optTitle" value="AM Workspace">
-      </div>
-    </div>
-
-    <div class="check-row"><input type="checkbox" id="optScopeQuery" checked><label for="optScopeQuery">&nbsp;Scope class-based <code>querySelector(All)</code> calls to the root id</label></div>
-    <div class="check-row"><input type="checkbox" id="optDataUrl" checked><label for="optDataUrl">&nbsp;Rewrite relative <code>data-url</code> file references with the APP_FILES token</label></div>
-    <div class="check-row"><input type="checkbox" id="optUnwrap" checked><label for="optUnwrap">&nbsp;(Reverse) unwrap the root &lt;div&gt; into &lt;body&gt; directly</label></div>
-
-    <div class="opt-grid" style="grid-template-columns:repeat(2,1fr);margin-top:4px;">
-      <div class="field">
-        <label>Sign-out element ID (leave blank to skip)</label>
-        <input type="text" id="optSignoutId" value="signOutLink">
-      </div>
-      <div class="field">
-        <label>APEX page ID for sign-out</label>
-        <input type="text" id="optPageId" value="3">
-      </div>
-    </div>
-
-    <div class="map-box">
-      <label>Literal ⇄ substitution-string mappings — one per line, format <code>literal text => &amp;SUBSTITUTION.</code></label>
-      <textarea class="map" id="optMappings" placeholder="FMS-AM => &APP_USER.&#10;signed_out.html => (handled by Sign-out ID option above)"></textarea>
-      <div class="hint">Applied left→right when converting to APEX, right→left when converting back to plain HTML. Matching is literal (case-sensitive) text replacement.</div>
-    </div>
-  </details>
 
   <footer class="notes">
     <b>How this works:</b> CSS selectors are rescoped under the root id (<code>body</code> → <code>#root</code>, bare classes get <code>#root </code> prefixed, <code>@keyframes</code> is left untouched). Inline-handler functions get namespaced and exposed on <code>window</code>; helper functions only used internally stay as plain declarations inside the wrapping IIFE. Function detection tolerates normal indentation but is still line-based, not a real parser — it can occasionally pick up a shallow nested function, and won't see anything defined inside a single-line or minified script. This is a best-effort, regex-based rewrite — always review the output.
@@ -322,6 +352,23 @@
     }
   };
 
+  // ── Header mode is one-or-the-other, not both ──
+  (function () {
+    var forceCb = document.getElementById('optForceHeader');
+    var miniCb = document.getElementById('optAddMinimalChip');
+    forceCb.addEventListener('change', function(){ if (forceCb.checked) miniCb.checked = false; });
+    miniCb.addEventListener('change', function(){ if (miniCb.checked) forceCb.checked = false; });
+  })();
+
+  // ── Close the Options dropdown on any outside click, regardless of
+  // whether anything inside it was changed ──
+  document.addEventListener('click', function (e) {
+    var det = document.querySelector('details.options');
+    if (det && det.open && !det.contains(e.target)) {
+      det.open = false;
+    }
+  });
+
   function opts(){
     return {
       rootId: document.getElementById('optRootId').value.trim() || 'amws-root',
@@ -331,7 +378,9 @@
       scopeQuery: document.getElementById('optScopeQuery').checked,
       dataUrl: document.getElementById('optDataUrl').checked,
       unwrap: document.getElementById('optUnwrap').checked,
-      signoutId: document.getElementById('optSignoutId').value.trim(),
+      forceHeader: document.getElementById('optForceHeader').checked,
+      addMinimalChip: document.getElementById('optAddMinimalChip').checked,
+      signoutId: document.getElementById('optSignoutId').value.trim() || 'signOutLink',
       pageId: document.getElementById('optPageId').value.trim() || '0',
       mappings: parseMappings(document.getElementById('optMappings').value)
     };
@@ -533,6 +582,286 @@
     return js.replace(re, '$1');
   }
 
+  /* ---------- standard AM Workspace header (forced injection) ---------- */
+
+  function stripExistingHeader(html){
+    return html.replace(/<header\b[\s\S]*?<\/header>/i, '');
+  }
+
+  function injectAfterOpenTag(html, injected){
+    var idx = html.indexOf('>');
+    if (idx === -1) return injected + html;
+    return html.slice(0, idx+1) + '\n' + injected + '\n' + html.slice(idx+1);
+  }
+
+  function wrapContentWithHeader(rootHtml, headerHtml){
+    // Puts the header and the ORIGINAL content into separate boxes, instead of
+    // making them flex siblings of the root. If the source page centered its
+    // content via flex rules on body/root, those rules would otherwise also
+    // pull the header into that same centering group — shrinking/shifting it
+    // off to the side along with the content (exactly the bug this avoids).
+    var openEnd = rootHtml.indexOf('>');
+    if (openEnd === -1) return headerHtml + rootHtml;
+    var openTag = rootHtml.slice(0, openEnd + 1);
+    var tagNameMatch = openTag.match(/^<([a-zA-Z][\w-]*)/);
+    var tagName = tagNameMatch ? tagNameMatch[1] : 'div';
+    var rest = rootHtml.slice(openEnd + 1);
+    var closeTagPattern = '</' + tagName + '>';
+    var closeIdx = rest.lastIndexOf(closeTagPattern);
+    var innerContent = closeIdx !== -1 ? rest.slice(0, closeIdx) : rest;
+    var trailingClose = closeIdx !== -1 ? rest.slice(closeIdx) : ('</' + tagName + '>');
+
+    return openTag + '\n' + headerHtml + '\n' +
+      '<div class="amws-body-wrap" id="amwsBodyWrap">' + innerContent + '</div>\n' +
+      trailingClose;
+  }
+
+  function buildStandardHeader(o){
+    var ns = o.ns;
+    var signoutId = o.signoutId || 'signOutLink';
+    var pageId = o.pageId || '0';
+
+    var css = [
+      // Force the root into a simple top-to-bottom stack: header, then the
+      // wrapped content. !important overrides any flex row/centering the
+      // source page's own body rules set, which would otherwise treat the
+      // header as just another item to be centered/shrunk alongside the content.
+      'body { display:flex !important; flex-direction:column !important; align-items:stretch !important; justify-content:flex-start !important; height:100vh !important; overflow-y:auto !important; }',
+      // The wrapper takes whatever centering the page needs for its own content,
+      // independently of the header above it.
+      '.amws-body-wrap { flex:1 1 auto; min-height:0; width:100%; display:flex; align-items:center; justify-content:center; overflow:auto; box-sizing:border-box; }',
+      'header.navbar { position:sticky; top:0; left:0; width:100%; max-width:100%; align-self:stretch; box-sizing:border-box; height:45px; background:linear-gradient(135deg,#003A8C 0%,#0066CC 60%,#0052CC 100%); padding:0 0.75rem; display:flex; align-items:center; justify-content:flex-start; box-shadow:0 2px 12px rgba(0,60,140,0.3); z-index:999999; flex-shrink:0; gap:0.75rem; }',
+      '.nav-toggle { width:30px; height:30px; flex-shrink:0; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); border-radius:6px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:0; transition:background-color .2s; }',
+      '.nav-toggle:hover { background:rgba(255,255,255,0.25); }',
+      '.nav-toggle span { display:block; width:15px; height:2px; border-radius:2px; background:#ffffff; }',
+      '.brand { display:flex; align-items:center; gap:0.75rem; flex-shrink:0; }',
+      '.brand-logo-wrapper { background:#ffffff; padding:0.2rem 0.5rem; border-radius:12px; display:flex; align-items:center; justify-content:center; }',
+      '.brand-logo-img { height:16px; width:auto; display:block; }',
+      '.brand-tag { font-size:0.65rem; background:rgba(255,255,255,0.12); color:#ffffff; padding:0.15rem 0.45rem; border-radius:12px; letter-spacing:0.05em; text-transform:uppercase; font-weight:500; border:1px solid rgba(255,255,255,0.15); }',
+      '.hdr-right { margin-left:auto; display:flex; align-items:center; gap:10px; flex-shrink:0; }',
+      '.clk { font-size:11px; color:rgba(255,255,255,0.7); font-family:Consolas,\'SFMono-Regular\',ui-monospace,monospace; font-variant-numeric:tabular-nums; white-space:nowrap; }',
+      '.user-chip { display:flex; align-items:center; gap:7px; padding:4px 10px; border-radius:20px; background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.25); color:#ffffff; font-size:11px; font-weight:600; white-space:nowrap; cursor:pointer; user-select:none; }',
+      '.user-chip:hover { background:rgba(255,255,255,0.2); }',
+      '.user-avatar { width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; overflow:hidden; white-space:nowrap; }',
+      '.user-chip .chev { width:11px; height:11px; opacity:0.7; fill:none; stroke:currentColor; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; transition:transform .15s ease; }',
+      '.user-chip.menu-open .chev { transform:rotate(180deg); }',
+      '.user-chip-wrap { position:relative; flex-shrink:0; }',
+      '.user-menu { position:absolute; top:calc(100% + 8px); right:0; min-width:170px; background:#ffffff; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,40,0.25); padding:6px; display:none; z-index:1100; }',
+      '.user-menu.open { display:block; }',
+      '.user-menu-label { font-size:10px; color:#667085; padding:6px 8px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }',
+      '.user-menu-divider { height:1px; background:#eaecf0; margin:4px 0; }',
+      '.user-menu-item { display:flex; align-items:center; gap:8px; width:100%; padding:7px 8px; border:none; background:transparent; color:#b42318; font-family:inherit; font-size:12px; font-weight:600; text-align:left; text-decoration:none; border-radius:6px; cursor:pointer; }',
+      '.user-menu-item:hover { background:#fef3f2; }',
+      '.user-menu-item svg { width:14px; height:14px; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }'
+    ].join('\n');
+
+    var html =
+      '<header class="navbar">\n' +
+      '  <button class="nav-toggle" id="navToggle" type="button" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="true" onclick="'+ns+'ToggleNav()">\n' +
+      '    <span></span><span></span><span></span>\n' +
+      '  </button>\n' +
+      '  <div class="brand">\n' +
+      '    <div class="brand-logo-wrapper">\n' +
+      '      <img src="https://careers.cognizant.com/images/logo.svg" alt="Cognizant Logo" class="brand-logo-img">\n' +
+      '    </div>\n' +
+      '    <div class="brand-tag">AM Workspace</div>\n' +
+      '  </div>\n' +
+      '  <div class="hdr-right">\n' +
+      '    <span class="clk" id="clkEl"></span>\n' +
+      '    <div class="user-chip-wrap">\n' +
+      '      <div class="user-chip" id="userChip" title="Signed-in user" onclick="'+ns+'ToggleUserMenu(event)">\n' +
+      '        <div class="user-avatar" id="userAvatar">&nbsp;</div>\n' +
+      '        <span id="userChipName">&APP_USER.</span>\n' +
+      '        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>\n' +
+      '      </div>\n' +
+      '      <div class="user-menu" id="userMenu">\n' +
+      '        <div class="user-menu-label" id="userMenuLabel"></div>\n' +
+      '        <div class="user-menu-divider"></div>\n' +
+      '        <a class="user-menu-item" id="'+signoutId+'" href="#" data-app-id="&APP_ID." data-page-id="'+pageId+'" data-session="&SESSION.">\n' +
+      '          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>\n' +
+      '          Sign Out\n' +
+      '        </a>\n' +
+      '      </div>\n' +
+      '    </div>\n' +
+      '  </div>\n' +
+      '</header>';
+
+    var js =
+      '// Standard AM Workspace header wiring (injected)\n' +
+      'window.'+ns+'ToggleNav = function () {\n' +
+      '  var root = document.getElementById(\''+o.rootId+'\');\n' +
+      '  var collapsed = root.classList.toggle(\'nav-collapsed\');\n' +
+      '  var t = document.getElementById(\'navToggle\');\n' +
+      '  if (t) { t.setAttribute(\'aria-expanded\', String(!collapsed)); }\n' +
+      '};\n' +
+      'window.'+ns+'ToggleUserMenu = function (e) {\n' +
+      '  if (e) { e.stopPropagation(); }\n' +
+      '  var chip = document.getElementById(\'userChip\');\n' +
+      '  var menu = document.getElementById(\'userMenu\');\n' +
+      '  var isOpen = menu.classList.contains(\'open\');\n' +
+      '  if (isOpen) { menu.classList.remove(\'open\'); chip.classList.remove(\'menu-open\'); }\n' +
+      '  else { menu.classList.add(\'open\'); chip.classList.add(\'menu-open\'); }\n' +
+      '};\n' +
+      'document.addEventListener(\'click\', function (e) {\n' +
+      '  var wrap = document.querySelector(\'.user-chip-wrap\');\n' +
+      '  if (wrap && !wrap.contains(e.target)) {\n' +
+      '    var menu = document.getElementById(\'userMenu\'), chip = document.getElementById(\'userChip\');\n' +
+      '    if (menu) { menu.classList.remove(\'open\'); }\n' +
+      '    if (chip) { chip.classList.remove(\'menu-open\'); }\n' +
+      '  }\n' +
+      '});\n' +
+      '// Avatar initial, derived from the resolved &APP_USER. text\n' +
+      '(function () {\n' +
+      '  try {\n' +
+      '    var nameEl = document.getElementById(\'userChipName\');\n' +
+      '    var avatarEl = document.getElementById(\'userAvatar\');\n' +
+      '    var menuLabelEl = document.getElementById(\'userMenuLabel\');\n' +
+      '    if (nameEl) {\n' +
+      '      var label = (nameEl.textContent || \'\').replace(/&[A-Za-z_][A-Za-z0-9_]*\\./g, \'\').trim();\n' +
+      '      if (avatarEl) { avatarEl.textContent = label ? label.charAt(0).toUpperCase() : \'?\'; }\n' +
+      '      if (menuLabelEl) { menuLabelEl.textContent = label; }\n' +
+      '    }\n' +
+      '  } catch (e) { /* never let this block the rest of the page\'s script */ }\n' +
+      '})();\n' +
+      '// Live clock\n' +
+      '(function () {\n' +
+      '  function tick() {\n' +
+      '    var el = document.getElementById(\'clkEl\');\n' +
+      '    if (el) { el.textContent = new Date().toLocaleTimeString(\'en-IN\', { hour: \'2-digit\', minute: \'2-digit\', second: \'2-digit\' }); }\n' +
+      '  }\n' +
+      '  tick();\n' +
+      '  setInterval(tick, 1000);\n' +
+      '})();\n' +
+      '// Sign-out URL builder\n' +
+      '(function () {\n' +
+      '  var link = document.getElementById(\''+signoutId+'\');\n' +
+      '  if (!link) { return; }\n' +
+      '  var appId = link.getAttribute(\'data-app-id\');\n' +
+      '  var pgId = link.getAttribute(\'data-page-id\');\n' +
+      '  var session = link.getAttribute(\'data-session\');\n' +
+      '  var parts = window.location.pathname.split(\'/\').filter(Boolean);\n' +
+      '  var ordsIdx = parts.indexOf(\'ords\');\n' +
+      '  var schema = null;\n' +
+      '  if (ordsIdx !== -1) { schema = (parts[ordsIdx + 1] === \'r\') ? parts[ordsIdx + 2] : parts[ordsIdx + 1]; }\n' +
+      '  if (schema && appId && pgId && session) {\n' +
+      '    link.href = window.location.origin + \'/ords/\' + schema + \'/f?p=\' + appId + \':\' + pgId + \':\' + session + \':LOGOUT\';\n' +
+      '  } else {\n' +
+      '    link.href = \'f?p=\' + appId + \':\' + pgId + \':\' + session + \':LOGOUT\';\n' +
+      '  }\n' +
+      '})();\n';
+
+    return { css: css, html: html, js: js };
+  }
+
+  function buildMinimalUserChip(o){
+    var ns = o.ns;
+    var pageId = o.pageId || '0';
+    var barSignoutId = ns + 'MiniSignOut'; // deliberately separate from o.signoutId, so this
+                                            // never collides with an id an existing kept-as-is
+                                            // header might already be using for its own sign-out link.
+
+    var css = [
+      '.amws-mini-bar { position: fixed; top: 10px; right: 14px; z-index: 999999; display:flex; align-items:center; gap:10px; font-family: sans-serif; line-height:1; }',
+      '.amws-mini-clk { font-size:11px; color:#000048; font-family:Consolas,\'SFMono-Regular\',ui-monospace,monospace; font-variant-numeric:tabular-nums; white-space:nowrap; background:#ffffff; padding:6px 10px; border-radius:20px; box-shadow:0 2px 10px rgba(0,0,72,0.2); }',
+      '.amws-mini-chip-wrap { position: relative; }',
+      '.amws-mini-chip { display:flex; align-items:center; gap:7px; padding:4px 10px 4px 4px; border-radius:20px; background:#0052CC; color:#ffffff; font-size:11px; font-weight:600; cursor:pointer; user-select:none; box-shadow:0 2px 10px rgba(0,0,72,0.35); white-space:nowrap; }',
+      '.amws-mini-chip:hover { background:#003d99; }',
+      '.amws-mini-avatar { width:22px; height:22px; min-width:22px; border-radius:50%; background:#ffffff; color:#0052CC; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; line-height:1; flex-shrink:0; overflow:hidden; }',
+      '.amws-mini-chip .chev { width:11px; height:11px; opacity:0.7; fill:none; stroke:currentColor; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; transition:transform .15s ease; }',
+      '.amws-mini-chip.menu-open .chev { transform:rotate(180deg); }',
+      '.amws-mini-menu { position:absolute; top:calc(100% + 8px); right:0; min-width:170px; background:#ffffff; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,40,0.25); padding:6px; display:none; z-index:1100; }',
+      '.amws-mini-menu.open { display:block; }',
+      '.amws-mini-menu-label { font-size:10px; color:#667085; padding:6px 8px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }',
+      '.amws-mini-menu-divider { height:1px; background:#eaecf0; margin:4px 0; }',
+      '.amws-mini-menu-item { display:flex; align-items:center; gap:8px; width:100%; padding:7px 8px; border:none; background:transparent; color:#b42318; font-family:inherit; font-size:12px; font-weight:600; text-align:left; text-decoration:none; border-radius:6px; cursor:pointer; }',
+      '.amws-mini-menu-item:hover { background:#fef3f2; }',
+      '.amws-mini-menu-item svg { width:14px; height:14px; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }'
+    ].join('\n');
+
+    var html =
+      '<div class="amws-mini-bar" id="'+ns+'MiniBar">\n' +
+      '  <span class="amws-mini-clk" id="'+ns+'MiniClk"></span>\n' +
+      '  <div class="amws-mini-chip-wrap">\n' +
+      '    <div class="amws-mini-chip" id="'+ns+'MiniChip" onclick="'+ns+'ToggleMiniMenu(event)">\n' +
+      '      <div class="amws-mini-avatar" id="'+ns+'MiniAvatar">&nbsp;</div>\n' +
+      '      <span id="'+ns+'MiniUserName">&APP_USER.</span>\n' +
+      '      <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>\n' +
+      '    </div>\n' +
+      '    <div class="amws-mini-menu" id="'+ns+'MiniMenu">\n' +
+      '      <div class="amws-mini-menu-label" id="'+ns+'MiniMenuLabel"></div>\n' +
+      '      <div class="amws-mini-menu-divider"></div>\n' +
+      '      <a class="amws-mini-menu-item" id="'+barSignoutId+'" href="#" data-app-id="&APP_ID." data-page-id="'+pageId+'" data-session="&SESSION.">\n' +
+      '        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>\n' +
+      '        Sign Out\n' +
+      '      </a>\n' +
+      '    </div>\n' +
+      '  </div>\n' +
+      '</div>';
+
+    var js =
+      "// Top-right bar — clock, dropdown, sign-out, &APP_USER.-driven avatar.\n" +
+      "// Works whether the source page has its own header or not; that header\n" +
+      "// (if present) is left completely untouched — this is a separate, self-\n" +
+      "// contained overlay using its own uniquely-namespaced ids throughout.\n" +
+      'window.'+ns+'ToggleMiniMenu = function (e) {\n' +
+      '  if (e) { e.stopPropagation(); }\n' +
+      '  var chip = document.getElementById(\''+ns+'MiniChip\');\n' +
+      '  var menu = document.getElementById(\''+ns+'MiniMenu\');\n' +
+      '  var isOpen = menu.classList.contains(\'open\');\n' +
+      '  if (isOpen) { menu.classList.remove(\'open\'); chip.classList.remove(\'menu-open\'); }\n' +
+      '  else { menu.classList.add(\'open\'); chip.classList.add(\'menu-open\'); }\n' +
+      '};\n' +
+      'document.addEventListener(\'click\', function (e) {\n' +
+      '  var wrap = document.querySelector(\'.amws-mini-chip-wrap\');\n' +
+      '  if (wrap && !wrap.contains(e.target)) {\n' +
+      '    var menu = document.getElementById(\''+ns+'MiniMenu\'), chip = document.getElementById(\''+ns+'MiniChip\');\n' +
+      '    if (menu) { menu.classList.remove(\'open\'); }\n' +
+      '    if (chip) { chip.classList.remove(\'menu-open\'); }\n' +
+      '  }\n' +
+      '});\n' +
+      "// Avatar initial, derived from the resolved &APP_USER. text\n" +
+      "(function () {\n" +
+      "  try {\n" +
+      "    var nameEl = document.getElementById('"+ns+"MiniUserName');\n" +
+      "    var avatarEl = document.getElementById('"+ns+"MiniAvatar');\n" +
+      "    var menuLabelEl = document.getElementById('"+ns+"MiniMenuLabel');\n" +
+      "    if (nameEl) {\n" +
+      "      var label = (nameEl.textContent || '').replace(/&[A-Za-z_][A-Za-z0-9_]*\\./g, '').trim();\n" +
+      "      if (avatarEl) { avatarEl.textContent = label ? label.charAt(0).toUpperCase() : '?'; }\n" +
+      "      if (menuLabelEl) { menuLabelEl.textContent = label; }\n" +
+      "    }\n" +
+      "  } catch (e) { /* never let this block the rest of the page's script */ }\n" +
+      "})();\n" +
+      "// Live clock\n" +
+      "(function () {\n" +
+      "  function tick() {\n" +
+      "    var el = document.getElementById('"+ns+"MiniClk');\n" +
+      "    if (el) { el.textContent = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }\n" +
+      "  }\n" +
+      "  tick();\n" +
+      "  setInterval(tick, 1000);\n" +
+      "})();\n" +
+      "// Sign-out URL builder (this bar's own dedicated link)\n" +
+      "(function () {\n" +
+      "  var link = document.getElementById('"+barSignoutId+"');\n" +
+      "  if (!link) { return; }\n" +
+      "  var appId = link.getAttribute('data-app-id');\n" +
+      "  var pgId = link.getAttribute('data-page-id');\n" +
+      "  var session = link.getAttribute('data-session');\n" +
+      "  var parts = window.location.pathname.split('/').filter(Boolean);\n" +
+      "  var ordsIdx = parts.indexOf('ords');\n" +
+      "  var schema = null;\n" +
+      "  if (ordsIdx !== -1) { schema = (parts[ordsIdx + 1] === 'r') ? parts[ordsIdx + 2] : parts[ordsIdx + 1]; }\n" +
+      "  if (schema && appId && pgId && session) {\n" +
+      "    link.href = window.location.origin + '/ords/' + schema + '/f?p=' + appId + ':' + pgId + ':' + session + ':LOGOUT';\n" +
+      "  } else {\n" +
+      "    link.href = 'f?p=' + appId + ':' + pgId + ':' + session + ':LOGOUT';\n" +
+      "  }\n" +
+      "})();\n";
+
+    return { css: css, html: html, js: js };
+  }
+
   /* ---------- sign-out scaffolding ---------- */
 
   function addSignout(html, js, signoutId, pageId){
@@ -596,13 +925,40 @@
       rootHtml = wrapper.outerHTML;
     }
 
+    if (o.forceHeader){
+      // Strip whatever header the source page had (if any) and replace it
+      // with the fixed AM Workspace header — same navbar, same &APP_USER.-driven
+      // avatar, same sign-out link, on every single conversion regardless of input.
+      rootHtml = stripExistingHeader(rootHtml);
+      var hdr = buildStandardHeader(o);
+      rootHtml = wrapContentWithHeader(rootHtml, hdr.html);
+      styleText = hdr.css + '\n\n' + styleText;
+      scriptText = hdr.js + '\n\n' + scriptText;
+    } else if (o.addMinimalChip){
+      // Always drop in a top-right bar — clock, &APP_USER. avatar/username,
+      // dropdown, sign-out — regardless of whether the source page has its
+      // own header or not. An existing header (if any) is left completely
+      // untouched; the bar is a separate overlay with its own namespaced ids,
+      // so it can't collide with anything already on the page.
+      var mini = buildMinimalUserChip(o);
+      rootHtml = injectAfterOpenTag(rootHtml, mini.html);
+      styleText = mini.css + '\n\n' + styleText;
+      scriptText = mini.js + '\n\n' + scriptText;
+    }
+
     var css = scopeCss(styleText, o.rootId);
 
     var withUrls = rewriteDataUrlsForward(rootHtml, o.appFiles);
     // Sign-out scaffolding must be injected before the IIFE wrap happens,
     // so the builder snippet ends up nested inside it rather than sitting
-    // as a separate sibling block before it.
-    var signout = addSignout(withUrls, scriptText, o.signoutId, o.pageId);
+    // as a separate sibling block before it. Skipped only when forceHeader
+    // is on, since that header already ships its own fully-formed sign-out
+    // link + builder for the same id — running addSignout() again would
+    // duplicate attributes. The top-right bar mode still runs addSignout(),
+    // since the bar uses its own dedicated id and won't collide with it.
+    var signout = o.forceHeader
+      ? { html: withUrls, js: scriptText }
+      : addSignout(withUrls, scriptText, o.signoutId, o.pageId);
 
     var ns = namespaceForward(signout.html, signout.js, o.ns);
     var html = ns.html, js = ns.js;
