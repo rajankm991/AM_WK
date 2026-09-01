@@ -11,6 +11,7 @@
     :root {
       --cog-navy: #000048;
       --cog-blue: #0000ff;
+      --cog-orange: #c9600c;
       --border: #d0d7de;
       --border-dark: #bbc5d0;
       --editor-bg: #ffffff;
@@ -56,7 +57,51 @@
     }
 
     /* ==========================================================================
-       4. Editor Grid & Input Cards
+       4. Page Header / Title
+       ========================================================================== */
+    .page-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .page-title {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      font-size: 1.9rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .page-title .t-blue {
+      color: var(--cog-blue);
+    }
+
+    .page-title .t-orange {
+      color: var(--cog-orange);
+    }
+
+    .page-title .t-navy {
+      color: var(--cog-navy);
+    }
+
+    .page-title .t-arrow {
+      color: var(--cog-navy);
+      font-weight: 500;
+      font-size: 1.5rem;
+    }
+
+    .page-subtitle {
+      color: #57606a;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      max-width: 900px;
+    }
+
+    /* ==========================================================================
+       5. Editor Grid & Input Cards
        ========================================================================== */
     .editor-grid {
       display: grid;
@@ -111,7 +156,7 @@
     }
 
     /* ==========================================================================
-       5. Buttons & User Controls
+       6. Buttons & User Controls
        ========================================================================== */
     .controls {
       display: flex;
@@ -155,7 +200,7 @@
     }
 
     /* ==========================================================================
-       6. Stats Bar & Navigation Counters
+       7. Stats Bar & Navigation Counters
        ========================================================================== */
     .results-container {
       display: none;
@@ -229,7 +274,7 @@
     }
 
     /* ==========================================================================
-       7. Side-by-Side Diff Table
+       8. Side-by-Side Diff Table
        ========================================================================== */
     .diff-viewer {
       background: var(--editor-bg);
@@ -317,7 +362,7 @@
     }
 
     /* ==========================================================================
-       8. Floating Utilities
+       9. Floating Utilities
        ========================================================================== */
     .scroll-top-btn {
       position: fixed;
@@ -353,6 +398,10 @@
 </head>
 <body>
   <div class="container">
+    <div class="page-header">
+      <h1 class="page-title"><span class="t-blue">Text</span> <span class="t-arrow">&#8646;</span>  <span class="t-navy">Compare</span></h1>
+      <p class="page-subtitle">Compares two blocks of text side by side and highlights every difference: insertions, deletions, and whitespace-only shifts. Upload files or paste text, then step through each change with the navigation controls.</p>
+    </div>
     <div class="editor-grid">
       <div class="card"><div class="card-header"><span>Original Source</span><div class="file-input-wrapper"><button class="file-btn">Upload File</button><input type="file" id="file1"></div></div><textarea id="text1" placeholder="Paste original text..."></textarea></div>
       <div class="card"><div class="card-header"><span>Modified Source</span><div class="file-input-wrapper"><button class="file-btn">Upload File</button><input type="file" id="file2"></div></div><textarea id="text2" placeholder="Paste modified text..."></textarea></div>
